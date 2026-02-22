@@ -876,14 +876,14 @@
 
       <!-- Map Picker -->
       <div class="input-group" style="margin-bottom:0.75rem;">
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;">
-          <input type="text" id="address-search" placeholder="Rechercher une adresse, commune…"
-            style="flex:1;min-width:200px;font-size:0.82rem;"
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
+          <input type="text" id="address-search" placeholder="Rechercher une adresse…"
+            style="flex:1;min-width:0;font-size:0.82rem;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
-          <button class="preset-btn" onclick="searchAddress()" style="padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);white-space:nowrap;">
+          <button class="preset-btn" onclick="searchAddress()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">
             🔍
           </button>
-          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="padding:7px 10px;font-size:1rem;">📍</button>
+          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="flex-shrink:0;padding:7px 10px;font-size:1rem;">📍</button>
         </div>
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
@@ -1795,7 +1795,7 @@ function locateMe() {
       setCoords(lat, lng);
       btn.disabled = false;
       btn.innerHTML = '📍';
-      investigate();
+      setTimeout(investigate, 50); // laisse le navigateur repeindre 📍 avant l'overlay
     },
     function(err) {
       btn.disabled = false;
