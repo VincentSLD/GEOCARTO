@@ -935,7 +935,6 @@
         </div>
       </div>
       <div class="error-msg" id="error-msg"></div>
-      <div class="api-status" id="api-status"></div>
     </div>
   </section>
 
@@ -2063,15 +2062,6 @@ function setLoading(show, text) {
   }
 }
 
-function updateApiStatus(statuses) {
-  const container = document.getElementById('api-status');
-  container.innerHTML = statuses.map(s => `
-    <div class="api-dot">
-      <span class="dot ${s.status}"></span>
-      ${s.name}
-    </div>
-  `).join('');
-}
 
 // API calls with error handling
 async function fetchJSON(url, timeout = 10000) {
@@ -2109,18 +2099,6 @@ async function investigate() {
   document.getElementById('altitude').value = '…';
   setLoading(true, 'Récupération de l\'adresse en cours…');
 
-  const apiStatuses = [
-    { name: 'Géocodage', status: 'loading' },
-    { name: 'Géorisques', status: 'loading' },
-    { name: 'CatNat', status: 'loading' },
-    { name: 'Sismicité', status: 'loading' },
-    { name: 'Cavités', status: 'loading' },
-    { name: 'ICPE', status: 'loading' },
-    { name: 'Mvt terrain', status: 'loading' },
-    { name: 'BSS (BRGM)', status: 'loading' },
-  ];
-  updateApiStatus(apiStatuses);
-
   // Show results container
   document.getElementById('results').classList.add('active');
 
@@ -2131,20 +2109,16 @@ async function investigate() {
   setupExternalLinks(lat, lng);
 
   // 1. Géocodage inverse EN PREMIER — définit currentInsee dont dépendent les autres appels
-  let geocodeOk = false;
   try {
     await reverseGeocode(lat, lng);
-    geocodeOk = true;
   } catch (e) {
     console.warn('Reverse geocode failed:', e);
   }
-  updateApiStatus([{ name: 'Géocodage', status: geocodeOk ? 'ok' : 'err' }]);
 
   setLoading(true, 'Interrogation des API en cours…');
 
   // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
-  const results = await Promise.allSettled([
-    Promise.resolve(geocodeOk),   // placeholder Géocodage déjà traité
+  await Promise.allSettled([
     fetchRisques(lat, lng),
     fetchCatNat(lat, lng),
     fetchSismique(lat, lng),
@@ -2154,16 +2128,8 @@ async function investigate() {
     fetchBSS(lat, lng),
   ]);
 
-  // Fetch altitude (non-blocking, runs after main calls)
+  // Fetch altitude (non-blocking)
   fetchAltitude(lat, lng);
-
-  // Update API statuses
-  const names = ['Géocodage', 'Géorisques', 'CatNat', 'Sismicité', 'Cavités', 'ICPE', 'Mvt terrain', 'BSS (BRGM)'];
-  const finalStatuses = results.map((r, i) => ({
-    name: names[i],
-    status: r.status === 'fulfilled' ? 'ok' : 'err'
-  }));
-  updateApiStatus(finalStatuses);
 
   setLoading(false);
   document.getElementById('btn-go').disabled = false;
