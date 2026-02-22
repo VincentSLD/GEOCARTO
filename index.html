@@ -1773,29 +1773,6 @@
 // Globals
 let currentLat = null, currentLng = null, currentInsee = null;
 
-function getToken() {
-  return (document.getElementById('api-token').value || '').trim();
-}
-
-function hasToken() {
-  return getToken().length > 10;
-}
-
-function getApiVersion() {
-  return hasToken() ? 'v2' : 'v1';
-}
-
-function toggleTokenVisibility() {
-  const input = document.getElementById('api-token');
-  const btn = document.getElementById('btn-toggle-token');
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = '🙈 Masquer';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁 Voir';
-  }
-}
 
 function setCoords(lat, lng) {
   document.getElementById('lat').value = lat;
@@ -1810,18 +1787,19 @@ function locateMe() {
     return;
   }
   btn.disabled = true;
-  btn.textContent = '⏳ Localisation…';
+  btn.innerHTML = '⏳';
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       const lat = pos.coords.latitude.toFixed(6);
       const lng = pos.coords.longitude.toFixed(6);
       setCoords(lat, lng);
       btn.disabled = false;
-      btn.innerHTML = '📍 Me localiser';
+      btn.innerHTML = '📍';
+      investigate();
     },
     function(err) {
       btn.disabled = false;
-      btn.innerHTML = '📍 Me localiser';
+      btn.innerHTML = '📍';
       let msg = 'Impossible de récupérer votre position.';
       if (err.code === 1) msg = 'Accès à la géolocalisation refusé. Autorisez la localisation dans les paramètres de votre navigateur.';
       else if (err.code === 2) msg = 'Position indisponible. Vérifiez que le GPS est activé.';
@@ -2096,15 +2074,11 @@ function updateApiStatus(statuses) {
 }
 
 // API calls with error handling
-async function fetchJSON(url, timeout = 10000, useToken = false) {
+async function fetchJSON(url, timeout = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
-  const headers = {};
-  if (useToken && hasToken()) {
-    headers['Authorization'] = `Bearer ${getToken()}`;
-  }
   try {
-    const res = await fetch(url, { signal: controller.signal, headers });
+    const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -2129,22 +2103,20 @@ async function investigate() {
 
   currentLat = lat;
   currentLng = lng;
+  currentInsee = null; // reset pour éviter d'utiliser l'ancienne commune
 
   document.getElementById('btn-go').disabled = true;
   document.getElementById('altitude').value = '…';
-  setLoading(true, 'Géocodage inverse en cours…');
-
-  const version = getApiVersion();
-  const versionLabel = hasToken() ? ' (v2 🔑)' : ' (v1)';
+  setLoading(true, 'Récupération de l\'adresse en cours…');
 
   const apiStatuses = [
     { name: 'Géocodage', status: 'loading' },
-    { name: 'Géorisques' + versionLabel, status: 'loading' },
-    { name: 'CatNat' + versionLabel, status: 'loading' },
-    { name: 'Sismicité' + versionLabel, status: 'loading' },
-    { name: 'Cavités' + versionLabel, status: 'loading' },
-    { name: 'ICPE' + versionLabel, status: 'loading' },
-    { name: 'Mvt terrain' + versionLabel, status: 'loading' },
+    { name: 'Géorisques', status: 'loading' },
+    { name: 'CatNat', status: 'loading' },
+    { name: 'Sismicité', status: 'loading' },
+    { name: 'Cavités', status: 'loading' },
+    { name: 'ICPE', status: 'loading' },
+    { name: 'Mvt terrain', status: 'loading' },
     { name: 'BSS (BRGM)', status: 'loading' },
   ];
   updateApiStatus(apiStatuses);
@@ -2158,9 +2130,21 @@ async function investigate() {
   // Setup external links
   setupExternalLinks(lat, lng);
 
-  // Run all API calls in parallel
+  // 1. Géocodage inverse EN PREMIER — définit currentInsee dont dépendent les autres appels
+  let geocodeOk = false;
+  try {
+    await reverseGeocode(lat, lng);
+    geocodeOk = true;
+  } catch (e) {
+    console.warn('Reverse geocode failed:', e);
+  }
+  updateApiStatus([{ name: 'Géocodage', status: geocodeOk ? 'ok' : 'err' }]);
+
+  setLoading(true, 'Interrogation des API en cours…');
+
+  // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
   const results = await Promise.allSettled([
-    reverseGeocode(lat, lng),
+    Promise.resolve(geocodeOk),   // placeholder Géocodage déjà traité
     fetchRisques(lat, lng),
     fetchCatNat(lat, lng),
     fetchSismique(lat, lng),
@@ -2174,7 +2158,7 @@ async function investigate() {
   fetchAltitude(lat, lng);
 
   // Update API statuses
-  const names = ['Géocodage', 'Géorisques' + versionLabel, 'CatNat' + versionLabel, 'Sismicité' + versionLabel, 'Cavités' + versionLabel, 'ICPE' + versionLabel, 'Mvt terrain' + versionLabel, 'BSS (BRGM)'];
+  const names = ['Géocodage', 'Géorisques', 'CatNat', 'Sismicité', 'Cavités', 'ICPE', 'Mvt terrain', 'BSS (BRGM)'];
   const finalStatuses = results.map((r, i) => ({
     name: names[i],
     status: r.status === 'fulfilled' ? 'ok' : 'err'
@@ -2216,19 +2200,10 @@ async function reverseGeocode(lat, lng) {
 // Georisques - Risques (GASPAR)
 async function fetchRisques(lat, lng) {
   try {
-    await new Promise(r => setTimeout(r, 1500));
-    let url;
-    const v = getApiVersion();
-    if (v === 'v2') {
-      // API v2 with token — supports lat/lng directly
-      url = `https://georisques.gouv.fr/api/v2/gaspar/risques?latitude=${lat}&longitude=${lng}&rayon=1000&page=1&page_size=50`;
-    } else if (currentInsee) {
-      url = `https://georisques.gouv.fr/api/v1/gaspar/risques?code_insee=${currentInsee}&page=1&page_size=50`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&page=1&page_size=50`;
-    }
-    
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = currentInsee
+      ? `https://georisques.gouv.fr/api/v1/gaspar/risques?code_insee=${currentInsee}&page=1&page_size=50`
+      : `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&page=1&page_size=50`;
+    const data = await fetchJSON(url, 10000);
     const risks = data.data || [];
     renderRisques(risks);
     document.getElementById('stat-risques').textContent = risks.length;
@@ -2236,7 +2211,7 @@ async function fetchRisques(lat, lng) {
   } catch (e) {
     console.error('Risques error:', e);
     document.getElementById('stat-risques').textContent = '?';
-    document.getElementById('risk-grid').innerHTML = `<div class="empty-state">Erreur lors du chargement des risques (${getApiVersion()}). ${e.message}<br>L'API Géorisques peut être temporairement indisponible.</div>`;
+    document.getElementById('risk-grid').innerHTML = `<div class="empty-state">Erreur lors du chargement des risques. ${e.message}<br>L'API Géorisques peut être temporairement indisponible.</div>`;
     throw e;
   }
 }
@@ -2279,18 +2254,10 @@ function getRiskLevel(risk) {
 // CatNat
 async function fetchCatNat(lat, lng) {
   try {
-    await new Promise(r => setTimeout(r, 1500));
-    let url;
-    const v = getApiVersion();
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/gaspar/catnat?latitude=${lat}&longitude=${lng}&rayon=1000&page=1&page_size=100`;
-    } else if (currentInsee) {
-      url = `https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${currentInsee}&page=1&page_size=100`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=${lng},${lat}&rayon=1000&page=1&page_size=100`;
-    }
-
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = currentInsee
+      ? `https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${currentInsee}&page=1&page_size=100`
+      : `https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=${lng},${lat}&rayon=1000&page=1&page_size=100`;
+    const data = await fetchJSON(url, 10000);
     const catnat = data.data || [];
     renderCatNat(catnat);
     document.getElementById('stat-catnat').textContent = catnat.length;
@@ -2298,7 +2265,7 @@ async function fetchCatNat(lat, lng) {
   } catch (e) {
     console.error('CatNat error:', e);
     document.getElementById('stat-catnat').textContent = '?';
-    document.getElementById('catnat-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données CatNat (${getApiVersion()}). ${e.message}</div>`;
+    document.getElementById('catnat-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données CatNat. ${e.message}</div>`;
     throw e;
   }
 }
@@ -2338,14 +2305,8 @@ function formatDate(dateStr) {
 // Sismique
 async function fetchSismique(lat, lng) {
   try {
-    const v = getApiVersion();
-    let url;
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/zonage-sismique?latitude=${lat}&longitude=${lng}&rayon=100`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/zonage-sismique?latlon=${lng},${lat}&rayon=100`;
-    }
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = `https://georisques.gouv.fr/api/v1/zonage-sismique?latlon=${lng},${lat}&rayon=100`;
+    const data = await fetchJSON(url, 10000);
     const zones = data.data || [];
     if (zones.length > 0) {
       const zone = zones[0];
@@ -2364,14 +2325,8 @@ async function fetchSismique(lat, lng) {
 // Cavités
 async function fetchCavites(lat, lng) {
   try {
-    const v = getApiVersion();
-    let url;
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/cavites?latitude=${lat}&longitude=${lng}&rayon=2000&page=1&page_size=50`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
-    }
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const data = await fetchJSON(url, 10000);
     const cavites = data.data || [];
     renderCavites(cavites);
     document.getElementById('stat-cavites').textContent = cavites.length;
@@ -2379,7 +2334,7 @@ async function fetchCavites(lat, lng) {
   } catch (e) {
     console.error('Cavités error:', e);
     document.getElementById('stat-cavites').textContent = '?';
-    document.getElementById('cavites-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données cavités (${getApiVersion()}). ${e.message}</div>`;
+    document.getElementById('cavites-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données cavités. ${e.message}</div>`;
     throw e;
   }
 }
@@ -2406,14 +2361,8 @@ function renderCavites(items) {
 // ICPE
 async function fetchICPE(lat, lng) {
   try {
-    const v = getApiVersion();
-    let url;
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/installations?latitude=${lat}&longitude=${lng}&rayon=2000&page=1&page_size=50`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/installations?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
-    }
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = `https://georisques.gouv.fr/api/v1/installations?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const data = await fetchJSON(url, 10000);
     const icpes = data.data || [];
     renderICPE(icpes);
     document.getElementById('stat-icpe').textContent = icpes.length;
@@ -2421,7 +2370,7 @@ async function fetchICPE(lat, lng) {
   } catch (e) {
     console.error('ICPE error:', e);
     document.getElementById('stat-icpe').textContent = '?';
-    document.getElementById('icpe-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données ICPE (${getApiVersion()}). ${e.message}</div>`;
+    document.getElementById('icpe-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données ICPE. ${e.message}</div>`;
     throw e;
   }
 }
@@ -2449,14 +2398,8 @@ function renderICPE(items) {
 // Mouvements de terrain
 async function fetchMvtTerrain(lat, lng) {
   try {
-    const v = getApiVersion();
-    let url;
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/mvt?latitude=${lat}&longitude=${lng}&rayon=2000&page=1&page_size=50`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
-    }
-    const data = await fetchJSON(url, 10000, v === 'v2');
+    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const data = await fetchJSON(url, 10000);
     const mvts = data.data || [];
     renderMvtTerrain(mvts);
     document.getElementById('stat-mvt').textContent = mvts.length;
@@ -2464,7 +2407,7 @@ async function fetchMvtTerrain(lat, lng) {
   } catch (e) {
     console.error('Mvt terrain error:', e);
     document.getElementById('stat-mvt').textContent = '?';
-    document.getElementById('mvt-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données mouvements de terrain (${getApiVersion()}). ${e.message}</div>`;
+    document.getElementById('mvt-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données mouvements de terrain. ${e.message}</div>`;
     throw e;
   }
 }
@@ -2883,9 +2826,12 @@ function setupMaps(lat, lng) {
 
   // InfoTerre géologie link
   const infoterreGeoUrl = `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=14`;
-  document.getElementById('btn-infoterre-geologie').href = infoterreGeoUrl;
-  document.getElementById('link-geologie-infoterre').href = infoterreGeoUrl;
-  document.getElementById('link-geol-infoterre-fallback').href = infoterreGeoUrl;
+  const elBtnInfoterre = document.getElementById('btn-infoterre-geologie');
+  if (elBtnInfoterre) elBtnInfoterre.href = infoterreGeoUrl;
+  const elLinkGeologie = document.getElementById('link-geologie-infoterre');
+  if (elLinkGeologie) elLinkGeologie.href = infoterreGeoUrl;
+  const elLinkFallback = document.getElementById('link-geol-infoterre-fallback');
+  if (elLinkFallback) elLinkFallback.href = infoterreGeoUrl;
 
   // Fetch geological info via WMS GetFeatureInfo (BD Charm-50)
   fetchGeologicalInfo(lat, lng);
@@ -3191,17 +3137,13 @@ async function fetchArgilesAndDraw(lat, lng) {
   // === STRATEGY 2: Georisques API endpoints ===
   if (!mainLevel) {
     const apiUrls = [
-      `https://georisques.gouv.fr/api/v2/alea-argiles?latitude=${lat}&longitude=${lng}&rayon=100`,
       `https://georisques.gouv.fr/api/v1/alea-argiles?latlon=${lng},${lat}&rayon=100`,
-      `https://georisques.gouv.fr/api/v2/resultats-argiles?latitude=${lat}&longitude=${lng}`,
       `https://georisques.gouv.fr/api/v1/resultats-argiles?latlon=${lng},${lat}`,
-      `https://georisques.gouv.fr/api/v2/alea-argiles?latitude=${lat}&longitude=${lng}&rayon=1000`,
       `https://georisques.gouv.fr/api/v1/alea-argiles?latlon=${lng},${lat}&rayon=1000`,
     ];
     for (const url of apiUrls) {
       try {
-        const isV2 = url.includes('/v2/');
-        const data = await fetchJSON(url, 10000, isV2);
+        const data = await fetchJSON(url, 10000);
         const items = data.data || data.results || data.features || (Array.isArray(data) ? data : []);
         if (items.length > 0) {
           const first = items[0].properties || items[0];
@@ -3728,14 +3670,8 @@ function addAltimetryTool(map) {
 async function fetchCavitesMap(lat, lng) {
   const countEl = document.getElementById('cavites-count-text');
   try {
-    const v = getApiVersion();
-    let url;
-    if (v === 'v2') {
-      url = `https://georisques.gouv.fr/api/v2/cavites?latitude=${lat}&longitude=${lng}&rayon=5000`;
-    } else {
-      url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=5000`;
-    }
-    const data = await fetchJSON(url, 15000, v === 'v2');
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=5000`;
+    const data = await fetchJSON(url, 15000);
     const items = data.data || [];
     countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 5 km` : 'Aucune dans un rayon de 5 km';
     countEl.style.color = items.length > 0 ? '#7e57c2' : 'var(--text-muted)';
