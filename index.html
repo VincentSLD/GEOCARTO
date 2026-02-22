@@ -222,6 +222,30 @@
     border-color: rgba(26,26,26,0.3);
   }
 
+  .btn-locate {
+    padding: 4px 12px;
+    background: var(--gph-yellow-light);
+    border: 1px solid rgba(245,197,24,0.4);
+    border-radius: 6px;
+    color: var(--gph-primary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-locate:hover {
+    background: rgba(245,197,24,0.3);
+    border-color: rgba(245,197,24,0.6);
+  }
+  .btn-locate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .btn-copy {
     padding: 8px 10px;
     background: var(--bg-secondary);
@@ -910,6 +934,7 @@
         </button>
       </div>
       <div class="preset-coords">
+        <button class="btn-locate" id="btn-locate" onclick="locateMe()">📍 Me localiser</button>
         <button class="preset-btn" onclick="setCoords(46.6706,-1.4268)">Vendée (85)</button>
         <button class="preset-btn" onclick="setCoords(47.2184,-1.5536)">Loire-Atl. (44)</button>
         <button class="preset-btn" onclick="setCoords(47.4784,-0.5632)">Maine-et-Loire (49)</button>
@@ -1069,11 +1094,9 @@
       </div>
       <div class="maps-grid" style="margin-bottom:1.5rem;">
         <div class="map-embed">
-          <div class="map-label">Vue satellite</div>
           <iframe id="map-satellite" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
         <div class="map-embed">
-          <div class="map-label">Street View</div>
           <iframe id="map-street" loading="lazy" allowfullscreen></iframe>
         </div>
       </div>
@@ -1099,7 +1122,6 @@
 
       <!-- Carte Leaflet avec WMS Argiles BRGM + niveau d'exposition -->
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(230,81,0,0.85);color:#fff;">🗺 Carte Argiles WMS (geoservices.brgm.fr) + niveau d'exposition 📏</div>
         <div id="map-argiles" style="width:100%;height:100%;"></div>
       </div>
       <div id="wms-debug" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;display:none;">
@@ -1153,7 +1175,6 @@
       </a>
 
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(121,85,72,0.85);color:#fff;">🪨 Carte Géologique BRGM — BD Charm-50 (1/50 000) 📏</div>
         <div id="map-geologie" style="width:100%;height:100%;"></div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
@@ -1236,7 +1257,6 @@
 
       <!-- Carte Leaflet Cavités -->
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(126,87,194,0.85);color:#fff;">🕳 Cavités souterraines (rayon 5 km) — avec outil mesure 📏</div>
         <div id="map-cavites" style="width:100%;height:100%;"></div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
@@ -1271,7 +1291,6 @@
         Zonage Sismique
       </div>
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(211,47,47,0.85);color:#fff;">🌍 Zonage Sismique — Géorisques / BRGM 📏</div>
         <div id="map-sismique" style="width:100%;height:100%;"></div>
       </div>
       <!-- Niveau sismique au point -->
@@ -1329,7 +1348,6 @@
       </a>
 
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(0,121,107,0.85);color:#fff;">🔩 Sondages BSS — BRGM (geoservices.brgm.fr/geologie) 📏</div>
         <div id="map-bss" style="width:100%;height:100%;"></div>
       </div>
       <!-- Légende BSS -->
@@ -1366,7 +1384,6 @@
         Carte topographique &amp; relief — Altimétrie au clic
       </div>
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
-        <div class="map-label" style="background:rgba(121,85,72,0.85);color:#fff;">⛰ Relief OpenTopoMap — Cliquez pour mesurer l'altitude 📏</div>
         <div id="map-relief" style="width:100%;height:100%;"></div>
       </div>
       <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
@@ -1391,7 +1408,6 @@
           <button class="btn-screenshot" onclick="captureLeaflet('map-ign-leaflet','IGN', true)">📸 Carte IGN</button>
         </div>
         <div class="map-embed full-map" style="aspect-ratio:16/10;">
-          <div class="map-label">Carte IGN / Géoportail (avec outil mesure 📏)</div>
           <div id="map-ign-leaflet" style="width:100%;height:100%;"></div>
         </div>
       </div>
@@ -1820,6 +1836,35 @@ function setCoords(lat, lng) {
   document.getElementById('lat').value = lat;
   document.getElementById('lng').value = lng;
   updatePickerMarker(lat, lng, true);
+}
+
+function locateMe() {
+  const btn = document.getElementById('btn-locate');
+  if (!navigator.geolocation) {
+    alert('La géolocalisation n\'est pas supportée par votre navigateur.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '⏳ Localisation…';
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      setCoords(lat, lng);
+      btn.disabled = false;
+      btn.innerHTML = '📍 Me localiser';
+    },
+    function(err) {
+      btn.disabled = false;
+      btn.innerHTML = '📍 Me localiser';
+      let msg = 'Impossible de récupérer votre position.';
+      if (err.code === 1) msg = 'Accès à la géolocalisation refusé. Autorisez la localisation dans les paramètres de votre navigateur.';
+      else if (err.code === 2) msg = 'Position indisponible. Vérifiez que le GPS est activé.';
+      else if (err.code === 3) msg = 'Délai dépassé. Réessayez.';
+      alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
 
 // ====== PICKER MAP ======
@@ -2871,22 +2916,6 @@ function setupMaps(lat, lng) {
   }
   tryNextLegend();
 
-  // Add a small legend toggle control on the map itself
-  const geoLegendCtrl = L.control({ position: 'bottomright' });
-  geoLegendCtrl.onAdd = function() {
-    const div = L.DomUtil.create('div', '');
-    div.style.cssText = 'background:white;padding:6px 10px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-size:11px;line-height:1.4;max-width:180px;';
-    div.innerHTML = `
-      <div style="font-weight:700;margin-bottom:4px;color:#795548;">🪨 Carte Géologique</div>
-      <div style="color:#666;">BD Charm-50 (1/50 000)</div>
-      <div style="color:#666;font-size:10px;margin-top:2px;">Couleurs = formations géologiques</div>
-      <div style="color:#888;font-size:10px;margin-top:2px;">Voir légende détaillée ci-dessous</div>
-    `;
-    L.DomEvent.disableClickPropagation(div);
-    return div;
-  };
-  geoLegendCtrl.addTo(window.geologieMap);
-
   // InfoTerre géologie link
   const infoterreGeoUrl = `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=14`;
   document.getElementById('btn-infoterre-geologie').href = infoterreGeoUrl;
@@ -3250,7 +3279,7 @@ async function fetchArgilesAndDraw(lat, lng) {
     if (!mainColor) mainColor = getColorForLevel(mainLevel);
     el.textContent = mainLevel;
     el.style.color = mainColor.text;
-    addArgilesLegend(mainLevel, mainColor);
+
     updateMarkerPopup(mainLevel, mainColor);
   } else {
     // Fallback: "Selon légende" — the WMS layer IS showing the data, we just can't read the value
@@ -3258,7 +3287,7 @@ async function fetchArgilesAndDraw(lat, lng) {
     mainColor = colorMap.default;
     el.innerHTML = 'Selon légende <span style="font-weight:400;font-size:0.7rem;">(voir couche WMS sur la carte)</span>';
     el.style.color = mainColor.text;
-    addArgilesLegend(mainLevel, mainColor);
+
     if (window.argilesMarker) {
       window.argilesMarker.setPopupContent(
         `<strong>Projet étudié</strong><br>` +
@@ -3270,35 +3299,6 @@ async function fetchArgilesAndDraw(lat, lng) {
   }
 }
 
-// Add a legend overlay on the Leaflet argiles map
-function addArgilesLegend(currentLevel, currentColor) {
-  if (!argilesMap) return;
-  const legend = L.control({ position: 'bottomright' });
-  legend.onAdd = function() {
-    const div = L.DomUtil.create('div', 'argiles-legend');
-    div.style.cssText = 'background:white;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-size:12px;line-height:1.6;font-family:sans-serif;';
-    div.innerHTML = `
-      <div style="font-weight:700;margin-bottom:6px;font-size:13px;">Exposition RGA</div>
-      <div style="display:flex;align-items:center;gap:6px;${currentLevel.toLowerCase().includes('fort')?'font-weight:700;':''}">
-        <span style="display:inline-block;width:16px;height:12px;background:#e65100;border-radius:2px;"></span> Forte
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;${currentLevel.toLowerCase().includes('moyen')?'font-weight:700;':''}">
-        <span style="display:inline-block;width:16px;height:12px;background:#f5a623;border-radius:2px;"></span> Moyenne
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;${currentLevel.toLowerCase().includes('faible')?'font-weight:700;':''}">
-        <span style="display:inline-block;width:16px;height:12px;background:#8bc34a;border-radius:2px;"></span> Faible
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="display:inline-block;width:16px;height:12px;background:#eceff1;border:1px solid #bbb;border-radius:2px;"></span> Non exposé
-      </div>
-      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;font-size:11px;color:#888;">
-        Ici : <strong style="color:${currentColor.text}">${currentLevel}</strong>
-      </div>
-    `;
-    return div;
-  };
-  legend.addTo(argilesMap);
-}
 
 // Parse WKT geometry string to GeoJSON
 function wktToGeoJSON(wkt) {
