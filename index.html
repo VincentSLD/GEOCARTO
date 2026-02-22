@@ -3172,9 +3172,7 @@ async function fetchArgilesAndDraw(lat, lng) {
   function updateMarkerPopup(level, color) {
     if (!window.argilesMarker) return;
     window.argilesMarker.setPopupContent(
-      `<strong>Projet étudié</strong><br>` +
-      `<span style="display:inline-block;margin-top:4px;padding:3px 10px;border-radius:6px;font-weight:700;font-size:13px;color:#fff;background:${color.fill};">` +
-      `🏜 Exposition argiles : ${level}</span>`
+      `<strong>Projet étudié</strong><br>`
     ).openPopup();
   }
 
@@ -3290,10 +3288,7 @@ async function fetchArgilesAndDraw(lat, lng) {
 
     if (window.argilesMarker) {
       window.argilesMarker.setPopupContent(
-        `<strong>Projet étudié</strong><br>` +
-        `<span style="display:inline-block;margin-top:4px;padding:3px 10px;border-radius:6px;font-weight:600;font-size:12px;color:#fff;background:#78909c;">` +
-        `🏜 Exposition argiles : Selon légende</span><br>` +
-        `<span style="font-size:11px;color:#666;">Consultez la couleur de la couche WMS au point</span>`
+        `<strong>Projet étudié</strong><br>`
       ).openPopup();
     }
   }
