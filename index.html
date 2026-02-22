@@ -1786,19 +1786,19 @@ function locateMe() {
     return;
   }
   btn.disabled = true;
-  btn.innerHTML = '⏳';
+  btn.style.opacity = '0.4';
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       const lat = pos.coords.latitude.toFixed(6);
       const lng = pos.coords.longitude.toFixed(6);
       setCoords(lat, lng);
       btn.disabled = false;
-      btn.innerHTML = '📍';
-      setTimeout(investigate, 50); // laisse le navigateur repeindre 📍 avant l'overlay
+      btn.style.opacity = '';
+      setTimeout(investigate, 50);
     },
     function(err) {
       btn.disabled = false;
-      btn.innerHTML = '📍';
+      btn.style.opacity = '';
       let msg = 'Impossible de récupérer votre position.';
       if (err.code === 1) msg = 'Accès à la géolocalisation refusé. Autorisez la localisation dans les paramètres de votre navigateur.';
       else if (err.code === 2) msg = 'Position indisponible. Vérifiez que le GPS est activé.';
@@ -2099,40 +2099,46 @@ async function investigate() {
   document.getElementById('altitude').value = '…';
   setLoading(true, 'Récupération de l\'adresse en cours…');
 
-  // Show results container
-  document.getElementById('results').classList.add('active');
-
-  // Setup maps immediately
-  setupMaps(lat, lng);
-
-  // Setup external links
-  setupExternalLinks(lat, lng);
-
-  // 1. Géocodage inverse EN PREMIER — définit currentInsee dont dépendent les autres appels
   try {
-    await reverseGeocode(lat, lng);
-  } catch (e) {
-    console.warn('Reverse geocode failed:', e);
+    // Show results container
+    document.getElementById('results').classList.add('active');
+
+    // Setup maps immediately
+    try { setupMaps(lat, lng); } catch(e) { console.warn('setupMaps error:', e); }
+
+    // Setup external links
+    try { setupExternalLinks(lat, lng); } catch(e) { console.warn('setupExternalLinks error:', e); }
+
+    // 1. Géocodage inverse EN PREMIER — définit currentInsee dont dépendent les autres appels
+    try {
+      await reverseGeocode(lat, lng);
+    } catch (e) {
+      console.warn('Reverse geocode failed:', e);
+    }
+
+    setLoading(true, 'Interrogation des API en cours…');
+
+    // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
+    await Promise.allSettled([
+      fetchRisques(lat, lng),
+      fetchCatNat(lat, lng),
+      fetchSismique(lat, lng),
+      fetchCavites(lat, lng),
+      fetchICPE(lat, lng),
+      fetchMvtTerrain(lat, lng),
+      fetchBSS(lat, lng),
+    ]);
+
+    // Fetch altitude (non-blocking)
+    fetchAltitude(lat, lng);
+
+  } finally {
+    // Toujours exécuté, même en cas d'erreur — libère l'overlay et les boutons
+    setLoading(false);
+    document.getElementById('btn-go').disabled = false;
+    const btnLocate = document.getElementById('btn-locate');
+    if (btnLocate) { btnLocate.disabled = false; btnLocate.style.opacity = ''; }
   }
-
-  setLoading(true, 'Interrogation des API en cours…');
-
-  // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
-  await Promise.allSettled([
-    fetchRisques(lat, lng),
-    fetchCatNat(lat, lng),
-    fetchSismique(lat, lng),
-    fetchCavites(lat, lng),
-    fetchICPE(lat, lng),
-    fetchMvtTerrain(lat, lng),
-    fetchBSS(lat, lng),
-  ]);
-
-  // Fetch altitude (non-blocking)
-  fetchAltitude(lat, lng);
-
-  setLoading(false);
-  document.getElementById('btn-go').disabled = false;
 }
 
 // Reverse geocoding
