@@ -867,9 +867,7 @@
 <div class="app">
   <!-- Header -->
   <header class="header">
-    <div class="header-badge">◉ GPH — Bureau d'études pour l'habitat</div>
     <h1>Géo<span class="highlight">Carto'</span></h1>
-    <p>Outil d'investigation cartographique et géotechnique à partir de coordonnées GPS</p>
   </header>
 
   <!-- Search -->
@@ -878,41 +876,43 @@
 
       <!-- Map Picker -->
       <div class="input-group" style="margin-bottom:0.75rem;">
-        <label>📍 Cliquez sur la carte pour placer le point d'investigation</label>
         <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;">
-          <input type="text" id="address-search" placeholder="Rechercher une adresse, commune…" 
-            style="flex:1;min-width:200px;font-size:0.82rem;" 
+          <input type="text" id="address-search" placeholder="Rechercher une adresse, commune…"
+            style="flex:1;min-width:200px;font-size:0.82rem;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
-          <button class="preset-btn" onclick="searchAddress()" style="padding:7px 14px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);white-space:nowrap;">
-            🔍 Chercher
+          <button class="preset-btn" onclick="searchAddress()" style="padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);white-space:nowrap;">
+            🔍
           </button>
-          <button class="preset-btn" id="btn-toggle-layer" onclick="togglePickerLayer()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
-            🛰 Satellite
-          </button>
-          <button class="preset-btn" id="btn-toggle-cadastre" onclick="togglePickerCadastre()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
-            📐 Cadastre
-          </button>
-        </div>
-        <div style="margin-top:0.4rem;">
-          <button class="btn-locate" id="btn-locate" onclick="locateMe()">📍 Me localiser</button>
+          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="padding:7px 10px;font-size:1rem;">📍</button>
         </div>
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
         </div>
         <div id="picker-map" style="width:100%;height:320px;border-radius:10px;border:1px solid var(--border);overflow:hidden;cursor:crosshair;"></div>
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
-          <span id="picker-coords" style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-teal);">
+          <button class="preset-btn" id="btn-toggle-layer" onclick="togglePickerLayer()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
+            🛰 Satellite
+          </button>
+          <button class="preset-btn" id="btn-toggle-cadastre" onclick="togglePickerCadastre()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
+            📐 Cadastre
+          </button>
+          <span id="picker-coords" style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-teal);margin-left:auto;">
             Cliquez sur la carte ou saisissez des coordonnées
           </span>
         </div>
+        <div style="margin-top:0.6rem;">
+          <button class="btn-investigate" id="btn-go" onclick="investigate()" style="width:100%;">
+            Investiguer ➜
+          </button>
+        </div>
       </div>
 
-      <!-- Coords + button -->
+      <!-- Coords -->
       <div class="search-row">
         <div class="input-group">
           <label>Latitude</label>
           <div style="display:flex;gap:4px;">
-            <input type="text" id="lat" placeholder="46.867747" value="" 
+            <input type="text" id="lat" placeholder="46.867747" value=""
               onchange="updatePickerFromInputs()" onkeyup="updatePickerFromInputs()" style="flex:1;">
             <button class="btn-copy" onclick="copyField('lat')" title="Copier la latitude">📋</button>
           </div>
@@ -920,7 +920,7 @@
         <div class="input-group">
           <label>Longitude</label>
           <div style="display:flex;gap:4px;">
-            <input type="text" id="lng" placeholder="-1.769058" value="" 
+            <input type="text" id="lng" placeholder="-1.769058" value=""
               onchange="updatePickerFromInputs()" onkeyup="updatePickerFromInputs()" style="flex:1;">
             <button class="btn-copy" onclick="copyField('lng')" title="Copier la longitude">📋</button>
           </div>
@@ -931,44 +931,6 @@
             <input type="text" id="altitude" placeholder="—" value="" readonly
               style="flex:1;background:var(--bg-primary);color:var(--text-secondary);cursor:default;">
             <button class="btn-copy" onclick="copyField('altitude')" title="Copier l'altitude">📋</button>
-          </div>
-        </div>
-        <button class="btn-investigate" id="btn-go" onclick="investigate()">
-          Investiguer ➜
-        </button>
-      </div>
-      <div class="preset-coords">
-        <button class="preset-btn" onclick="setCoords(46.6706,-1.4268)">Vendée (85)</button>
-        <button class="preset-btn" onclick="setCoords(47.2184,-1.5536)">Loire-Atl. (44)</button>
-        <button class="preset-btn" onclick="setCoords(47.4784,-0.5632)">Maine-et-Loire (49)</button>
-        <button class="preset-btn" onclick="setCoords(43.2951,-0.3708)">Pyrénées-Atl. (64)</button>
-        <button class="preset-btn" onclick="setCoords(43.0336,0.1493)">Hautes-Pyrénées (65)</button>
-      </div>
-      <div style="margin-top:0.75rem; border-top:1px solid var(--border); padding-top:0.75rem;">
-        <div class="input-group">
-          <label>📂 Importer un fichier KMZ / KML <span style="color:var(--text-muted);font-weight:300;text-transform:none;letter-spacing:0">(extraction automatique des coordonnées)</span></label>
-          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-            <label for="kmz-file" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:var(--bg-card);border:1px dashed var(--border-accent);border-radius:8px;font-size:0.78rem;color:var(--accent-teal);transition:all 0.2s;" 
-              onmouseover="this.style.borderColor='var(--accent-teal)';this.style.background='var(--bg-card-hover)'" 
-              onmouseout="this.style.borderColor='var(--border-accent)';this.style.background='var(--bg-card)'">
-              🌍 Choisir un fichier .kmz / .kml
-            </label>
-            <input type="file" id="kmz-file" accept=".kml,.kmz,.KML,.KMZ" style="display:none" onchange="handleKmzImport(event)">
-            <span id="kmz-filename" style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;"></span>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:0.75rem; border-top:1px solid var(--border); padding-top:0.75rem;">
-        <div class="input-group">
-          <label>🔑 Jeton API Géorisques <span style="color:var(--text-muted);font-weight:300;text-transform:none;letter-spacing:0">(optionnel — active les endpoints v2, plus riches)</span></label>
-          <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input type="password" id="api-token" placeholder="Collez votre jeton ici…" style="flex:1" autocomplete="off">
-            <button class="preset-btn" onclick="toggleTokenVisibility()" id="btn-toggle-token" style="padding:6px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.75rem;">👁 Voir</button>
-          </div>
-          <div style="margin-top:6px;font-size:0.65rem;color:var(--text-muted);line-height:1.5;">
-            <strong style="color:var(--accent-blue);">Sans jeton :</strong> API v1 (accès libre, fonctionnalités de base)<br>
-            <strong style="color:var(--accent-teal);">Avec jeton :</strong> API v2 (filtres lat/lng, parcelle cadastrale, rayon, géométrie WKT…)
-            — <a href="https://www.georisques.gouv.fr/inscription" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:underline;">Obtenir un jeton</a>
           </div>
         </div>
       </div>
