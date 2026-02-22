@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GéoCarto' — Enquête Cartographique et Géotechnique</title>
+<link rel="icon" type="image/jpeg" href="iconeGC.jpg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -892,6 +893,9 @@
             📐 Cadastre
           </button>
         </div>
+        <div style="margin-top:0.4rem;">
+          <button class="btn-locate" id="btn-locate" onclick="locateMe()">📍 Me localiser</button>
+        </div>
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
         </div>
@@ -934,7 +938,6 @@
         </button>
       </div>
       <div class="preset-coords">
-        <button class="btn-locate" id="btn-locate" onclick="locateMe()">📍 Me localiser</button>
         <button class="preset-btn" onclick="setCoords(46.6706,-1.4268)">Vendée (85)</button>
         <button class="preset-btn" onclick="setCoords(47.2184,-1.5536)">Loire-Atl. (44)</button>
         <button class="preset-btn" onclick="setCoords(47.4784,-0.5632)">Maine-et-Loire (49)</button>
