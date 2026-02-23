@@ -908,15 +908,11 @@
           <button class="preset-btn" id="btn-toggle-cadastre" onclick="togglePickerCadastre()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
             📐 Cadastre
           </button>
-          <span id="picker-coords" style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-teal);margin-left:auto;">
-            Cliquez sur la carte ou saisissez des coordonnées
-          </span>
-        </div>
-        <div style="margin-top:0.6rem;">
-          <button class="btn-investigate" id="btn-go" onclick="investigate()" style="width:100%;">
+          <button class="btn-investigate" id="btn-go" onclick="investigate()" style="flex:1;min-width:120px;">
             Investiguer ➜
           </button>
         </div>
+        <span id="picker-coords" style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-teal);display:block;margin-top:0.3rem;"></span>
       </div>
 
       <!-- Coords -->
@@ -1107,6 +1103,39 @@
       </div>
       </div><!-- /capture-geologie -->
 
+      <!-- Informations géologiques au point -->
+      <div id="geol-info-panel" style="margin-top:0.75rem;border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:14px 18px;background:rgba(121,85,72,0.04);">
+        <div style="margin-bottom:10px;">
+          <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
+        </div>
+        <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
+          ⏳ Interrogation du serveur WMS BRGM…
+        </div>
+        <div id="geol-info-content" style="display:none;">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
+            <span style="font-weight:600;color:#795548;">N° Carte :</span>
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span id="geol-num-carte" style="font-weight:700;font-size:0.95rem;color:#5d4037;background:rgba(121,85,72,0.08);padding:2px 10px;border-radius:5px;">—</span>
+              <button onclick="copyGeolNumCarte()" id="btn-copy-num-carte"
+                style="padding:3px 10px;font-size:0.65rem;border:1px solid rgba(121,85,72,0.3);border-radius:5px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;white-space:nowrap;"
+                onmouseover="this.style.background='rgba(121,85,72,0.08)'"
+                onmouseout="this.style.background='#fff'">
+                📋 Copier
+              </button>
+            </span>
+            <span style="font-weight:600;color:#795548;">Nom carte :</span>
+            <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
+            <span style="font-weight:600;color:#795548;">Type :</span>
+            <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
+            <span style="font-weight:600;color:#795548;">Description :</span>
+            <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
+          </div>
+        </div>
+        <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
+          ⚠️ Informations géologiques non disponibles pour ce point.
+        </div>
+      </div>
+
       <!-- ===== Carte Cavités Souterraines ===== -->
       <div class="screenshot-bar" style="margin-top:1.5rem;">
         <span class="label">Captures :</span>
@@ -1157,18 +1186,6 @@
         <div id="map-bss" style="width:100%;height:100%;"></div>
         <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
-      <!-- Légende BSS -->
-      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;align-items:center;">
-        <div style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--text-muted);">
-          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e65100;border:1px solid #bf360c;"></span> Forages / Sondages BSS
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--text-muted);">
-          <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#d32f2f;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></span> Projet étudié
-        </div>
-      </div>
-      <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:1rem;">
-        Les points BSS représentent les ouvrages souterrains déclarés : forages géotechniques, sondages, puits, piézomètres… (+800 000 ouvrages en France). Cliquez sur un point pour accéder à la fiche détaillée.
-      </div>
       </div><!-- /capture-bss -->
 
       <!-- ===== Carte Relief / Topographique ===== -->
@@ -1181,21 +1198,10 @@
         <div class="icon" style="background:rgba(121,85,72,0.12);color:#795548;">⛰</div>
         Carte topographique &amp; relief — Altimétrie au clic
       </div>
-      <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
+      <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:1.5rem;">
         <div id="map-relief" style="width:100%;height:100%;"></div>
-        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
-      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
-        <div id="relief-altitude-display" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;color:var(--text-secondary);">
-          🏔 Cliquez sur la carte pour mesurer l'altitude d'un point
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--text-muted);">
-          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#795548;"></span> Courbes de niveau
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--text-muted);">
-          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e53935;border:2px solid #fff;box-shadow:0 0 0 1px #e53935;"></span> Point altimétrique
-        </div>
-      </div>
+      <span id="relief-altitude-display" style="display:none;"></span>
       </div><!-- /capture-relief -->
 
       <div class="section-title">
@@ -1232,9 +1238,6 @@
         <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
           <div id="map-photo" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
-        </div>
-        <div id="photo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
-          Photographies aériennes récentes — BD ORTHO — Source : IGN Géoplateforme
         </div>
       </div>
 
@@ -1300,43 +1303,6 @@
               ⏳ Chargement de la légende…
             </div>
           </div>
-        </div>
-        <!-- Informations géologiques du point (WMS GetFeatureInfo) -->
-        <div id="geol-info-panel" style="border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:14px 18px;background:rgba(121,85,72,0.04);">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-            <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
-            <span style="font-size:0.6rem;font-weight:400;color:var(--text-muted);background:var(--bg-secondary);padding:2px 8px;border-radius:4px;">flux OGC — WMS GetFeatureInfo (SCAN_GEOL50)</span>
-          </div>
-          <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-            ⏳ Interrogation du serveur WMS BRGM…
-          </div>
-          <div id="geol-info-content" style="display:none;">
-            <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
-              <span style="font-weight:600;color:#795548;">N° Carte :</span>
-              <span style="display:flex;align-items:center;gap:8px;">
-                <span id="geol-num-carte" style="font-weight:700;font-size:0.95rem;color:#5d4037;background:rgba(121,85,72,0.08);padding:2px 10px;border-radius:5px;">—</span>
-                <button onclick="copyGeolNumCarte()" id="btn-copy-num-carte"
-                  style="padding:3px 10px;font-size:0.65rem;border:1px solid rgba(121,85,72,0.3);border-radius:5px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;white-space:nowrap;"
-                  onmouseover="this.style.background='rgba(121,85,72,0.08)'"
-                  onmouseout="this.style.background='#fff'">
-                  📋 Copier
-                </button>
-              </span>
-              <span style="font-weight:600;color:#795548;">Nom carte :</span>
-              <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
-              <span style="font-weight:600;color:#795548;">Notation :</span>
-              <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
-              <span style="font-weight:600;color:#795548;">Description :</span>
-              <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
-            </div>
-            <div style="margin-top:10px;font-size:0.6rem;color:var(--text-muted);">
-              Source : BRGM — BD Charm-50 / Scan-Géol-50 via geoservices.brgm.fr/geologie
-            </div>
-          </div>
-          <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-            ⚠️ Informations géologiques non disponibles pour ce point.
-          </div>
-          <iframe id="geol-featureinfo-iframe" style="display:none;width:0;height:0;border:none;" sandbox="allow-same-origin"></iframe>
         </div>
       </div>
 
@@ -1893,8 +1859,7 @@ function updatePickerMarker(lat, lng, flyTo) {
 }
 
 function updatePickerInfo(lat, lng) {
-  document.getElementById('picker-coords').innerHTML = 
-    `📍 <strong>${lat.toFixed(6)}, ${lng.toFixed(6)}</strong> — <span style="color:var(--text-muted);">Déplacez le marqueur ou cliquez ailleurs</span>`;
+  document.getElementById('picker-coords').innerHTML = '';
 }
 
 function updatePickerFromInputs() {
@@ -2923,6 +2888,7 @@ function setupMaps(lat, lng) {
     center: [lat, lng],
     zoom: 15,
     zoomControl: true,
+    attributionControl: false,
   });
 
   // Fond de carte OpenTopoMap (courbes de niveau, relief ombré)
@@ -3975,199 +3941,80 @@ function copyGeolNumCarte() {
   });
 }
 
-// Build GetFeatureInfo URL for SCAN_GEOL50
-function buildGeolGfiUrl(lat, lng, base) {
-  const delta = 0.0005;
-  return `${base}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-    `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50` +
-    `&INFO_FORMAT=application/vnd.ogc.gml` +
-    `&SRS=EPSG:4326&BBOX=${lng-delta},${lat-delta},${lng+delta},${lat+delta}` +
-    `&WIDTH=3&HEIGHT=3&X=1&Y=1&FEATURE_COUNT=1`;
+// ====== CARTE GÉOLOGIQUE BRGM — WFS (CORS ouvert) ======
+// Couche 1 : index des feuilles 1:50k  →  ms:SCAN_F_GEOL50_CATALOG  (numero, nom)
+// Couche 2 : lithologie simplifiée 1:1M →  ms:LITHO_1M_SIMPLIFIEE   (DESCR, TYPE)
+// BBOX WFS 2.0 : ordre lat,lng (pas lng,lat) avec urn:ogc:def:crs:EPSG::4326
+
+function buildGeolCatalogUrl(lat, lng) {
+  const d = 0.005;
+  return `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+    `&TYPENAMES=ms:SCAN_F_GEOL50_CATALOG&COUNT=1` +
+    `&BBOX=${lat - d},${lng - d},${lat + d},${lng + d},urn:ogc:def:crs:EPSG::4326`;
+}
+
+function buildGeolLithoUrl(lat, lng) {
+  const d = 0.05;
+  return `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+    `&TYPENAMES=ms:LITHO_1M_SIMPLIFIEE&COUNT=1` +
+    `&BBOX=${lat - d},${lng - d},${lat + d},${lng + d},urn:ogc:def:crs:EPSG::4326`;
+}
+
+// Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
+function extractGmlField(xmlText, ...names) {
+  for (const name of names) {
+    const re = new RegExp(`<(?:[A-Za-z0-9_]+:)?${name}>([^<]*)</(?:[A-Za-z0-9_]+:)?${name}>`, 'i');
+    const m = xmlText.match(re);
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  return '';
 }
 
 function populateGeolFields(carte, nom, notation, description) {
-  const contentDiv = document.getElementById('geol-info-content');
   document.getElementById('geol-info-loading').style.display = 'none';
   document.getElementById('geol-info-error').style.display = 'none';
-  contentDiv.style.display = 'block';
+  document.getElementById('geol-info-content').style.display = 'block';
   document.getElementById('geol-num-carte').textContent = carte || '—';
   document.getElementById('geol-nom-carte').textContent = nom || '—';
   document.getElementById('geol-notation').textContent = notation || '—';
   document.getElementById('geol-description').textContent = description || '—';
 }
 
-function parseGeolXml(xmlText) {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlText, 'text/xml');
-    const get = (tag) => {
-      const el = doc.getElementsByTagName(tag)[0];
-      return el ? (el.textContent || '').trim() : '';
-    };
-    const notation = get('notation') || get('NOTATION');
-    const description = get('description') || get('DESCR') || get('descr');
-    const carte = get('carte') || get('CARTE');
-    const nom = get('nom') || get('NOM') || get('nom_carte');
-    if (notation || description || carte) {
-      return { carte, nom, notation, description };
-    }
-  } catch(e) { console.warn('XML parse error:', e); }
-  return null;
-}
-
-// Fetch geological info — multiple strategies to bypass CORS
-function fetchGeologicalInfo(lat, lng) {
-  const loading = document.getElementById('geol-info-loading');
+async function fetchGeologicalInfo(lat, lng) {
+  const loading  = document.getElementById('geol-info-loading');
   const errorDiv = document.getElementById('geol-info-error');
   const contentDiv = document.getElementById('geol-info-content');
-  const iframe = document.getElementById('geol-featureinfo-iframe');
   loading.style.display = 'block';
   errorDiv.style.display = 'none';
   contentDiv.style.display = 'none';
 
-  const urls = [
-    buildGeolGfiUrl(lat, lng, 'https://geoservices.brgm.fr/geologie'),
-    buildGeolGfiUrl(lat, lng, 'http://geoservices.brgm.fr/geologie'),
-  ];
+  try {
+    const [catalogResp, lithoResp] = await Promise.all([
+      fetch(buildGeolCatalogUrl(lat, lng), { signal: AbortSignal.timeout(12000) }),
+      fetch(buildGeolLithoUrl(lat, lng),   { signal: AbortSignal.timeout(12000) }),
+    ]);
+    const [catalogXml, lithoXml] = await Promise.all([
+      catalogResp.ok ? catalogResp.text() : Promise.resolve(''),
+      lithoResp.ok   ? lithoResp.text()   : Promise.resolve(''),
+    ]);
 
-  let resolved = false;
+    const numero = extractGmlField(catalogXml, 'numero');
+    const nom    = extractGmlField(catalogXml, 'nom');
+    const descr  = extractGmlField(lithoXml, 'DESCR', 'descr');
+    const type   = extractGmlField(lithoXml, 'TYPE',  'type');
 
-  // Strategy 1: fetch (works if hosted on a server, not from file://)
-  async function tryFetch() {
-    for (const url of urls) {
-      try {
-        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!resp.ok) continue;
-        const text = await resp.text();
-        const result = parseGeolXml(text);
-        if (result) {
-          resolved = true;
-          populateGeolFields(result.carte, result.nom, result.notation, result.description);
-          return true;
-        }
-      } catch(e) { /* CORS or network error — expected from file:// */ }
+    if (numero || nom || descr) {
+      populateGeolFields(numero, nom, type, descr);
+    } else {
+      loading.style.display = 'none';
+      errorDiv.innerHTML = '⚠️ Aucune donnée géologique trouvée pour ce point.';
+      errorDiv.style.display = 'block';
     }
-    return false;
-  }
-
-  // Strategy 2: XMLHttpRequest (sometimes has different CORS behavior)
-  function tryXHR() {
-    return new Promise((resolve) => {
-      let tried = 0;
-      urls.forEach(url => {
-        const xhr = new XMLHttpRequest();
-        xhr.timeout = 10000;
-        xhr.onload = function() {
-          if (resolved) return;
-          if (xhr.status === 200 && xhr.responseText) {
-            const result = parseGeolXml(xhr.responseText);
-            if (result) {
-              resolved = true;
-              populateGeolFields(result.carte, result.nom, result.notation, result.description);
-              resolve(true);
-              return;
-            }
-          }
-          tried++;
-          if (tried >= urls.length) resolve(false);
-        };
-        xhr.onerror = xhr.ontimeout = function() {
-          tried++;
-          if (tried >= urls.length) resolve(false);
-        };
-        try { xhr.open('GET', url); xhr.send(); } catch(e) { tried++; if (tried >= urls.length) resolve(false); }
-      });
-    });
-  }
-
-  // Strategy 3: iframe with attempted content reading
-  function tryIframe() {
-    return new Promise((resolve) => {
-      iframe.style.display = 'none';
-      let iframeIdx = 0;
-
-      function loadNext() {
-        if (iframeIdx >= urls.length || resolved) { resolve(false); return; }
-        const url = urls[iframeIdx++];
-        const timer = setTimeout(() => { loadNext(); }, 6000);
-
-        iframe.onload = () => {
-          clearTimeout(timer);
-          if (resolved) return;
-          try {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            if (doc) {
-              // Try reading XML content from iframe
-              const xmlText = doc.documentElement ? doc.documentElement.outerHTML : '';
-              // Also try getting text content
-              const bodyText = doc.body ? doc.body.textContent : doc.documentElement ? doc.documentElement.textContent : '';
-              const fullText = xmlText || bodyText;
-              if (fullText && fullText.length > 20) {
-                const result = parseGeolXml(fullText);
-                if (result) {
-                  resolved = true;
-                  populateGeolFields(result.carte, result.nom, result.notation, result.description);
-                  resolve(true);
-                  return;
-                }
-              }
-              // Try reading individual elements directly from iframe DOM
-              const get = (tag) => {
-                const el = doc.getElementsByTagName(tag)[0];
-                return el ? (el.textContent || '').trim() : '';
-              };
-              const notation = get('notation') || get('NOTATION');
-              const description = get('description') || get('DESCR');
-              const carte = get('carte') || get('CARTE');
-              const nom = get('nom') || get('NOM');
-              if (notation || description || carte) {
-                resolved = true;
-                populateGeolFields(carte, nom, notation, description);
-                resolve(true);
-                return;
-              }
-            }
-          } catch(e) {
-            console.log('Iframe cross-origin read blocked:', e.message);
-          }
-          loadNext();
-        };
-        iframe.onerror = () => { clearTimeout(timer); loadNext(); };
-        iframe.src = url;
-      }
-      loadNext();
-    });
-  }
-
-  // Run all strategies
-  (async () => {
-    // Try fetch first
-    const fetchOk = await tryFetch();
-    if (fetchOk || resolved) return;
-
-    // Try XHR
-    const xhrOk = await tryXHR();
-    if (xhrOk || resolved) return;
-
-    // Try iframe
-    const iframeOk = await tryIframe();
-    if (iframeOk || resolved) return;
-
-    // All failed — show visible iframe as last resort so user can see raw XML
+  } catch(e) {
     loading.style.display = 'none';
-    const visibleUrl = urls[0];
-    iframe.src = visibleUrl;
-    iframe.style.display = 'block';
-    iframe.style.width = '100%';
-    iframe.style.height = '180px';
-    iframe.style.border = '1px solid var(--border)';
-    iframe.style.borderRadius = '8px';
-    iframe.style.background = '#fff';
-    iframe.style.marginTop = '6px';
-    // Show a note
-    errorDiv.innerHTML = '📋 Les données géologiques sont affichées ci-dessus en format XML brut (BRGM — BD Charm-50).';
+    errorDiv.innerHTML = `⚠️ Erreur BRGM : ${e.message}`;
     errorDiv.style.display = 'block';
-  })();
+  }
 }
 
 async function fetchAltitude(lat, lng) {
