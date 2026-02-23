@@ -398,6 +398,26 @@
     position: relative;
     aspect-ratio: 16/10;
   }
+  .btn-map-fs {
+    position: absolute;
+    top: 8px; right: 8px;
+    z-index: 1001;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 0.68rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(3px);
+    transition: background 0.15s;
+    line-height: 1.5;
+  }
+  .btn-map-fs:hover { background: rgba(0,0,0,0.82); }
+  .map-embed:fullscreen { border-radius: 0; }
+  .map-embed:fullscreen .btn-map-fs { display: none; }
 
   .map-embed iframe {
     width: 100%; height: 100%;
@@ -1059,9 +1079,11 @@
       <div class="maps-grid" style="margin-bottom:1.5rem;">
         <div class="map-embed">
           <iframe id="map-satellite" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
         <div class="map-embed">
           <iframe id="map-street" loading="lazy" allowfullscreen></iframe>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
       </div>
 
@@ -1076,25 +1098,12 @@
         Carte d'exposition Retrait-Gonflement des Argiles
       </div>
 
-      <!-- Bouton principal InfoTerre -->
-      <a id="btn-infoterre-argiles" href="#" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#e65100,#bf360c);border-radius:10px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;margin-bottom:1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(230,81,0,0.25);"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(230,81,0,0.35)'"
-        onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(230,81,0,0.25)'">
-        🪨 Ouvrir InfoTerre — Carte Argiles 1/10 000
-      </a>
-
       <!-- Carte Leaflet avec WMS Argiles BRGM + niveau d'exposition -->
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
         <div id="map-argiles" style="width:100%;height:100%;"></div>
-      </div>
-      <div id="wms-debug" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;display:none;">
-        ℹ️ Si la couche argiles ne s'affiche pas, le serveur WMS du BRGM est peut-être bloqué par votre navigateur (mixed content HTTP/HTTPS). Utilisez le bouton InfoTerre ci-dessus.
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-        <a class="ext-link" id="link-argiles-infoterre-bottom" href="#" target="_blank" rel="noopener" style="background:rgba(230,81,0,0.08);border-color:rgba(230,81,0,0.2);color:#e65100;font-weight:600;">
-          🪨 InfoTerre — Argiles 1/10 000
-        </a>
         <a class="ext-link" id="link-argiles-georisques" href="#" target="_blank" rel="noopener">
           🗺 Carte interactive Géorisques
         </a>
@@ -1130,74 +1139,10 @@
         Carte Géologique (BRGM — BD Charm-50)
       </div>
 
-      <!-- Bouton InfoTerre Géologie -->
-      <a id="btn-infoterre-geologie" href="#" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#795548,#5d4037);border-radius:10px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;margin-bottom:1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(121,85,72,0.25);"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(121,85,72,0.35)'"
-        onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(121,85,72,0.25)'">
-        🪨 Ouvrir InfoTerre — Carte Géologique
-      </a>
-
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
         <div id="map-geologie" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-        <a class="ext-link" id="link-geologie-infoterre" href="#" target="_blank" rel="noopener" style="background:rgba(121,85,72,0.08);border-color:rgba(121,85,72,0.2);color:#795548;font-weight:600;">
-          🪨 InfoTerre — Carte géologique
-        </a>
-        <a class="ext-link" href="https://infoterre.brgm.fr/page/geoservices-ogc" target="_blank" rel="noopener">
-          📖 Géoservices BRGM
-        </a>
-      </div>
-      <!-- Légende géologique WMS GetLegendGraphic -->
-      <div style="margin-bottom:1.5rem;">
-        <div style="font-size:0.8rem;font-weight:600;color:#795548;margin-bottom:6px;">📋 Légende géologique (BRGM — BD Charm-50)</div>
-        <div id="geol-legend-container" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">
-          <img id="geol-legend-img" alt="Légende géologique BRGM" style="max-width:100%;display:none;" />
-          <div id="geol-legend-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:20px;">
-            ⏳ Chargement de la légende…
-          </div>
-        </div>
-      </div>
-
-      <!-- Informations géologiques du point (WMS GetFeatureInfo) -->
-      <div id="geol-info-panel" style="margin-bottom:1.5rem;border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:14px 18px;background:rgba(121,85,72,0.04);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-          <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
-          <span style="font-size:0.6rem;font-weight:400;color:var(--text-muted);background:var(--bg-secondary);padding:2px 8px;border-radius:4px;">flux OGC — WMS GetFeatureInfo (SCAN_GEOL50)</span>
-        </div>
-        <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-          ⏳ Interrogation du serveur WMS BRGM…
-        </div>
-        <div id="geol-info-content" style="display:none;">
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
-            <span style="font-weight:600;color:#795548;">N° Carte :</span>
-            <span style="display:flex;align-items:center;gap:8px;">
-              <span id="geol-num-carte" style="font-weight:700;font-size:0.95rem;color:#5d4037;background:rgba(121,85,72,0.08);padding:2px 10px;border-radius:5px;">—</span>
-              <button onclick="copyGeolNumCarte()" id="btn-copy-num-carte"
-                style="padding:3px 10px;font-size:0.65rem;border:1px solid rgba(121,85,72,0.3);border-radius:5px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;white-space:nowrap;"
-                onmouseover="this.style.background='rgba(121,85,72,0.08)'"
-                onmouseout="this.style.background='#fff'">
-                📋 Copier
-              </button>
-            </span>
-            <span style="font-weight:600;color:#795548;">Nom carte :</span>
-            <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
-            <span style="font-weight:600;color:#795548;">Notation :</span>
-            <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
-            <span style="font-weight:600;color:#795548;">Description :</span>
-            <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
-          </div>
-          <div style="margin-top:10px;font-size:0.6rem;color:var(--text-muted);">
-            Source : BRGM — BD Charm-50 / Scan-Géol-50 via geoservices.brgm.fr/geologie
-          </div>
-        </div>
-        <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-          ⚠️ Informations non disponibles — consultez <a href="#" id="link-geol-infoterre-fallback" target="_blank" style="color:#795548;">InfoTerre</a> pour les détails.
-        </div>
-        <iframe id="geol-featureinfo-iframe" style="display:none;width:0;height:0;border:none;" sandbox="allow-same-origin"></iframe>
-      </div>
-
       </div><!-- /capture-geologie -->
 
       <!-- ===== Carte Cavités Souterraines ===== -->
@@ -1211,22 +1156,12 @@
         Carte des Cavités Souterraines
       </div>
 
-      <!-- Bouton InfoTerre Cavités -->
-      <a id="btn-infoterre-cavites" href="#" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#7e57c2,#512da8);border-radius:10px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;margin-bottom:1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(126,87,194,0.25);"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(126,87,194,0.35)'"
-        onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(126,87,194,0.25)'">
-        🕳 Ouvrir InfoTerre — Cavités souterraines
-      </a>
-
       <!-- Carte Leaflet Cavités -->
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
         <div id="map-cavites" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-        <a class="ext-link" id="link-cavites-infoterre-bottom" href="#" target="_blank" rel="noopener" style="background:rgba(126,87,194,0.08);border-color:rgba(126,87,194,0.2);color:#7e57c2;font-weight:600;">
-          🕳 InfoTerre — Cavités souterraines
-        </a>
         <a class="ext-link" href="https://www.georisques.gouv.fr/risques/cavites-souterraines/donnees" target="_blank" rel="noopener">
           📊 Données Géorisques — Cavités
         </a>
@@ -1256,6 +1191,7 @@
       </div>
       <div class="map-embed full-map" style="aspect-ratio:16/8;margin-bottom:0.5rem;">
         <div id="map-sismique" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
       <!-- Niveau sismique au point -->
       <div id="sismique-level" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;">
@@ -1303,16 +1239,9 @@
         Sondages Géotechniques — Banque du Sous-Sol (BSS)
       </div>
 
-      <!-- Bouton InfoTerre BSS -->
-      <a id="btn-infoterre-bss" href="#" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#00796b,#004d40);border-radius:10px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;margin-bottom:1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(0,121,107,0.25);"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(0,121,107,0.35)'"
-        onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(0,121,107,0.25)'">
-        🔩 Ouvrir InfoTerre — Banque du Sous-Sol (BSS)
-      </a>
-
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
         <div id="map-bss" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
       <!-- Légende BSS -->
       <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;align-items:center;">
@@ -1323,17 +1252,8 @@
           <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#d32f2f;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></span> Projet étudié
         </div>
       </div>
-      <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:0.5rem;">
-        Les points BSS représentent les ouvrages souterrains déclarés : forages géotechniques, sondages, puits, piézomètres… (+800 000 ouvrages en France).
-        Cliquez sur un point sur InfoTerre pour accéder à la fiche détaillée (coupe géologique, logs, rapports).
-      </div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-        <a class="ext-link" id="link-bss-infoterre" href="#" target="_blank" rel="noopener" style="background:rgba(0,121,107,0.08);border-color:rgba(0,121,107,0.2);color:#00796b;font-weight:600;">
-          🔩 InfoTerre — BSS
-        </a>
-        <a class="ext-link" href="https://infoterre.brgm.fr/page/banque-sol-bss" target="_blank" rel="noopener">
-          📖 Présentation BSS
-        </a>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:1rem;">
+        Les points BSS représentent les ouvrages souterrains déclarés : forages géotechniques, sondages, puits, piézomètres… (+800 000 ouvrages en France). Cliquez sur un point pour accéder à la fiche détaillée.
       </div>
       </div><!-- /capture-bss -->
 
@@ -1349,6 +1269,7 @@
       </div>
       <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
         <div id="map-relief" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
       <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
         <div id="relief-altitude-display" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;color:var(--text-secondary);">
@@ -1373,6 +1294,33 @@
         </div>
         <div class="map-embed full-map" style="aspect-ratio:16/10;">
           <div id="map-ign-leaflet" style="width:100%;height:100%;"></div>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+        </div>
+      </div>
+
+      <!-- ===== Photos Aériennes Historiques ===== -->
+      <div class="section-title" style="margin-top:1.5rem;">
+        <div class="icon" style="background:rgba(3,169,244,0.12);color:#0277bd;">🛩</div>
+        Photographies Aériennes — Remonter le temps
+      </div>
+      <div class="info-card" style="padding:1rem;">
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <button class="photo-period-btn" data-period="1950" onclick="switchPhotoLayer('1950')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1950–1965</button>
+          <button class="photo-period-btn" data-period="1965" onclick="switchPhotoLayer('1965')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1965–1980</button>
+          <button class="photo-period-btn" data-period="1980" onclick="switchPhotoLayer('1980')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1980–1995</button>
+          <button class="photo-period-btn" data-period="2000" onclick="switchPhotoLayer('2000')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2000–2005</button>
+          <button class="photo-period-btn" data-period="2006" onclick="switchPhotoLayer('2006')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2006–2010</button>
+          <button class="photo-period-btn" data-period="2011" onclick="switchPhotoLayer('2011')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2011–2015</button>
+          <button class="photo-period-btn" data-period="2016" onclick="switchPhotoLayer('2016')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2016–2020</button>
+          <button class="photo-period-btn" data-period="2021" onclick="switchPhotoLayer('2021')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2021–2023</button>
+          <button class="photo-period-btn" data-period="actuel" onclick="switchPhotoLayer('actuel')" style="padding:5px 10px;background:#0288d1;border:1.5px solid #0288d1;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Actuel ✓</button>
+        </div>
+        <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
+          <div id="map-photo" style="width:100%;height:100%;"></div>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+        </div>
+        <div id="photo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
+          Photographies aériennes récentes — BD ORTHO — Source : IGN Géoplateforme
         </div>
       </div>
 
@@ -1397,34 +1345,64 @@
           <div style="display:flex;align-items:center;gap:0.6rem;">
             <span style="font-size:1.1rem;">🚧</span>
             <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">En Cours de Développement</span>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Photos Aériennes · Cartes Historiques · SITADEL · DT-DICT</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Géologie · Cartes Historiques · SITADEL · DT-DICT</span>
           </div>
           <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
         </div>
         <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
 
-      <!-- ===== Photos Aériennes Historiques ===== -->
+      <!-- ===== Informations Géologiques Détaillées ===== -->
       <div class="section-title" style="margin-top:1rem;">
-        <div class="icon" style="background:rgba(3,169,244,0.12);color:#0277bd;">🛩</div>
-        Photographies Aériennes — Remonter le temps
+        <div class="icon" style="background:rgba(121,85,72,0.12);color:#795548;">🔬</div>
+        Informations Géologiques Détaillées (BD Charm-50)
       </div>
       <div class="info-card" style="padding:1rem;">
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <button class="photo-period-btn" data-period="1950" onclick="switchPhotoLayer('1950')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1950–1965</button>
-          <button class="photo-period-btn" data-period="1965" onclick="switchPhotoLayer('1965')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1965–1980</button>
-          <button class="photo-period-btn" data-period="1980" onclick="switchPhotoLayer('1980')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1980–1995</button>
-          <button class="photo-period-btn" data-period="2000" onclick="switchPhotoLayer('2000')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2000–2005</button>
-          <button class="photo-period-btn" data-period="2006" onclick="switchPhotoLayer('2006')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2006–2010</button>
-          <button class="photo-period-btn" data-period="2011" onclick="switchPhotoLayer('2011')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2011–2015</button>
-          <button class="photo-period-btn" data-period="2016" onclick="switchPhotoLayer('2016')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2016–2020</button>
-          <button class="photo-period-btn" data-period="2021" onclick="switchPhotoLayer('2021')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2021–2023</button>
-          <button class="photo-period-btn" data-period="actuel" onclick="switchPhotoLayer('actuel')" style="padding:5px 10px;background:#0288d1;border:1.5px solid #0288d1;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Actuel ✓</button>
+        <!-- Légende géologique WMS GetLegendGraphic -->
+        <div style="margin-bottom:1.5rem;">
+          <div style="font-size:0.8rem;font-weight:600;color:#795548;margin-bottom:6px;">📋 Légende géologique (BRGM — BD Charm-50)</div>
+          <div id="geol-legend-container" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">
+            <img id="geol-legend-img" alt="Légende géologique BRGM" style="max-width:100%;display:none;" />
+            <div id="geol-legend-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:20px;">
+              ⏳ Chargement de la légende…
+            </div>
+          </div>
         </div>
-        <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
-          <div id="map-photo" style="width:100%;height:100%;"></div>
-        </div>
-        <div id="photo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
-          Photographies aériennes récentes — BD ORTHO — Source : IGN Géoplateforme
+        <!-- Informations géologiques du point (WMS GetFeatureInfo) -->
+        <div id="geol-info-panel" style="border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:14px 18px;background:rgba(121,85,72,0.04);">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+            <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
+            <span style="font-size:0.6rem;font-weight:400;color:var(--text-muted);background:var(--bg-secondary);padding:2px 8px;border-radius:4px;">flux OGC — WMS GetFeatureInfo (SCAN_GEOL50)</span>
+          </div>
+          <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
+            ⏳ Interrogation du serveur WMS BRGM…
+          </div>
+          <div id="geol-info-content" style="display:none;">
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
+              <span style="font-weight:600;color:#795548;">N° Carte :</span>
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span id="geol-num-carte" style="font-weight:700;font-size:0.95rem;color:#5d4037;background:rgba(121,85,72,0.08);padding:2px 10px;border-radius:5px;">—</span>
+                <button onclick="copyGeolNumCarte()" id="btn-copy-num-carte"
+                  style="padding:3px 10px;font-size:0.65rem;border:1px solid rgba(121,85,72,0.3);border-radius:5px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;white-space:nowrap;"
+                  onmouseover="this.style.background='rgba(121,85,72,0.08)'"
+                  onmouseout="this.style.background='#fff'">
+                  📋 Copier
+                </button>
+              </span>
+              <span style="font-weight:600;color:#795548;">Nom carte :</span>
+              <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
+              <span style="font-weight:600;color:#795548;">Notation :</span>
+              <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
+              <span style="font-weight:600;color:#795548;">Description :</span>
+              <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
+            </div>
+            <div style="margin-top:10px;font-size:0.6rem;color:var(--text-muted);">
+              Source : BRGM — BD Charm-50 / Scan-Géol-50 via geoservices.brgm.fr/geologie
+            </div>
+          </div>
+          <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
+            ⚠️ Informations géologiques non disponibles pour ce point.
+          </div>
+          <iframe id="geol-featureinfo-iframe" style="display:none;width:0;height:0;border:none;" sandbox="allow-same-origin"></iframe>
         </div>
       </div>
 
@@ -1446,6 +1424,7 @@
         </div>
         <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
           <div id="map-histo" style="width:100%;height:100%;"></div>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
         <div id="histo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
           Carte de l'État-Major — 1ère couverture topographique nationale de la France (1820–1866) — Source : IGN Géoplateforme
@@ -2784,11 +2763,6 @@ function setupMaps(lat, lng) {
   // Fetch argiles exposure via API and draw on map
   fetchArgilesAndDraw(lat, lng);
 
-  // InfoTerre direct link buttons (1/10000 scale)
-  const infoterreUrl = `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=17&context=ARGILE`;
-  document.getElementById('btn-infoterre-argiles').href = infoterreUrl;
-  document.getElementById('link-argiles-infoterre-bottom').href = infoterreUrl;
-
   // Link to Georisques interactive map with argile layer
   document.getElementById('link-argiles-georisques').href =
     `https://www.georisques.gouv.fr/cartes-interactives#/dossier/ARGILE?center=${lng},${lat}&zoom=15`;
@@ -2860,15 +2834,6 @@ function setupMaps(lat, lng) {
   }
   tryNextLegend();
 
-  // InfoTerre géologie link
-  const infoterreGeoUrl = `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=14`;
-  const elBtnInfoterre = document.getElementById('btn-infoterre-geologie');
-  if (elBtnInfoterre) elBtnInfoterre.href = infoterreGeoUrl;
-  const elLinkGeologie = document.getElementById('link-geologie-infoterre');
-  if (elLinkGeologie) elLinkGeologie.href = infoterreGeoUrl;
-  const elLinkFallback = document.getElementById('link-geol-infoterre-fallback');
-  if (elLinkFallback) elLinkFallback.href = infoterreGeoUrl;
-
   // Fetch geological info via WMS GetFeatureInfo (BD Charm-50)
   fetchGeologicalInfo(lat, lng);
 
@@ -2903,11 +2868,6 @@ function setupMaps(lat, lng) {
   addMeasureTool(window.cavitesMap);
 
   setTimeout(() => { window.cavitesMap.invalidateSize(); }, 300);
-
-  // Lien InfoTerre avec contexte cavités
-  const infoterreUrlCavites = `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=14&context=CAV`;
-  document.getElementById('btn-infoterre-cavites').href = infoterreUrlCavites;
-  document.getElementById('link-cavites-infoterre-bottom').href = infoterreUrlCavites;
 
   // Peupler les marqueurs cavités depuis l'API
   fetchCavitesMap(lat, lng);
@@ -3001,11 +2961,6 @@ function setupMaps(lat, lng) {
 
   addMeasureTool(window.bssMap);
   setTimeout(() => { window.bssMap.invalidateSize(); }, 300);
-
-  // Liens InfoTerre BSS
-  const bssInfoterreUrl = `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_AROUND_XY&x=${lng}&y=${lat}&type_search=BSS&rayon=5000`;
-  document.getElementById('btn-infoterre-bss').href = bssInfoterreUrl;
-  document.getElementById('link-bss-infoterre').href = bssInfoterreUrl;
 
   // ====== Liens Permis de Construire SITADEL ======
   // Carte Koumoul SITADEL logements — centrée sur le point
@@ -3330,7 +3285,6 @@ function setupExternalLinks(lat, lng) {
     { name: 'Cadastre', url: `https://www.cadastre.gouv.fr/scpc/rechercherParCoordonnees.do?CSRF_TOKEN=&x=${lng}&y=${lat}`, icon: '📐' },
     { name: 'BASIAS/BASOL', url: `https://www.georisques.gouv.fr/risques/sites-et-sols-pollues/donnees#/`, icon: '🧪' },
     { name: 'Google Earth', url: `https://earth.google.com/web/@${lat},${lng},0a,1500d,35y,0h,0t,0r`, icon: '🌐' },
-    { name: 'Infoterre BSS (BRGM)', url: `https://infoterre.brgm.fr/viewer/MainTileForward.do?x=${lng}&y=${lat}&zoom=15&context=BSS`, icon: '🪨' },
     { name: 'Vigicrues', url: `https://www.vigicrues.gouv.fr/`, icon: '🌊' },
     { name: 'Carte interactive Géorisques', url: `https://www.georisques.gouv.fr/cartes-interactives#/`, icon: '🗺' },
   ];
@@ -4281,9 +4235,7 @@ function fetchGeologicalInfo(lat, lng) {
     iframe.style.background = '#fff';
     iframe.style.marginTop = '6px';
     // Show a note
-    errorDiv.innerHTML = '📋 Les données géologiques sont affichées ci-dessus en format XML brut. ' +
-      'Vous pouvez aussi consulter <a href="' + document.getElementById('link-geol-infoterre-fallback').href +
-      '" target="_blank" style="color:#795548;font-weight:600;">InfoTerre</a> pour une vue détaillée.';
+    errorDiv.innerHTML = '📋 Les données géologiques sont affichées ci-dessus en format XML brut (BRGM — BD Charm-50).';
     errorDiv.style.display = 'block';
   })();
 }
@@ -4576,6 +4528,30 @@ function captureIframe(iframeId, label) {
     btn.classList.remove('success');
   }, 3000);
 }
+// ====== PLEIN ÉCRAN CARTES ======
+
+function openFullscreen(btn) {
+  const container = btn.closest('.map-embed');
+  if (!container) return;
+  const req = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen;
+  if (req) req.call(container);
+}
+
+document.addEventListener('fullscreenchange', function() {
+  setTimeout(() => {
+    [window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
+     window.bssMap, window.reliefMap, window.ignMap, window.photoMap, window.histoMap]
+      .forEach(function(m) { if (m) m.invalidateSize(); });
+  }, 200);
+});
+document.addEventListener('webkitfullscreenchange', function() {
+  setTimeout(() => {
+    [window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
+     window.bssMap, window.reliefMap, window.ignMap, window.photoMap, window.histoMap]
+      .forEach(function(m) { if (m) m.invalidateSize(); });
+  }, 200);
+});
+
 // ====== EN COURS DE DÉVELOPPEMENT — ACCORDION ======
 
 function toggleDevSection() {
@@ -4586,7 +4562,6 @@ function toggleDevSection() {
     arrow.textContent = '▼';
     // Forcer Leaflet à recalculer la taille des cartes cachées
     setTimeout(() => {
-      if (window.photoMap) window.photoMap.invalidateSize();
       if (window.histoMap) window.histoMap.invalidateSize();
     }, 150);
   } else {
