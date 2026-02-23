@@ -1397,11 +1397,36 @@
           <div style="display:flex;align-items:center;gap:0.6rem;">
             <span style="font-size:1.1rem;">🚧</span>
             <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">En Cours de Développement</span>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Cartes Historiques · SITADEL · DT-DICT</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Photos Aériennes · Cartes Historiques · SITADEL · DT-DICT</span>
           </div>
           <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
         </div>
         <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
+
+      <!-- ===== Photos Aériennes Historiques ===== -->
+      <div class="section-title" style="margin-top:1rem;">
+        <div class="icon" style="background:rgba(3,169,244,0.12);color:#0277bd;">🛩</div>
+        Photographies Aériennes — Remonter le temps
+      </div>
+      <div class="info-card" style="padding:1rem;">
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <button class="photo-period-btn" data-period="1950" onclick="switchPhotoLayer('1950')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1950–1965</button>
+          <button class="photo-period-btn" data-period="1965" onclick="switchPhotoLayer('1965')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1965–1980</button>
+          <button class="photo-period-btn" data-period="1980" onclick="switchPhotoLayer('1980')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">1980–1995</button>
+          <button class="photo-period-btn" data-period="2000" onclick="switchPhotoLayer('2000')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2000–2005</button>
+          <button class="photo-period-btn" data-period="2006" onclick="switchPhotoLayer('2006')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2006–2010</button>
+          <button class="photo-period-btn" data-period="2011" onclick="switchPhotoLayer('2011')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2011–2015</button>
+          <button class="photo-period-btn" data-period="2016" onclick="switchPhotoLayer('2016')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2016–2020</button>
+          <button class="photo-period-btn" data-period="2021" onclick="switchPhotoLayer('2021')" style="padding:5px 10px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">2021–2023</button>
+          <button class="photo-period-btn" data-period="actuel" onclick="switchPhotoLayer('actuel')" style="padding:5px 10px;background:#0288d1;border:1.5px solid #0288d1;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Actuel ✓</button>
+        </div>
+        <div class="map-embed full-map" style="aspect-ratio:16/10;margin-bottom:0.5rem;">
+          <div id="map-photo" style="width:100%;height:100%;"></div>
+        </div>
+        <div id="photo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
+          Photographies aériennes récentes — BD ORTHO — Source : IGN Géoplateforme
+        </div>
+      </div>
 
       <!-- ===== Cartes Historiques IGN ===== -->
       <div class="section-title" style="margin-top:2rem;">
@@ -3067,6 +3092,23 @@ function setupMaps(lat, lng) {
   const earthUrl = `https://earth.google.com/web/@${lat},${lng},0a,1500d,35y,0h,0t,0r`;
   document.getElementById('link-earth-open').href = earthUrl;
 
+  // ====== Photos Aériennes Historiques ======
+  if (window.photoMap) { window.photoMap.remove(); window.photoMap = null; }
+  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 16, zoomControl: true });
+  window.photoCurrentPeriod = 'actuel';
+  const _pd = photoPeriods['actuel'];
+  window.photoLayer = L.tileLayer(
+    'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
+    '&LAYER=' + _pd.layer + '&TILEMATRIXSET=' + _pd.tms +
+    '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=' + _pd.style + '&FORMAT=' + _pd.format,
+    { attribution: '© IGN Géoplateforme', maxZoom: 19, maxNativeZoom: 19 }
+  );
+  window.photoLayer.addTo(window.photoMap);
+  window.photoMarker = L.marker([lat, lng]).addTo(window.photoMap)
+    .bindPopup('<strong>Projet étudié</strong>').openPopup();
+  addMeasureTool(window.photoMap);
+  setTimeout(() => { window.photoMap.invalidateSize(); }, 300);
+
   // ====== Cartes Historiques IGN ======
   if (window.histoMap) { window.histoMap.remove(); window.histoMap = null; }
   window.histoMap = L.map('map-histo', {
@@ -3077,15 +3119,15 @@ function setupMaps(lat, lng) {
   window.histoLayers = {
     etatmajor: L.tileLayer(
       'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
-      '&LAYER=GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40&TILEMATRIXSET=PM' +
-      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/png',
-      { attribution: '© IGN Géoplateforme', maxZoom: 15, maxNativeZoom: 15 }
+      '&LAYER=GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40&TILEMATRIXSET=PM_6_15' +
+      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/jpeg',
+      { attribution: '© IGN Géoplateforme', minZoom: 6, maxZoom: 15, maxNativeZoom: 15 }
     ),
     cassini: L.tileLayer(
       'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
-      '&LAYER=GEOGRAPHICALGRIDSYSTEMS.CASSINI&TILEMATRIXSET=PM' +
-      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/png',
-      { attribution: '© IGN Géoplateforme', maxZoom: 13, maxNativeZoom: 13 }
+      '&LAYER=AN-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI&TILEMATRIXSET=PM_0_14' +
+      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/jpeg',
+      { attribution: '© IGN Géoplateforme', minZoom: 0, maxZoom: 14, maxNativeZoom: 14 }
     ),
   };
   window.histoCurrentLayer = 'etatmajor';
@@ -4544,6 +4586,7 @@ function toggleDevSection() {
     arrow.textContent = '▼';
     // Forcer Leaflet à recalculer la taille des cartes cachées
     setTimeout(() => {
+      if (window.photoMap) window.photoMap.invalidateSize();
       if (window.histoMap) window.histoMap.invalidateSize();
     }, 150);
   } else {
@@ -4552,11 +4595,57 @@ function toggleDevSection() {
   }
 }
 
+// ====== PHOTOS AÉRIENNES HISTORIQUES IGN ======
+
+const photoPeriods = {
+  '1950': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1950-1965', tms: 'PM_0_18', format: 'image/png',  style: 'BDORTHOHISTORIQUE', minZoom: 0,  label: '1950–1965', info: 'Photographies aériennes 1950–1965 — BD ORTHO Historique — Source : IGN Géoplateforme' },
+  '1965': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1965-1980', tms: 'PM_3_18', format: 'image/png',  style: 'normal',           minZoom: 3,  label: '1965–1980', info: 'Photographies aériennes 1965–1980 — BD ORTHO Historique — Source : IGN Géoplateforme' },
+  '1980': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1980-1995', tms: 'PM_3_18', format: 'image/png',  style: 'normal',           minZoom: 3,  label: '1980–1995', info: 'Photographies aériennes 1980–1995 — BD ORTHO Historique — Source : IGN Géoplateforme' },
+  '2000': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2000-2005',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2000–2005', info: 'Photographies aériennes 2000–2005 — BD ORTHO — Source : IGN Géoplateforme' },
+  '2006': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2006-2010',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2006–2010', info: 'Photographies aériennes 2006–2010 — BD ORTHO — Source : IGN Géoplateforme' },
+  '2011': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2011-2015',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2011–2015', info: 'Photographies aériennes 2011–2015 — BD ORTHO — Source : IGN Géoplateforme' },
+  '2016': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2016-2020',  tms: 'PM_6_19', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2016–2020', info: 'Photographies aériennes 2016–2020 — BD ORTHO — Source : IGN Géoplateforme' },
+  '2021': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2021-2023',  tms: 'PM_6_19', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2021–2023', info: 'Photographies aériennes 2021–2023 — BD ORTHO — Source : IGN Géoplateforme' },
+  'actuel': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS',         tms: 'PM',      format: 'image/jpeg', style: 'normal',           minZoom: 0,  label: 'Actuel',    info: 'Photographies aériennes récentes — BD ORTHO — Source : IGN Géoplateforme' },
+};
+
+function switchPhotoLayer(period) {
+  if (!window.photoMap || !photoPeriods[period]) return;
+  if (window.photoCurrentPeriod === period) return;
+  if (window.photoLayer) window.photoLayer.remove();
+  const pd = photoPeriods[period];
+  window.photoLayer = L.tileLayer(
+    'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
+    '&LAYER=' + pd.layer + '&TILEMATRIXSET=' + pd.tms +
+    '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=' + pd.style + '&FORMAT=' + pd.format,
+    { attribution: '© IGN Géoplateforme', minZoom: pd.minZoom, maxZoom: 19, maxNativeZoom: 19 }
+  );
+  window.photoLayer.addTo(window.photoMap);
+  window.photoCurrentPeriod = period;
+  const infoEl = document.getElementById('photo-info');
+  if (infoEl) infoEl.textContent = pd.info;
+  document.querySelectorAll('.photo-period-btn').forEach(btn => {
+    if (btn.dataset.period === period) {
+      btn.style.background = '#0288d1';
+      btn.style.borderColor = '#0288d1';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '700';
+      btn.textContent = pd.label + ' ✓';
+    } else {
+      btn.style.background = 'var(--bg-secondary)';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text-primary)';
+      btn.style.fontWeight = '600';
+      btn.textContent = photoPeriods[btn.dataset.period].label;
+    }
+  });
+}
+
 // ====== CARTES HISTORIQUES IGN ======
 
 const histoInfo = {
   etatmajor: 'Carte de l\'État-Major — 1ère couverture topographique nationale de la France (1820–1866) — Source : IGN Géoplateforme',
-  cassini: 'Carte de Cassini — 1ère carte topographique de la France entière (1756–1815) — Source : IGN Géoplateforme',
+  cassini: 'Carte de Cassini (exemplaire du Roi) — 1ère carte topographique de la France entière (1756–1815) — Source : IGN / Archives Nationales — Géoplateforme',
 };
 
 function switchHistoLayer(name) {
