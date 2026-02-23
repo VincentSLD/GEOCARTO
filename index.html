@@ -984,40 +984,6 @@
       </div>
     </div>
     </div><!-- /capture-address -->
-
-    <!-- Stats overview -->
-    <div id="capture-stats" class="capturable">
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card">
-        <div class="stat-value amber" id="stat-catnat">—</div>
-        <div class="stat-label">Arrêtés CatNat</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value red" id="stat-risques">—</div>
-        <div class="stat-label">Risques identifiés</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value purple" id="stat-sismique">—</div>
-        <div class="stat-label">Zone sismique</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value teal" id="stat-cavites">—</div>
-        <div class="stat-label">Cavités proches</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value blue" id="stat-icpe">—</div>
-        <div class="stat-label">Sites ICPE</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value green" id="stat-mvt">—</div>
-        <div class="stat-label">Mvt de terrain</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:#e0976e" id="stat-bss">—</div>
-        <div class="stat-label">Sondages BSS</div>
-      </div>
-    </div>
-    </div><!-- /capture-stats -->
     </div><!-- /capture-address-stats -->
 
 
@@ -1252,6 +1218,40 @@
           <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
         </div>
         <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
+
+      <!-- Stats overview -->
+      <div id="capture-stats" class="capturable" style="margin-bottom:1rem;">
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+          <div class="stat-value amber" id="stat-catnat">—</div>
+          <div class="stat-label">Arrêtés CatNat</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value red" id="stat-risques">—</div>
+          <div class="stat-label">Risques identifiés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value purple" id="stat-sismique">—</div>
+          <div class="stat-label">Zone sismique</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value teal" id="stat-cavites">—</div>
+          <div class="stat-label">Cavités proches</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value blue" id="stat-icpe">—</div>
+          <div class="stat-label">Sites ICPE</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value green" id="stat-mvt">—</div>
+          <div class="stat-label">Mvt de terrain</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color:#e0976e" id="stat-bss">—</div>
+          <div class="stat-label">Sondages BSS</div>
+        </div>
+      </div>
+      </div><!-- /capture-stats -->
 
       <!-- ===== Google Earth & Export KML/KMZ ===== -->
       <div class="section-title" style="margin-top:1rem;">
@@ -2347,103 +2347,52 @@ let bssData = []; // Store globally for map markers
 
 async function fetchBSS(lat, lng) {
   try {
-    // Calculate a ~2km bbox around the point
     const dLat = 0.018; // ~2km
-    const dLng = 0.025; // ~2km at mid-latitudes
-    const bbox = `${(lng - dLng).toFixed(6)},${(lat - dLat).toFixed(6)},${(lng + dLng).toFixed(6)},${(lat + dLat).toFixed(6)}`;
-
-    // WFS GetFeature on BSS layer via geoservices.brgm.fr
-    const url = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=BSS_TOTAL_AVEC_LABEL&BBOX=${bbox}&SRSNAME=EPSG:4326&maxFeatures=100&outputFormat=application/json`;
+    const dLng = 0.025;
+    // WFS 2.0 BSS_EAU_POINT — BBOX ordre lat,lng (EPSG:4326 axis order)
+    const url = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+      `&TYPENAMES=ms:BSS_EAU_POINT&COUNT=100` +
+      `&BBOX=${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
 
     const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    
-    const contentType = resp.headers.get('content-type') || '';
-    let features = [];
 
-    if (contentType.includes('json')) {
-      const data = await resp.json();
-      features = data.features || [];
-    } else {
-      // GML fallback — parse XML
-      const text = await resp.text();
-      features = parseBSSGml(text, lat, lng);
-    }
+    const text = await resp.text();
+    const features = parseBSSGml(text, lat, lng);
 
     bssData = features;
     renderBSS(features);
     document.getElementById('stat-bss').textContent = features.length;
-    
-    // Add BSS markers to argiles map if it exists
     addBSSMarkersToMap(features);
-    
     return features;
   } catch (e) {
     console.error('BSS error:', e);
     document.getElementById('stat-bss').textContent = '?';
-    
-    // Fallback: try with a simpler WFS request or show link
-    try {
-      await fetchBSSFallback(lat, lng);
-    } catch (e2) {
-      document.getElementById('bss-list').innerHTML = `
-        <div class="empty-state">
-          Impossible de charger les sondages BSS automatiquement.<br>
-          <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank" 
-             style="color:var(--accent-blue);text-decoration:underline;">
-            → Consultez InfoTerre directement
-          </a>
-        </div>`;
-    }
+    document.getElementById('bss-list').innerHTML = `
+      <div class="empty-state">
+        Impossible de charger les sondages BSS automatiquement.<br>
+        <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank"
+           style="color:var(--accent-blue);text-decoration:underline;">
+          → Consultez InfoTerre directement
+        </a>
+      </div>`;
     throw e;
   }
 }
 
-// Fallback: try GeoJSON endpoint or alternative WFS
-async function fetchBSSFallback(lat, lng) {
-  const dLat = 0.018;
-  const dLng = 0.025;
-  const bbox = `${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)}`;
-  
-  // Try alternative WFS URL
-  const url = `https://geoservices.brgm.fr/odmgm?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=BSS_POINT&BBOX=${bbox}&SRSNAME=EPSG:4326&maxFeatures=100&outputFormat=application/json`;
-  
-  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  
-  const contentType = resp.headers.get('content-type') || '';
-  let features = [];
-  
-  if (contentType.includes('json')) {
-    const data = await resp.json();
-    features = data.features || [];
-  } else {
-    const text = await resp.text();
-    features = parseBSSGml(text, lat, lng);
-  }
-
-  bssData = features;
-  renderBSS(features);
-  document.getElementById('stat-bss').textContent = features.length;
-  addBSSMarkersToMap(features);
-  return features;
-}
-
-// Parse GML response from BRGM WFS (fallback when JSON not available)
+// Parse GML response from BRGM WFS BSS_EAU_POINT
 function parseBSSGml(xmlText, centerLat, centerLng) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText, 'text/xml');
   const features = [];
-  
-  // Try multiple possible element names
+
   const members = doc.querySelectorAll('featureMember, member');
-  
+
   members.forEach(member => {
     try {
       const feature = { type: 'Feature', properties: {}, geometry: null };
-      
-      // Extract text content from child elements
+
+      // Extract all leaf element values (namespace-stripped)
       const children = member.querySelectorAll('*');
       children.forEach(child => {
         const tag = child.localName || child.tagName;
@@ -2452,41 +2401,46 @@ function parseBSSGml(xmlText, centerLat, centerLng) {
           feature.properties[tag] = text;
         }
       });
-      
-      // Extract coordinates from pos or coordinates elements
-      const pos = member.querySelector('pos, coordinates, posList');
-      if (pos) {
-        const coords = pos.textContent.trim().split(/[\s,]+/).map(Number);
-        if (coords.length >= 2) {
-          // WFS often returns lat,lng or lng,lat depending on CRS
-          feature.geometry = {
-            type: 'Point',
-            coordinates: [coords[1] || coords[0], coords[0] || coords[1]]
-          };
-          // Heuristic: if first coord looks like longitude, swap
-          if (Math.abs(coords[0]) > 90) {
-            feature.geometry.coordinates = [coords[0], coords[1]];
+
+      // BSS_EAU_POINT exposes explicit latitude/longitude fields — use them directly
+      const lat = parseFloat(feature.properties.latitude || '');
+      const lng = parseFloat(feature.properties.longitude || '');
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        feature.geometry = { type: 'Point', coordinates: [lng, lat] };
+      } else {
+        // Fallback: parse GML geometry pos element
+        const pos = member.querySelector('pos, coordinates, posList');
+        if (pos) {
+          const coords = pos.textContent.trim().split(/[\s,]+/).map(Number);
+          if (coords.length >= 2) {
+            // WFS 2.0 EPSG:4326 axis order is lat,lng
+            if (Math.abs(coords[0]) > 90) {
+              // First value too large for lat → treat as lng,lat
+              feature.geometry = { type: 'Point', coordinates: [coords[0], coords[1]] };
+            } else {
+              feature.geometry = { type: 'Point', coordinates: [coords[1], coords[0]] };
+            }
           }
         }
       }
-      
+
       if (Object.keys(feature.properties).length > 1) {
         features.push(feature);
       }
     } catch (e) {}
   });
-  
+
   return features;
 }
 
 function renderBSS(features) {
   const container = document.getElementById('bss-list');
-  
+
   if (!features || features.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         Aucun sondage BSS trouvé dans un rayon de 2 km.<br>
-        <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank" 
+        <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank"
            style="color:var(--accent-blue);text-decoration:underline;">
           → Vérifiez sur InfoTerre (couche « Dossiers du sous-sol BSS »)
         </a>
@@ -2496,47 +2450,50 @@ function renderBSS(features) {
 
   container.innerHTML = features.map(f => {
     const p = f.properties || {};
-    
-    // Extract key fields (names vary depending on WFS layer)
-    const bssCode = p.denomination_bss || p.code_bss || p.BSS_CODE || p.identifiant || p.LABEL || p.NOM || '';
-    const designation = p.designation || p.DESIGNATION || p.objet || p.NOM_OBJET || '';
-    const profondeur = p.profondeur_atteinte || p.prof_max || p.PROF || p.profondeur || '';
-    const nature = p.nature_ouvrage || p.NATURE || p.type || p.nature || '';
-    const commune = p.commune || p.NOM_COMM || p.COMMUNE || '';
-    const dateOuvrage = p.date_debut || p.DATE || p.date || '';
-    const objet = p.utilisation || p.OBJET || p.objet || p.usage || '';
-    
-    // Build InfoTerre link for this BSS point
-    const bssId = (bssCode || '').replace(/\//g, '');
-    const infoterreLien = bssCode ? 
-      `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(bssCode)}` :
-      `https://infoterre.brgm.fr/viewer/MainTileForward.do?`;
+
+    const codeBss   = p.code_bss || '';
+    const bssId     = p.bss_id   || '';
+    const nature    = p.nature_pe || '';
+    const adresse   = p.adresse  || '';
+    const commune   = p.commune_actuelle || p.commune || '';
+    const altitude  = p.altitude  || '';
+    const prof      = p.prof_invest || '';
+    const nbPiezo   = p.nb_mesures_piezo || '';
+    const dateMaj   = p.date_maj  || '';
+    const lien      = p.lien_infoterre ||
+      (codeBss ? `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(codeBss)}` :
+                 `https://infoterre.brgm.fr/viewer/MainTileForward.do?`);
+
+    const label = codeBss || bssId || 'Ouvrage BSS';
+    const details = [
+      nature    ? `Type : ${nature}`          : '',
+      prof      ? `Prof. : ${prof} m`          : '',
+      altitude  ? `Alt. : ${altitude} m NGF`   : '',
+      nbPiezo   ? `Piézométrie : ${nbPiezo} mesures` : '',
+      adresse   ? adresse                       : '',
+      commune   ? commune                       : '',
+      dateMaj   ? `Màj : ${dateMaj}`            : '',
+    ].filter(Boolean).join(' · ');
 
     return `
       <div class="icpe-item" style="border-left: 3px solid #e0976e;">
         <div class="icpe-name" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>🔩 ${bssCode || designation || nature || 'Ouvrage BSS'}</span>
-          <a href="${infoterreLien}" target="_blank" rel="noopener"
+          <span>🔩 ${label}</span>
+          <a href="${lien}" target="_blank" rel="noopener"
              style="font-size:0.72rem;color:var(--accent-blue);text-decoration:none;white-space:nowrap;margin-left:8px;">
             📄 Fiche InfoTerre →
           </a>
         </div>
-        <div class="icpe-detail">
-          ${designation ? `Désignation : ${designation}` : ''}
-          ${nature ? `${designation ? ' · ' : ''}Type : ${nature}` : ''}
-          ${profondeur ? ` · Prof. : ${profondeur} m` : ''}
-          ${objet ? ` · Objet : ${objet}` : ''}
-          ${commune ? ` · ${commune}` : ''}
-          ${dateOuvrage ? ` · Date : ${dateOuvrage}` : ''}
-        </div>
+        ${details ? `<div class="icpe-detail">${details}</div>` : ''}
       </div>`;
   }).join('');
 }
 
-// Add BSS markers to the Leaflet argiles map
+// Add BSS markers to bssMap only
 function addBSSMarkersToMap(features) {
-  if (!argilesMap) return;
-  
+  const maps = [window.bssMap].filter(Boolean);
+  if (!maps.length) return;
+
   const bssIcon = L.divIcon({
     html: '<div style="background:#e0976e;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',
     className: '',
@@ -2544,32 +2501,47 @@ function addBSSMarkersToMap(features) {
     iconAnchor: [7, 7],
     popupAnchor: [0, -8],
   });
-  
+
   features.forEach(f => {
     if (!f.geometry || !f.geometry.coordinates) return;
     const [lng, lat] = f.geometry.coordinates;
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
-    
+
     const p = f.properties || {};
-    const bssCode = p.denomination_bss || p.code_bss || p.BSS_CODE || p.identifiant || p.LABEL || '';
-    const profondeur = p.profondeur_atteinte || p.prof_max || p.PROF || p.profondeur || '';
-    const nature = p.nature_ouvrage || p.NATURE || p.type || '';
-    
-    const infoterreLien = bssCode ? 
-      `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(bssCode)}` :
-      '#';
-    
+    const codeBss  = p.code_bss  || '';
+    const bssId    = p.bss_id    || '';
+    const nature   = p.nature_pe || '';
+    const prof     = p.prof_invest || '';
+    const altitude = p.altitude  || '';
+    const adresse  = p.adresse   || '';
+    const commune  = p.commune_actuelle || p.commune || '';
+    const nbPiezo  = p.nb_mesures_piezo || '';
+    const dateMaj  = p.date_maj  || '';
+    const lien     = p.lien_infoterre ||
+      (codeBss ? `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(codeBss)}` : '#');
+
+    const label = codeBss || bssId || 'Ouvrage BSS';
+    const subtitle = (codeBss && bssId && codeBss !== bssId)
+      ? `<span style="color:#888;font-size:10px;"> — ${bssId}</span>` : '';
+
     const popup = `
-      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:220px;">
-        <strong style="color:#e0976e;">🔩 ${bssCode || 'Ouvrage BSS'}</strong><br>
-        ${nature ? `Type : ${nature}<br>` : ''}
-        ${profondeur ? `Profondeur : ${profondeur} m<br>` : ''}
-        ${bssCode ? `<a href="${infoterreLien}" target="_blank" style="color:#4a8eff;">Voir fiche InfoTerre →</a>` : ''}
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:260px;line-height:1.6;">
+        <strong style="color:#e0976e;">🔩 ${label}</strong>${subtitle}<br>
+        ${nature   ? `Type : <b>${nature}</b><br>` : ''}
+        ${prof     ? `Profondeur : ${prof} m<br>` : ''}
+        ${altitude ? `Altitude : ${altitude} m NGF<br>` : ''}
+        ${nbPiezo  ? `Piézométrie : ${nbPiezo} mesures<br>` : ''}
+        ${adresse  ? `${adresse}<br>` : ''}
+        ${commune  ? `${commune}<br>` : ''}
+        ${dateMaj  ? `<span style="color:#888;font-size:10px;">Màj : ${dateMaj}</span><br>` : ''}
+        <a href="${lien}" target="_blank" style="color:#4a8eff;text-decoration:none;">Voir fiche InfoTerre →</a>
       </div>`;
-    
-    L.marker([lat, lng], { icon: bssIcon })
-      .bindPopup(popup)
-      .addTo(argilesMap);
+
+    maps.forEach(map => {
+      L.marker([lat, lng], { icon: bssIcon })
+        .bindPopup(popup)
+        .addTo(map);
+    });
   });
 }
 
