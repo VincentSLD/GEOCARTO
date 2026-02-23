@@ -918,7 +918,7 @@
       <!-- Coords -->
       <div class="search-row">
         <div class="input-group">
-          <label>Latitude</label>
+          <label>Latitude (Y)</label>
           <div style="display:flex;gap:4px;">
             <input type="text" id="lat" placeholder="46.867747" value=""
               onchange="updatePickerFromInputs()" onkeyup="updatePickerFromInputs()" style="flex:1;">
@@ -926,7 +926,7 @@
           </div>
         </div>
         <div class="input-group">
-          <label>Longitude</label>
+          <label>Longitude (X)</label>
           <div style="display:flex;gap:4px;">
             <input type="text" id="lng" placeholder="-1.769058" value=""
               onchange="updatePickerFromInputs()" onkeyup="updatePickerFromInputs()" style="flex:1;">
@@ -4271,8 +4271,8 @@ function toggleDevSection() {
 
 const photoPeriods = {
   '1950': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1950-1965', tms: 'PM_0_18', format: 'image/png',  style: 'BDORTHOHISTORIQUE', minZoom: 0,  label: '1950–1965', info: 'Photographies aériennes 1950–1965 — BD ORTHO Historique — Source : IGN Géoplateforme' },
-  '1965': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1965-1980', tms: 'PM_3_18', format: 'image/png',  style: 'normal',           minZoom: 3,  label: '1965–1980', info: 'Photographies aériennes 1965–1980 — BD ORTHO Historique — Source : IGN Géoplateforme' },
-  '1980': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1980-1995', tms: 'PM_3_18', format: 'image/png',  style: 'normal',           minZoom: 3,  label: '1980–1995', info: 'Photographies aériennes 1980–1995 — BD ORTHO Historique — Source : IGN Géoplateforme' },
+  '1965': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1965-1980', tms: 'PM_3_18', format: 'image/png',  style: 'BDORTHOHISTORIQUE', minZoom: 3,  label: '1965–1980', info: 'Photographies aériennes 1965–1980 — BD ORTHO Historique — Source : IGN Géoplateforme' },
+  '1980': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS.1980-1995', tms: 'PM_3_18', format: 'image/png',  style: 'BDORTHOHISTORIQUE', minZoom: 3,  label: '1980–1995', info: 'Photographies aériennes 1980–1995 — BD ORTHO Historique — Source : IGN Géoplateforme' },
   '2000': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2000-2005',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2000–2005', info: 'Photographies aériennes 2000–2005 — BD ORTHO — Source : IGN Géoplateforme' },
   '2006': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2006-2010',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2006–2010', info: 'Photographies aériennes 2006–2010 — BD ORTHO — Source : IGN Géoplateforme' },
   '2011': { layer: 'ORTHOIMAGERY.ORTHOPHOTOS2011-2015',  tms: 'PM_6_18', format: 'image/jpeg', style: 'normal',           minZoom: 6,  label: '2011–2015', info: 'Photographies aériennes 2011–2015 — BD ORTHO — Source : IGN Géoplateforme' },
