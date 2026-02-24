@@ -1222,24 +1222,15 @@
         </div>
       </div>
 
-      <!-- ===== EN COURS DE DÉVELOPPEMENT ===== -->
-      <div style="margin-top:2rem;">
-        <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:12px 16px;user-select:none;transition:background 0.2s;">
-          <div style="display:flex;align-items:center;gap:0.6rem;">
-            <span style="font-size:1.1rem;">🚧</span>
-            <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">En Cours de Développement</span>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Google Earth · Risques · CatNat · Environnement · Géologie · Cartes Historiques · SITADEL · DT-DICT · Liens</span>
-          </div>
-          <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
-        </div>
-        <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
-
       <!-- ===== Carte Remontées de Nappes ===== -->
       <div id="capture-nappes" class="capturable">
       <div class="section-title" style="margin-top:1rem">
         <div class="icon" style="background:rgba(2,119,189,0.12);color:#0277bd;">💧</div>
         Zones sensibles aux remontées de nappes
         <button class="btn-screenshot" onclick="captureLeaflet('map-nappes','REMONTEES-NAPPES', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+      </div>
+      <div id="nappes-zone-display" style="margin:0 0 0.75rem;display:none;">
+        <span id="nappes-zone-text" style="display:inline-block;padding:5px 14px;border-radius:6px;font-size:0.82rem;font-weight:700;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted);">⏳ Chargement…</span>
       </div>
       <div class="map-embed full-map" style="margin-bottom:0.5rem;">
         <div id="map-nappes" style="width:100%;height:100%;"></div>
@@ -1252,6 +1243,18 @@
              style="max-width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff;">
       </div>
       </div><!-- /capture-nappes -->
+
+      <!-- ===== EN COURS DE DÉVELOPPEMENT ===== -->
+      <div style="margin-top:2rem;">
+        <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:12px 16px;user-select:none;transition:background 0.2s;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <span style="font-size:1.1rem;">🚧</span>
+            <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">En Cours de Développement</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Google Earth · Risques · CatNat · Environnement · Géologie · Cartes Historiques · SITADEL · DT-DICT · Liens</span>
+          </div>
+          <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
+        </div>
+        <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
 
       <!-- ===== Google Earth & Export KML/KMZ ===== -->
       <div class="section-title" style="margin-top:1rem;">
@@ -2065,6 +2068,7 @@ async function investigate() {
       fetchICPE(lat, lng),
       fetchMvtTerrain(lat, lng),
       fetchBSS(lat, lng),
+      fetchNappes(lat, lng),
     ]);
 
     // Fetch altitude (non-blocking)
@@ -2233,6 +2237,82 @@ async function fetchSismique(lat, lng) {
     console.error('Sismique error:', e);
     document.getElementById('stat-sismique').textContent = '?';
     throw e;
+  }
+}
+
+// Remontées de nappes — lecture du pixel WMS (plus fiable que WFS)
+// CORS ouvert sur mapsref.brgm.fr → fetch ArrayBuffer → Blob URL → canvas → getImageData
+// Nearest-neighbor RGB vers table SLD BRGM
+async function fetchNappes(lat, lng) {
+  const display = document.getElementById('nappes-zone-display');
+  const el = document.getElementById('nappes-zone-text');
+  if (display) display.style.display = 'block';
+  if (el) { el.textContent = '⏳ Chargement…'; el.style.color = 'var(--text-muted)'; el.style.border = '1px solid var(--border)'; }
+  try {
+    // Image 5×5 px, BBOX centré sur le point (~1:317000, dans la plage SLD)
+    const d = 0.002;
+    const wmsUrl = `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+      `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(6)},${(lat-d).toFixed(6)},${(lng+d).toFixed(6)},${(lat+d).toFixed(6)}` +
+      `&WIDTH=5&HEIGHT=5&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=`;
+
+    const resp = await fetch(wmsUrl, { signal: AbortSignal.timeout(10000) });
+    const buffer = await resp.arrayBuffer();
+    const blobUrl = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
+
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = blobUrl; });
+    URL.revokeObjectURL(blobUrl);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 5; canvas.height = 5;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const [r, g, b, a] = ctx.getImageData(2, 2, 1, 1).data;
+
+    if (!el) return;
+
+    // Pixel transparent = hors zone
+    if (a < 30) {
+      el.textContent = 'Non concerné par les remontées de nappes';
+      el.style.color = '#78909c';
+      el.style.border = '1px solid #78909c';
+      return;
+    }
+
+    // Table SLD BRGM complète — nearest-neighbor en espace RGB
+    const sld = [
+      { label: 'Débordement de nappe — fiabilité forte',    color: '#bd0026', r: 189, g: 0,   b: 38  },
+      { label: 'Débordement de nappe — fiabilité moyenne',  color: '#e32d30', r: 227, g: 45,  b: 48  },
+      { label: 'Débordement de nappe — fiabilité faible',   color: '#e35b5d', r: 227, g: 91,  b: 93  },
+      { label: 'Débordement de nappe — fiabilité inconnue', color: '#fee0d2', r: 254, g: 224, b: 210 },
+      { label: 'Inondation de cave — fiabilité forte',      color: '#f4661b', r: 244, g: 102, b: 27  },
+      { label: 'Inondation de cave — fiabilité moyenne',    color: '#ff9632', r: 255, g: 150, b: 50  },
+      { label: 'Inondation de cave — fiabilité faible',     color: '#ffb066', r: 255, g: 176, b: 102 },
+      { label: 'Inondation de cave — fiabilité inconnue',   color: '#ffcb99', r: 255, g: 203, b: 153 },
+      { label: 'Pas de risque — fiabilité forte',           color: '#555555', r: 85,  g: 85,  b: 85  },
+      { label: 'Pas de risque — fiabilité moyenne',         color: '#888888', r: 136, g: 136, b: 136 },
+      { label: 'Pas de risque — fiabilité faible',          color: '#aaaaaa', r: 170, g: 170, b: 170 },
+      { label: 'Pas de risque — fiabilité inconnue',        color: '#cccccc', r: 204, g: 204, b: 204 },
+    ];
+
+    let best = null, bestDist = Infinity;
+    for (const c of sld) {
+      const dist = Math.sqrt((r - c.r) ** 2 + (g - c.g) ** 2 + (b - c.b) ** 2);
+      if (dist < bestDist) { bestDist = dist; best = c; }
+    }
+
+    if (best && bestDist < 60) {
+      el.textContent = best.label;
+      el.style.color = best.color;
+      el.style.border = `1px solid ${best.color}`;
+    } else {
+      el.textContent = 'Zone non identifiée';
+      el.style.color = '#78909c';
+      el.style.border = '1px solid #78909c';
+    }
+  } catch (e) {
+    if (el) { el.textContent = 'Données non disponibles'; el.style.color = '#78909c'; el.style.border = '1px solid #78909c'; }
+    console.error('fetchNappes error:', e);
   }
 }
 
@@ -2853,10 +2933,13 @@ function setupMaps(lat, lng) {
       layers: 'REMNAPPE_FIAB',
       format: 'image/png',
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
       version: '1.1.1',
       attribution: '© BRGM — Remontées de nappes',
       pane: 'nappesPane',
+      keepBuffer: 4,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
     }).addTo(window.nappesMap);
   } catch (e) { }
 
@@ -4247,7 +4330,7 @@ function toggleDevSection() {
     // Forcer Leaflet à recalculer la taille des cartes cachées
     setTimeout(() => {
       if (window.histoMap) window.histoMap.invalidateSize();
-    }, 150);
+    }, 200);
   } else {
     content.style.display = 'none';
     arrow.textContent = '▶';
