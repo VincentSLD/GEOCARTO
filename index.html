@@ -898,7 +898,7 @@
           <button class="preset-btn" onclick="searchAddress()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">
             🔍
           </button>
-          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="flex-shrink:0;padding:7px 10px;font-size:1rem;">📍</button>
+          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="flex-shrink:0;padding:7px 10px;font-size:1rem;">🎯</button>
         </div>
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
@@ -4047,13 +4047,13 @@ function downloadCanvas(canvas, filename) {
   document.body.removeChild(link);
 }
 
-function btnFeedback(btn, success, msg) {
-  const orig = btn.innerHTML;
+function btnFeedback(btn, success, msg, origHTML) {
+  const orig = origHTML || btn.innerHTML;
   if (success) {
     btn.classList.add('success');
-    btn.innerHTML = msg || '✅ Téléchargé !';
+    btn.innerHTML = msg || '✅';
   } else {
-    btn.innerHTML = msg || '❌ Erreur';
+    btn.innerHTML = msg || '❌';
   }
   setTimeout(() => {
     btn.classList.remove('success');
@@ -4100,8 +4100,9 @@ async function captureElement(elementId, label) {
   const btn = event.currentTarget;
   if (!el) return;
 
+  const origHTML = btn.innerHTML;
   btn.classList.add('busy');
-  btn.innerHTML = '⏳ Capture…';
+  btn.innerHTML = '⏳';
 
   try {
     // Clone element, inline all computed styles, render off-screen
@@ -4134,10 +4135,10 @@ async function captureElement(elementId, label) {
 
     document.body.removeChild(clone);
     downloadCanvas(canvas, screenshotFilename(label));
-    btnFeedback(btn, true);
+    btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Screenshot error:', e);
-    btnFeedback(btn, false);
+    btnFeedback(btn, false, '❌', origHTML);
   }
   btn.classList.remove('busy');
 }
@@ -4148,8 +4149,9 @@ async function captureLeaflet(mapContainerId, label, rawName) {
   const btn = event.currentTarget;
   if (!el) return;
 
+  const origHTML = btn.innerHTML;
   btn.classList.add('busy');
-  btn.innerHTML = '⏳ Capture…';
+  btn.innerHTML = '⏳';
 
   try {
     const canvas = await html2canvas(el, {
@@ -4162,11 +4164,10 @@ async function captureLeaflet(mapContainerId, label, rawName) {
     });
     const filename = rawName ? `${label}.png` : screenshotFilename(label);
     downloadCanvas(canvas, filename);
-    btnFeedback(btn, true);
+    btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);
-    // Fallback: open in new tab
-    btnFeedback(btn, false, '❌ Utilisez Ctrl+Shift+S');
+    btnFeedback(btn, false, '❌', origHTML);
   }
   btn.classList.remove('busy');
 }
