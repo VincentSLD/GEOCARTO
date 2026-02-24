@@ -24,4 +24,16 @@
     <Latitude>46.8678835696</Latitude>
     <Longitude>-1.7690616415</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>11111111</Reference>
+    <Nom>JE TEST</Nom>
+    <Adresse>10 Impasse jean bart 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>NOTE POUR TEST</Notes>
+    <Latitude>46.6792313406</Latitude>
+    <Longitude>-1.4330983044</Longitude>
+  </point>
 </eds_additions>
