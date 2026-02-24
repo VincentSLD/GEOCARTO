@@ -1079,7 +1079,6 @@
           <!-- Barre visible uniquement en plein écran -->
           <div id="eds-fs-bar" style="position:absolute;bottom:0;left:44px;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:4px 8px;border-radius:5px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
-            <span id="eds-fs-count" style="font-size:0.7rem;color:#6b7280;white-space:nowrap;"></span>
             <button onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">➕ Ajouter un point</button>
           </div>
         </div>
@@ -1087,7 +1086,6 @@
         <!-- Barre de filtre + compteur + export -->
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
-          <span id="eds-count" style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;"></span>
           <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.35);background:rgba(56,142,60,0.06);color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.15s;">➕ Ajouter un point</button>
 
         </div>
@@ -3756,8 +3754,6 @@ function _edsRenderMarkers(data) {
   _edsMarkerGroup.addLayers(markers);
   window.edsMap.addLayer(_edsMarkerGroup);
 
-  const el = document.getElementById('eds-count');
-  if (el) el.textContent = data.length.toLocaleString('fr-FR') + ' point' + (data.length > 1 ? 's' : '') + ' affich' + (data.length > 1 ? 'és' : 'é');
 }
 
 function edsFilterMarkers() {
@@ -3790,9 +3786,6 @@ function edsFsFilter(val) {
   if (ext) ext.value = val;
   edsFilterMarkers();
   // Sync compteur
-  const fsCount = document.getElementById('eds-fs-count');
-  const extCount = document.getElementById('eds-count');
-  if (fsCount && extCount) fsCount.textContent = extCount.textContent;
 }
 
 // Toggle formulaire en mode plein écran (déplace le DOM dans le conteneur fullscreen)
@@ -3886,18 +3879,19 @@ async function edsSaveToFile(csvText) {
   }
   try {
     if (!_edsCsvFileHandle) {
-      // Ouvre le fichier EXISTANT en mode lecture+écriture
+      // Ouvre le fichier EXISTANT avec permission lecture+écriture dès l'ouverture
       const [handle] = await window.showOpenFilePicker({
+        mode: 'readwrite',
         types: [{ description: 'Fichier CSV', accept: { 'text/csv': ['.csv'], 'text/plain': ['.csv'] } }],
         multiple: false
       });
-      // Vérifier/demander la permission d'écriture
-      const perm = await handle.queryPermission({ mode: 'readwrite' });
-      if (perm !== 'granted') {
-        const req = await handle.requestPermission({ mode: 'readwrite' });
-        if (req !== 'granted') return 'denied';
-      }
       _edsCsvFileHandle = handle;
+    }
+    // Vérifier que la permission est toujours active (ex: après veille)
+    const perm = await _edsCsvFileHandle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      const req = await _edsCsvFileHandle.requestPermission({ mode: 'readwrite' });
+      if (req !== 'granted') { _edsCsvFileHandle = null; return 'denied'; }
     }
     const writable = await _edsCsvFileHandle.createWritable();
     await writable.write(content);
@@ -3906,6 +3900,7 @@ async function edsSaveToFile(csvText) {
   } catch(e) {
     _edsCsvFileHandle = null;
     if (e.name === 'AbortError') return 'cancelled';
+    console.error('EDS save error:', e);
     return 'error';
   }
 }
