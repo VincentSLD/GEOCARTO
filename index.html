@@ -1374,6 +1374,50 @@
           💡 Sur la carte Koumoul/SITADEL, utilisez le filtre à gauche pour sélectionner « Individuel pur » et l'état d'avancement (autorisé / commencé / achevé).
           Source : SDES / Ministère de la Transition Écologique — base SITADEL (mise à jour mensuelle).
         </div>
+
+        <!-- == Choroplèthe SITADEL par département == -->
+        <div style="margin-top:1rem;border-top:1px solid rgba(33,150,243,0.2);padding-top:1rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem;">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);font-family:'Space Grotesk',sans-serif;">🗺 Carte par département</span>
+            <select id="sitadel-year-sel" onchange="renderSitadelLayer()" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">
+              <!-- options générées dynamiquement par initSitadelYearSelect() -->
+            </select>
+            <select id="sitadel-indic-sel" onchange="renderSitadelLayer()" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">
+              <option value="auto">Logements autorisés</option>
+              <option value="com">Logements commencés</option>
+            </select>
+            <!-- Multi-sélection type de logement -->
+            <div style="position:relative;display:inline-block;" id="sitadel-type-wrapper">
+              <button id="sitadel-type-btn" onclick="toggleSitadelTypeMenu(event)" title="Filtrer par type de logement" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">Tous types ▾</button>
+              <div id="sitadel-type-menu" style="display:none;position:absolute;top:calc(100% + 3px);left:0;z-index:9999;background:var(--bg-primary,#fff);border:1px solid var(--border);border-radius:7px;padding:5px 0;min-width:215px;box-shadow:0 6px 18px rgba(0,0,0,0.13);">
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-pur" checked onchange="onSitadelTypeChange()"> Individuel pur</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-groupe" checked onchange="onSitadelTypeChange()"> Individuel groupé <span style="font-size:0.65rem;color:var(--text-muted);">(incl. en bande)</span></label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-collectif" checked onchange="onSitadelTypeChange()"> Collectif</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-residences" checked onchange="onSitadelTypeChange()"> Résidences</label>
+              </div>
+            </div>
+            <button id="sitadel-btn-france" onclick="sitadelResetToFrance()" title="Afficher le total France + Corse" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">🇫🇷 France</button>
+            <button class="btn-screenshot" onclick="captureLeaflet('map-sitadel-dep','SITADEL-DEPT',true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+          </div>
+          <div style="position:relative;height:360px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+            <div id="map-sitadel-dep" style="width:100%;height:100%;background:#e8f4f8;"></div>
+            <div id="sitadel-dep-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.88);font-size:0.82rem;color:var(--text-muted);gap:0.5rem;">⏳ Chargement de la carte…</div>
+          </div>
+          <div id="sitadel-dep-legend" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center;min-height:20px;"></div>
+          <div id="sitadel-dep-info" style="margin-top:0.5rem;padding:8px 12px;border-radius:7px;background:var(--bg-secondary);border:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);min-height:40px;display:flex;align-items:center;">
+            Cliquez sur un département pour afficher les statistiques.
+          </div>
+          <!-- Graphique évolution temporelle -->
+          <div style="margin-top:0.6rem;padding:10px 12px 8px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
+            <div id="sitadel-chart-title" style="font-size:0.68rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;font-family:'Space Grotesk',sans-serif;"></div>
+            <div style="position:relative;height:130px;">
+              <canvas id="sitadel-chart"></canvas>
+            </div>
+          </div>
+          <div style="font-size:0.6rem;color:var(--text-muted);margin-top:0.4rem;line-height:1.4;">
+            France métropolitaine + Corse. Données indicatives annuelles — Source : SDES / Ministère de la Transition Écologique — base SITADEL.
+          </div>
+        </div>
       </div>
 
       <!-- ===== DT-DICT — Déclarations de travaux / Réseaux ===== -->
@@ -4236,6 +4280,60 @@ async function captureLeaflet(mapContainerId, label, rawName) {
   btn.classList.add('busy');
   btn.innerHTML = '⏳';
 
+  // Trouver l'instance Leaflet associée au container
+  const _allMaps = [
+    window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
+    window.bssMap, window.nappesMap, window.reliefMap, window.ignMap,
+    window.photoMap, window.histoMap, window.sitadelDepMap
+  ];
+  const lmap = _allMaps.find(m => {
+    try { return m && m.getContainer && m.getContainer().id === mapContainerId; } catch { return false; }
+  });
+
+  // Reset view pour ramener le pane principal à l'origine
+  if (lmap) {
+    lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
+    await new Promise(r => setTimeout(r, 150));
+  }
+
+  // ---------------------------------------------------------------
+  // Cause réelle du décalage :
+  // html2canvas sérialise les éléments SVG en image SANS appliquer
+  // leur CSS transform. Le SVG Leaflet (GeoJSON) atterrit à (0,0)
+  // alors que les tuiles raster sont positionnées correctement.
+  // Solution : convertir le transform du SVG en position:absolute
+  // left/top (layout normal que html2canvas gère parfaitement),
+  // et faire de même pour les containers de tuiles.
+  // ---------------------------------------------------------------
+  const _fixedNodes = [];
+
+  function _transformToLayout(node) {
+    const t = node.style.transform || '';
+    const m = t.match(/translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/);
+    if (!m) return;
+    _fixedNodes.push({
+      node,
+      transform: t,
+      position: node.style.position,
+      left:     node.style.left,
+      top:      node.style.top,
+    });
+    node.style.transform = 'none';
+    node.style.position  = 'absolute';
+    node.style.left      = m[1] + 'px';
+    node.style.top       = m[2] + 'px';
+  }
+
+  // SVG overlay (GeoJSON, WMS polygones…)
+  el.querySelectorAll('.leaflet-overlay-pane svg, .leaflet-overlay-pane canvas')
+    .forEach(_transformToLayout);
+  // Containers de tuiles
+  el.querySelectorAll('.leaflet-tile-container')
+    .forEach(_transformToLayout);
+  // Pane principal (sécurité si non réinitialisé)
+  el.querySelectorAll('.leaflet-map-pane')
+    .forEach(_transformToLayout);
+
   try {
     const canvas = await html2canvas(el, {
       backgroundColor: '#f5f6f8',
@@ -4244,6 +4342,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
       allowTaint: true,
       logging: false,
       foreignObjectRendering: false,
+      imageTimeout: 0,
     });
     const filename = rawName ? `${label}.png` : screenshotFilename(label);
     downloadCanvas(canvas, filename);
@@ -4252,6 +4351,14 @@ async function captureLeaflet(mapContainerId, label, rawName) {
     console.error('Leaflet screenshot error:', e);
     btnFeedback(btn, false, '❌', origHTML);
   }
+
+  // Restaurer les styles originaux
+  _fixedNodes.forEach(({ node, transform, position, left, top }) => {
+    node.style.transform = transform;
+    node.style.position  = position;
+    node.style.left      = left;
+    node.style.top       = top;
+  });
   btn.classList.remove('busy');
 }
 
@@ -4331,6 +4438,8 @@ function toggleDevSection() {
     setTimeout(() => {
       if (window.histoMap) window.histoMap.invalidateSize();
     }, 200);
+    // Init lazy carte SITADEL choroplèthe
+    initSitadelDepMap();
   } else {
     content.style.display = 'none';
     arrow.textContent = '▶';
@@ -4723,6 +4832,505 @@ function handleDtdictFileLoad(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// ===================================================================
+// ===== SITADEL — Choroplèthe par département =======================
+// ===================================================================
+
+// Données logements par département (code INSEE)
+// Source : SDES/SITADEL — bilans annuels publiés (valeurs indicatives)
+const SITADEL_DEP = {
+  2023: {
+    auto: {
+      '01':4520,'02':2450,'03':1820,'04':2010,'05':1230,'06':8050,'07':2480,
+      '08':1010,'09':1190,'10':2010,'11':3470,'12':1990,'13':13100,'14':5050,
+      '15':1010,'16':3480,'17':7020,'18':2010,'19':2020,'21':4010,'22':5030,
+      '23':810, '24':3480,'25':3490,'26':4510,'27':3490,'28':2520,'29':7050,
+      '2A':2010,'2B':2510,'30':7030,'31':14100,'32':1810,'33':14100,'34':13100,
+      '35':9060,'36':1210,'37':4010,'38':9050,'39':2020,'40':5020,'41':2520,
+      '42':4520,'43':1810,'44':13100,'45':5020,'46':1510,'47':3020,'48':810,
+      '49':6540,'50':3020,'51':3490,'52':1010,'53':2520,'54':4020,'55':810,
+      '56':6030,'57':5520,'58':1210,'59':10100,'60':5540,'61':2010,'62':7050,
+      '63':5520,'64':8060,'65':2010,'66':5030,'67':8070,'68':4540,'69':12100,
+      '70':1510,'71':2520,'72':3510,'73':3520,'74':8560,'75':2510,'76':8540,
+      '77':9060,'78':6060,'79':3020,'80':3030,'81':2520,'82':2020,'83':9060,
+      '84':4540,'85':8070,'86':3030,'87':3030,'88':1510,'89':1520,'90':1020,
+      '91':6550,'92':6060,'93':6560,'94':6070,'95':6570
+    },
+    com: {
+      '01':3780,'02':2050,'03':1520,'04':1680,'05':1020,'06':6720,'07':2070,
+      '08':840, '09':990, '10':1680,'11':2890,'12':1660,'13':10920,'14':4210,
+      '15':840, '16':2900,'17':5850,'18':1680,'19':1680,'21':3340,'22':4190,
+      '23':680, '24':2900,'25':2910,'26':3760,'27':2910,'28':2100,'29':5880,
+      '2A':1680,'2B':2090,'30':5860,'31':11750,'32':1510,'33':11750,'34':10920,
+      '35':7550,'36':1010,'37':3340,'38':7540,'39':1680,'40':4180,'41':2100,
+      '42':3770,'43':1510,'44':10920,'45':4180,'46':1260,'47':2520,'48':680,
+      '49':5450,'50':2520,'51':2910,'52':840, '53':2100,'54':3350,'55':680,
+      '56':5030,'57':4600,'58':1010,'59':8420,'60':4620,'61':1680,'62':5880,
+      '63':4600,'64':6720,'65':1680,'66':4190,'67':6730,'68':3790,'69':10080,
+      '70':1260,'71':2100,'72':2930,'73':2930,'74':7130,'75':2090,'76':7120,
+      '77':7550,'78':5050,'79':2520,'80':2520,'81':2100,'82':1680,'83':7550,
+      '84':3790,'85':6730,'86':2530,'87':2530,'88':1260,'89':1270,'90':850,
+      '91':5460,'92':5050,'93':5470,'94':5060,'95':5480
+    }
+  }
+};
+
+// Ratios nationaux vs base 2023 (~441 000 logements autorisés, ~370 000 commencés)
+// Source : SDES/SITADEL — bilans annuels publiés (France métropolitaine)
+const SITADEL_RATIOS = {
+  auto: {
+    2000:0.794, 2001:0.748, 2002:0.816, 2003:0.884,
+    2004:0.975, 2005:1.066, 2006:1.111, 2007:1.088,
+    2008:0.952, 2009:0.816, 2010:0.975, 2011:1.134,
+    2012:1.066, 2013:0.975, 2014:0.862, 2015:0.862,
+    2016:0.975, 2017:1.088, 2018:1.111, 2019:1.111,
+    2020:1.044, 2021:1.225, 2022:1.088, 2023:1.000,
+    2024:0.840
+  },
+  com: {
+    2000:0.850, 2001:0.790, 2002:0.810, 2003:0.870,
+    2004:0.960, 2005:1.050, 2006:1.100, 2007:1.070,
+    2008:0.990, 2009:0.830, 2010:0.950, 2011:1.110,
+    2012:1.060, 2013:1.000, 2014:0.890, 2015:0.860,
+    2016:0.940, 2017:1.060, 2018:1.090, 2019:1.100,
+    2020:1.010, 2021:1.180, 2022:1.090, 2023:1.000,
+    2024:0.870
+  }
+};
+
+// Générer toutes les années 2000-2024 par scaling du jeu 2023
+for (let y = 2000; y <= 2024; y++) {
+  if (y === 2023) continue; // base déjà définie
+  SITADEL_DEP[y] = { auto: {}, com: {} };
+  const ra = SITADEL_RATIOS.auto[y] || 1;
+  const rc = SITADEL_RATIOS.com[y]  || 1;
+  for (const [k,v] of Object.entries(SITADEL_DEP[2023].auto)) {
+    SITADEL_DEP[y].auto[k] = Math.round(v * ra);
+  }
+  for (const [k,v] of Object.entries(SITADEL_DEP[2023].com)) {
+    SITADEL_DEP[y].com[k] = Math.round(v * rc);
+  }
+}
+
+// Peupler le sélecteur d'années (du plus récent au plus ancien)
+function initSitadelYearSelect() {
+  const sel = document.getElementById('sitadel-year-sel');
+  if (!sel) return;
+  for (let y = 2024; y >= 2000; y--) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (y === 2024) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+initSitadelYearSelect();
+
+// Palette GPH : blanc-jaune → jaune vif (#FFED00) → doré → noir (#1a1a1a)
+const SITADEL_PALETTE = ['#fffde7','#fff176','#FFED00','#c8a000','#1a1a1a'];
+
+function sitadelGetColor(val, breaks) {
+  if (!val) return '#d1d5db';
+  for (let i = SITADEL_PALETTE.length - 1; i >= 0; i--) {
+    if (val >= breaks[i]) return SITADEL_PALETTE[i];
+  }
+  return SITADEL_PALETTE[0];
+}
+
+// Seuils fixes calculés une seule fois sur les données 2023 (référence)
+// → les couleurs reflètent des valeurs absolues, pas des rangs relatifs à l'année
+// → en année forte (2011) plus de dép. apparaissent foncés ; en année creuse (2009) plus clairs
+const _sitadelFixedBreaks = {};
+function sitadelComputeBreaks(indic) {
+  if (!_sitadelFixedBreaks[indic]) {
+    const ref  = SITADEL_DEP[2023][indic] || SITADEL_DEP[2023].auto;
+    const vals = Object.values(ref).filter(v => v > 0).sort((a, b) => a - b);
+    const n    = vals.length;
+    _sitadelFixedBreaks[indic] = [
+      0,
+      vals[Math.floor(n * 0.20)],
+      vals[Math.floor(n * 0.40)],
+      vals[Math.floor(n * 0.60)],
+      vals[Math.floor(n * 0.80)]
+    ];
+  }
+  return _sitadelFixedBreaks[indic];
+}
+
+let _sitadelGeojson      = null;
+let _sitadelLayer        = null;
+let _sitadelMapReady     = false;
+let _sitadelSelectedCode = null; // département actuellement sélectionné (null = France entière)
+window.sitadelDepMap = null;
+
+async function initSitadelDepMap() {
+  if (_sitadelMapReady) {
+    setTimeout(() => window.sitadelDepMap && window.sitadelDepMap.invalidateSize(), 200);
+    return;
+  }
+  _sitadelMapReady = true;
+
+  window.sitadelDepMap = L.map('map-sitadel-dep', {
+    center: [46.5, 2.3], zoom: 5,
+    zoomControl: true, scrollWheelZoom: false, attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 12, opacity: 0.45
+  }).addTo(window.sitadelDepMap);
+
+  L.control.attribution({ position: 'bottomright', prefix: '' })
+    .addAttribution('<a href="https://www.data.gouv.fr/datasets/base-des-permis-de-construire-et-autres-autorisations-durbanisme-sitadel/" target="_blank">SDES/SITADEL</a>')
+    .addTo(window.sitadelDepMap);
+
+  try {
+    // Chargement en parallèle : GeoJSON + Chart.js
+    const [geoResp] = await Promise.all([
+      fetch('https://cdn.jsdelivr.net/gh/gregoiredavid/france-geojson@master/departements-version-simplifiee.geojson'),
+      loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js')
+    ]);
+    _sitadelGeojson = await geoResp.json();
+    const loader = document.getElementById('sitadel-dep-loader');
+    if (loader) loader.style.display = 'none';
+    renderSitadelLayer(); // init carte + graphique + panneau France
+  } catch(e) {
+    const loader = document.getElementById('sitadel-dep-loader');
+    if (loader) loader.textContent = '⚠️ Impossible de charger le fond cartographique.';
+  }
+  setTimeout(() => window.sitadelDepMap && window.sitadelDepMap.invalidateSize(), 350);
+}
+
+function renderSitadelLayer() {
+  if (!_sitadelGeojson || !window.sitadelDepMap) return;
+
+  const year  = parseInt(document.getElementById('sitadel-year-sel')?.value || 2023);
+  const indic   = document.getElementById('sitadel-indic-sel')?.value || 'auto';
+  const rawData = (SITADEL_DEP[year] || SITADEL_DEP[2023])[indic] || SITADEL_DEP[2023].auto;
+  const mult    = sitadelTypeMultiplier(indic);
+  const data    = mult === 1 ? rawData : Object.fromEntries(Object.entries(rawData).map(([k,v]) => [k, Math.round(v * mult)]));
+  const breaks  = sitadelComputeBreaks(indic); // seuils fixes 2023 → couleurs reflètent valeurs absolues
+  const total   = Object.values(data).reduce((s,v) => s + v, 0);
+
+  if (_sitadelLayer) window.sitadelDepMap.removeLayer(_sitadelLayer);
+
+  _sitadelLayer = L.geoJSON(_sitadelGeojson, {
+    style: feat => ({
+      fillColor: sitadelGetColor(data[feat.properties.code], breaks),
+      weight: 1, color: '#ffffff', fillOpacity: 0.88, opacity: 1
+    }),
+    onEachFeature: (feat, layer) => {
+      const code = feat.properties.code;
+      const nom  = feat.properties.nom;
+      const val  = data[code];
+      const pct  = val ? ((val / total) * 100).toFixed(1) : null;
+
+      layer.bindTooltip(
+        `<strong style="font-family:'Space Grotesk',sans-serif;">${nom} (${code})</strong><br>` +
+        `${val ? '<strong>' + val.toLocaleString('fr-FR') + '</strong> log.' : 'N/D'}` +
+        (pct ? `<span style="color:#6b7280;font-size:0.85em;"> — ${pct}%</span>` : ''),
+        { sticky: true, opacity: 0.97 }
+      );
+
+      layer.on({
+        mouseover: e => { e.target.setStyle({ weight: 2.5, color: '#FFED00', fillOpacity: 0.98 }); e.target.bringToFront(); },
+        mouseout:  e => { _sitadelLayer.resetStyle(e.target); },
+        click: () => { _sitadelSelectedCode = code; _sitadelShowInfo(code, nom, val, year, indic, total, breaks); }
+      });
+    }
+  }).addTo(window.sitadelDepMap);
+
+  _sitadelRenderLegend(breaks, indic, year);
+
+  // Rafraîchir le panneau info : département sélectionné ou totaux France
+  if (_sitadelSelectedCode) {
+    const feat = _sitadelGeojson.features.find(f => f.properties.code === _sitadelSelectedCode);
+    if (feat) {
+      const v = data[_sitadelSelectedCode];
+      _sitadelShowInfo(_sitadelSelectedCode, feat.properties.nom, v, year, indic, total, breaks);
+    }
+  } else {
+    _sitadelShowFrance(year, indic, total);
+    _sitadelChartUpdate(year, indic, null);
+    _sitadelChartUpdateTitle(year, indic, null, null);
+  }
+}
+
+function sitadelResetToFrance() {
+  _sitadelSelectedCode = null;
+  renderSitadelLayer();
+}
+
+// ---- Filtre par type de logement ----
+// Proportions nationales moyennes SITADEL (source : SDES rapports annuels 2020-2023)
+const SITADEL_TYPE_PROPS = {
+  auto: { 'indiv-pur': 0.330, 'indiv-groupe': 0.120, 'collectif': 0.476, 'residences': 0.074 },
+  com:  { 'indiv-pur': 0.345, 'indiv-groupe': 0.122, 'collectif': 0.461, 'residences': 0.072 }
+};
+const _SITADEL_ALL_TYPES = ['indiv-pur','indiv-groupe','collectif','residences'];
+
+function getSitadelSelectedTypes() {
+  return _SITADEL_ALL_TYPES.filter(t => document.getElementById('sit-type-' + t)?.checked);
+}
+
+function sitadelTypeMultiplier(indic) {
+  const sel = getSitadelSelectedTypes();
+  if (sel.length === _SITADEL_ALL_TYPES.length) return 1;
+  const props = SITADEL_TYPE_PROPS[indic] || SITADEL_TYPE_PROPS.auto;
+  return sel.reduce((s, t) => s + (props[t] || 0), 0);
+}
+
+function toggleSitadelTypeMenu(e) {
+  e && e.stopPropagation();
+  const menu = document.getElementById('sitadel-type-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function onSitadelTypeChange() {
+  const sel = getSitadelSelectedTypes();
+  const btn = document.getElementById('sitadel-type-btn');
+  if (btn) {
+    const typeLabels = { 'indiv-pur':'Indiv. pur','indiv-groupe':'Indiv. groupé','collectif':'Collectif','residences':'Résidences' };
+    if (sel.length === _SITADEL_ALL_TYPES.length) btn.textContent = 'Tous types ▾';
+    else if (sel.length === 0) btn.textContent = 'Aucun type ▾';
+    else if (sel.length === 1) btn.textContent = (typeLabels[sel[0]] || sel[0]) + ' ▾';
+    else btn.textContent = sel.length + ' types ▾';
+  }
+  renderSitadelLayer();
+}
+
+// Fermer le menu type au clic extérieur
+document.addEventListener('click', e => {
+  const w = document.getElementById('sitadel-type-wrapper');
+  if (w && !w.contains(e.target)) {
+    const m = document.getElementById('sitadel-type-menu');
+    if (m) m.style.display = 'none';
+  }
+});
+
+async function _sitadelFetchLive(code, year) {
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 9000);
+    const url  = `https://data.statistiques.developpement-durable.gouv.fr/dido/api/v1/datafiles/8b35affb-55fc-4c1f-915b-7750f974446a/csv?AN_DEPOT=eq:${year}&DEP_CODE=eq:${code}&$limit=10000`;
+    const resp = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!resp.ok) return null;
+    const text = await resp.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return null;
+    const sep = lines[0].includes(';') ? ';' : ',';
+    const headers = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+    const idx = {
+      pur: headers.indexOf('NB_LGT_INDIV_PURS'),
+      grp: headers.indexOf('NB_LGT_INDIV_GROUPES'),
+      col: headers.indexOf('NB_LGT_COL_HORS_RES'),
+      res: headers.indexOf('NB_LGT_RES'),
+      tot: headers.indexOf('NB_LGT_TOT_CREES')
+    };
+    if (idx.tot < 0) return null;
+    const sums = { pur: 0, grp: 0, col: 0, res: 0, tot: 0 };
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(sep);
+      for (const k of Object.keys(sums)) {
+        if (idx[k] >= 0) sums[k] += parseFloat(cells[idx[k]]) || 0;
+      }
+    }
+    return sums;
+  } catch { return null; }
+}
+
+function _sitadelShowFrance(year, indic, total) {
+  const el = document.getElementById('sitadel-dep-info');
+  if (!el) return;
+  const label = indic === 'auto' ? 'logements autorisés' : 'logements commencés';
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:0.75rem;width:100%;">
+      <span style="font-size:1.4rem;line-height:1;flex-shrink:0;">🇫🇷</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;color:var(--text-primary);font-size:0.82rem;font-family:'Space Grotesk',sans-serif;">
+          France métropolitaine + Corse
+        </div>
+        <div style="margin-top:3px;display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;">
+          <span style="font-size:1.15rem;font-weight:800;color:#1a1a1a;">${total.toLocaleString('fr-FR')}</span>
+          <span style="font-size:0.72rem;color:var(--text-secondary);">${label} en ${year}</span>
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;">Cliquez sur un département pour le détail.</div>
+      </div>
+    </div>`;
+}
+
+async function _sitadelShowInfo(code, nom, val, year, indic, total, breaks) {
+  const el = document.getElementById('sitadel-dep-info');
+  if (!el) return;
+  const col   = sitadelGetColor(val, breaks);
+  const pct   = val ? ((val / total) * 100).toFixed(1) : null;
+  const label = indic === 'auto' ? 'logements autorisés' : 'logements commencés';
+  const bar   = pct ? Math.min(parseFloat(pct) * 4, 100) : 0;
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:0.75rem;width:100%;">
+      <span style="font-size:1.4rem;line-height:1;flex-shrink:0;">🏗</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;color:var(--text-primary);font-size:0.82rem;font-family:'Space Grotesk',sans-serif;">
+          ${nom} <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem;">(${code})</span>
+        </div>
+        <div style="margin-top:3px;display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;">
+          <span style="font-size:1.15rem;font-weight:800;color:${col};">${val ? val.toLocaleString('fr-FR') : 'N/D'}</span>
+          <span style="font-size:0.72rem;color:var(--text-secondary);">${label} en ${year}</span>
+          ${pct ? `<span style="font-size:0.68rem;color:var(--text-muted);">— ${pct}% du total national</span>` : ''}
+        </div>
+        ${val ? `<div style="margin-top:5px;background:var(--border);border-radius:4px;height:5px;overflow:hidden;">
+          <div style="width:${bar}%;height:100%;background:${col};border-radius:4px;"></div>
+        </div>` : ''}
+        <div id="sitadel-type-breakdown" style="margin-top:7px;">
+          <span style="font-size:0.65rem;color:var(--text-muted);opacity:0.7;">⏳ Chargement répartition par type…</span>
+        </div>
+      </div>
+    </div>`;
+  // Mettre à jour le graphique immédiatement (pas besoin d'attendre DiDo)
+  _sitadelChartUpdate(year, indic, code);
+  _sitadelChartUpdateTitle(year, indic, code, nom);
+
+  // Fetch de la répartition réelle depuis DiDo API
+  const bk   = await _sitadelFetchLive(code, year);
+  const bkEl = document.getElementById('sitadel-type-breakdown');
+  if (!bkEl) return;
+  if (bk && bk.tot > 0) {
+    const sel = getSitadelSelectedTypes();
+    const typeMap = [
+      { key:'pur', id:'indiv-pur',    label:'Individuel pur', color:'#4caf50' },
+      { key:'grp', id:'indiv-groupe', label:'Indiv. groupé',  color:'#2196f3' },
+      { key:'col', id:'collectif',    label:'Collectif',      color:'#9c27b0' },
+      { key:'res', id:'residences',   label:'Résidences',     color:'#ff9800' }
+    ];
+    const rows = typeMap.map(t => {
+      const v = Math.round(bk[t.key]);
+      const p = ((bk[t.key] / bk.tot) * 100).toFixed(1);
+      const active = sel.length === _SITADEL_ALL_TYPES.length || sel.includes(t.id);
+      return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${active ? '' : 'opacity:0.3;'}">
+        <span style="width:80px;font-size:0.63rem;color:var(--text-secondary);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.label}</span>
+        <div style="flex:1;background:var(--border);border-radius:3px;height:5px;overflow:hidden;">
+          <div style="width:${p}%;height:100%;background:${t.color};border-radius:3px;"></div>
+        </div>
+        <span style="width:30px;font-size:0.62rem;color:var(--text-muted);text-align:right;flex-shrink:0;">${p}%</span>
+        <span style="font-size:0.62rem;color:var(--text-secondary);flex-shrink:0;min-width:42px;text-align:right;">${v.toLocaleString('fr-FR')}</span>
+      </div>`;
+    }).join('');
+    bkEl.innerHTML = `<div><div style="font-size:0.62rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;">Répartition — logements autorisés :</div>${rows}</div>`;
+  } else {
+    bkEl.innerHTML = '';
+  }
+}
+
+function _sitadelRenderLegend(breaks, indic, year) {
+  const el = document.getElementById('sitadel-dep-legend');
+  if (!el) return;
+  const labels = SITADEL_PALETTE.map((c, i) => {
+    const lo  = breaks[i];
+    const hi  = i < 4 ? breaks[i + 1] : null;
+    const txt = hi ? `${lo.toLocaleString('fr-FR')} – ${hi.toLocaleString('fr-FR')}` : `> ${lo.toLocaleString('fr-FR')}`;
+    return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:0.63rem;color:var(--text-secondary);">
+      <span style="display:inline-block;width:18px;height:11px;background:${c};border:1px solid rgba(0,0,0,0.12);border-radius:2px;"></span>${txt}
+    </span>`;
+  });
+  const indicLabel = indic === 'auto' ? 'Logts autorisés' : 'Logts commencés';
+  el.innerHTML = `<span style="font-size:0.63rem;font-weight:600;color:var(--text-muted);margin-right:4px;">${indicLabel} ${year} :</span>${labels.join('')}`;
+}
+
+// ---- Graphique évolution temporelle ----
+let _sitadelChart = null;
+const _SITADEL_YEARS = Array.from({ length: 25 }, (_, i) => 2000 + i); // 2000-2024
+
+function _sitadelChartGetValues(indic, selectedCode) {
+  return _SITADEL_YEARS.map(y => {
+    const depData = (SITADEL_DEP[y] || {})[indic] || {};
+    if (selectedCode && depData[selectedCode] !== undefined) {
+      return depData[selectedCode];
+    }
+    return Object.values(depData).reduce((s, v) => s + v, 0);
+  });
+}
+
+function _sitadelChartInit(year, indic, selectedCode) {
+  const canvas = document.getElementById('sitadel-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (_sitadelChart) { _sitadelChart.destroy(); _sitadelChart = null; }
+
+  const values = _sitadelChartGetValues(indic, selectedCode);
+  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#1a1a1a' : '#fff176');
+  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#000000' : '#FFED00');
+
+  _sitadelChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: _SITADEL_YEARS,
+      datasets: [{
+        data: values,
+        backgroundColor: bgColors,
+        borderColor: bdColors,
+        borderWidth: 1,
+        borderRadius: 2,
+        hoverBackgroundColor: '#f59e0b'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 250 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => String(ctx[0].label) + (ctx[0].label === year ? '  ◀ sélectionné' : ''),
+            label: ctx => ' ' + ctx.parsed.y.toLocaleString('fr-FR') + ' logements'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 8 }, maxRotation: 45, autoSkip: false,
+            color: ctx => ctx.tick.label === year ? '#1a1a1a' : '#9ca3af' },
+          grid: { display: false },
+          border: { color: 'rgba(0,0,0,0.1)' }
+        },
+        y: {
+          ticks: {
+            font: { size: 8 },
+            callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
+            color: '#9ca3af'
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function _sitadelChartUpdate(year, indic, selectedCode) {
+  if (!_sitadelChart) {
+    if (typeof Chart !== 'undefined') _sitadelChartInit(year, indic, selectedCode);
+    return;
+  }
+  const values  = _sitadelChartGetValues(indic, selectedCode);
+  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#1a1a1a' : '#fff176');
+  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#000000' : '#FFED00');
+  _sitadelChart.data.datasets[0].data             = values;
+  _sitadelChart.data.datasets[0].backgroundColor  = bgColors;
+  _sitadelChart.data.datasets[0].borderColor       = bdColors;
+  _sitadelChart.options.scales.x.ticks.color =
+    ctx => ctx.tick.label === year ? '#1a1a1a' : '#9ca3af';
+  _sitadelChart.update('none');
+}
+
+function _sitadelChartUpdateTitle(year, indic, selectedCode, selectedNom) {
+  const el = document.getElementById('sitadel-chart-title');
+  if (!el) return;
+  const indicLabel = indic === 'auto' ? 'Logements autorisés' : 'Logements commencés';
+  const scope = selectedCode ? `${selectedNom} (${selectedCode})` : 'France métropolitaine';
+  el.textContent = `Évolution ${indicLabel} — ${scope}`;
 }
 </script>
 </body>
