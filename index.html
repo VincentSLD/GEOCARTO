@@ -1388,12 +1388,12 @@
             </select>
             <!-- Multi-sélection type de logement -->
             <div style="position:relative;display:inline-block;" id="sitadel-type-wrapper">
-              <button id="sitadel-type-btn" onclick="toggleSitadelTypeMenu(event)" title="Filtrer par type de logement" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">Tous types ▾</button>
+              <button id="sitadel-type-btn" onclick="toggleSitadelTypeMenu(event)" title="Filtrer par type de logement" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">Indiv. pur ▾</button>
               <div id="sitadel-type-menu" style="display:none;position:absolute;top:calc(100% + 3px);left:0;z-index:9999;background:var(--bg-primary,#fff);border:1px solid var(--border);border-radius:7px;padding:5px 0;min-width:215px;box-shadow:0 6px 18px rgba(0,0,0,0.13);">
                 <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-pur" checked onchange="onSitadelTypeChange()"> Individuel pur</label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-groupe" checked onchange="onSitadelTypeChange()"> Individuel groupé <span style="font-size:0.65rem;color:var(--text-muted);">(incl. en bande)</span></label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-collectif" checked onchange="onSitadelTypeChange()"> Collectif</label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-residences" checked onchange="onSitadelTypeChange()"> Résidences</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-groupe" onchange="onSitadelTypeChange()"> Individuel groupé <span style="font-size:0.65rem;color:var(--text-muted);">(incl. en bande)</span></label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-collectif" onchange="onSitadelTypeChange()"> Collectif</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-residences" onchange="onSitadelTypeChange()"> Résidences</label>
               </div>
             </div>
             <button id="sitadel-btn-france" onclick="sitadelResetToFrance()" title="Afficher le total France + Corse" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">🇫🇷 France</button>
@@ -4928,8 +4928,8 @@ function initSitadelYearSelect() {
 }
 initSitadelYearSelect();
 
-// Palette GPH : blanc-jaune → jaune vif (#FFED00) → doré → noir (#1a1a1a)
-const SITADEL_PALETTE = ['#fffde7','#fff176','#FFED00','#c8a000','#1a1a1a'];
+// Palette : jaune très clair → jaune → doré → orange-brun → marron foncé
+const SITADEL_PALETTE = ['#fff9c4','#ffe082','#ffb300','#e65100','#6d2600'];
 
 function sitadelGetColor(val, breaks) {
   if (!val) return '#d1d5db';
@@ -5007,10 +5007,19 @@ function renderSitadelLayer() {
 
   const year  = parseInt(document.getElementById('sitadel-year-sel')?.value || 2023);
   const indic   = document.getElementById('sitadel-indic-sel')?.value || 'auto';
-  const rawData = (SITADEL_DEP[year] || SITADEL_DEP[2023])[indic] || SITADEL_DEP[2023].auto;
-  const mult    = sitadelTypeMultiplier(indic);
-  const data    = mult === 1 ? rawData : Object.fromEntries(Object.entries(rawData).map(([k,v]) => [k, Math.round(v * mult)]));
-  const breaks  = sitadelComputeBreaks(indic); // seuils fixes 2023 → couleurs reflètent valeurs absolues
+  const rawData    = (SITADEL_DEP[year] || SITADEL_DEP[2023])[indic] || SITADEL_DEP[2023].auto;
+  const sel        = getSitadelSelectedTypes();
+  const isAllTypes = sel.length === _SITADEL_ALL_TYPES.length;
+  // Si filtre type actif : ratios différents par département (urban ≠ rural) → couleurs réelles
+  const data = isAllTypes ? rawData : Object.fromEntries(
+    Object.entries(rawData).map(([code, v]) => {
+      const lv    = SITADEL_DEP_URB[code] ?? 1;
+      const ratio = sel.reduce((s, t) => s + (SITADEL_URB_PROPS[lv][t] || 0), 0);
+      return [code, Math.round(v * ratio)];
+    })
+  );
+  // Breaks : fixes 2023 pour comparaison inter-annuelle (tous types) ; quantiles dynamiques sinon
+  const breaks  = isAllTypes ? sitadelComputeBreaks(indic) : sitadelComputeBreaksFromData(data);
   const total   = Object.values(data).reduce((s,v) => s + v, 0);
 
   if (_sitadelLayer) window.sitadelDepMap.removeLayer(_sitadelLayer);
@@ -5034,7 +5043,7 @@ function renderSitadelLayer() {
       );
 
       layer.on({
-        mouseover: e => { e.target.setStyle({ weight: 2.5, color: '#FFED00', fillOpacity: 0.98 }); e.target.bringToFront(); },
+        mouseover: e => { e.target.setStyle({ weight: 2.5, color: '#ffffff', fillOpacity: 0.98 }); e.target.bringToFront(); },
         mouseout:  e => { _sitadelLayer.resetStyle(e.target); },
         click: () => { _sitadelSelectedCode = code; _sitadelShowInfo(code, nom, val, year, indic, total, breaks); }
       });
@@ -5063,22 +5072,55 @@ function sitadelResetToFrance() {
 }
 
 // ---- Filtre par type de logement ----
-// Proportions nationales moyennes SITADEL (source : SDES rapports annuels 2020-2023)
-const SITADEL_TYPE_PROPS = {
-  auto: { 'indiv-pur': 0.330, 'indiv-groupe': 0.120, 'collectif': 0.476, 'residences': 0.074 },
-  com:  { 'indiv-pur': 0.345, 'indiv-groupe': 0.122, 'collectif': 0.461, 'residences': 0.072 }
-};
 const _SITADEL_ALL_TYPES = ['indiv-pur','indiv-groupe','collectif','residences'];
+
+// Niveau d'urbanisation par département (0=très rural → 4=très urbain) — source : INSEE taux urba
+const SITADEL_DEP_URB = (() => {
+  const m = {};
+  [
+    [0, ['09','15','23','43','48','55']],
+    [1, ['02','03','04','05','07','08','11','12','16','18','19','22','24','28','32','36','39','40','41','46','47','50','52','53','58','61','65','70','73','79','82','88','89','2A','2B']],
+    [2, ['01','10','14','17','21','25','26','27','29','30','35','37','42','45','49','51','54','56','57','60','62','63','64','66','68','71','72','74','80','81','84','85','86','87','90','971','972','974']],
+    [3, ['06','13','31','33','34','38','44','59','67','69','76','77','78','83','91','95']],
+    [4, ['75','92','93','94']]
+  ].forEach(([lv, codes]) => codes.forEach(c => m[c] = lv));
+  return m;
+})();
+
+// Proportions par type selon niveau d'urbanisation (estimations calibrées sur données SDES)
+const SITADEL_URB_PROPS = [
+  { 'indiv-pur':0.63, 'indiv-groupe':0.13, 'collectif':0.19, 'residences':0.05 }, // 0 très rural
+  { 'indiv-pur':0.52, 'indiv-groupe':0.14, 'collectif':0.27, 'residences':0.07 }, // 1 rural
+  { 'indiv-pur':0.36, 'indiv-groupe':0.13, 'collectif':0.43, 'residences':0.08 }, // 2 semi-urbain
+  { 'indiv-pur':0.22, 'indiv-groupe':0.11, 'collectif':0.55, 'residences':0.12 }, // 3 urbain
+  { 'indiv-pur':0.10, 'indiv-groupe':0.07, 'collectif':0.66, 'residences':0.17 }, // 4 très urbain
+];
 
 function getSitadelSelectedTypes() {
   return _SITADEL_ALL_TYPES.filter(t => document.getElementById('sit-type-' + t)?.checked);
 }
 
+// Multiplicateur national (pour affichage total France)
 function sitadelTypeMultiplier(indic) {
   const sel = getSitadelSelectedTypes();
   if (sel.length === _SITADEL_ALL_TYPES.length) return 1;
-  const props = SITADEL_TYPE_PROPS[indic] || SITADEL_TYPE_PROPS.auto;
-  return sel.reduce((s, t) => s + (props[t] || 0), 0);
+  // moyenne pondérée nationale
+  const natProps = { 'indiv-pur':0.330,'indiv-groupe':0.120,'collectif':0.476,'residences':0.074 };
+  return sel.reduce((s, t) => s + (natProps[t] || 0), 0);
+}
+
+// Seuils quantiles recalculés depuis les données filtrées
+function sitadelComputeBreaksFromData(data) {
+  const vals = Object.values(data).filter(v => v > 0).sort((a, b) => a - b);
+  const n = vals.length;
+  if (n === 0) return [0, 1, 2, 3, 4];
+  return [
+    0,
+    vals[Math.floor(n * 0.20)],
+    vals[Math.floor(n * 0.40)],
+    vals[Math.floor(n * 0.60)],
+    vals[Math.floor(n * 0.80)]
+  ];
 }
 
 function toggleSitadelTypeMenu(e) {
@@ -5259,8 +5301,8 @@ function _sitadelChartInit(year, indic, selectedCode) {
   if (_sitadelChart) { _sitadelChart.destroy(); _sitadelChart = null; }
 
   const values = _sitadelChartGetValues(indic, selectedCode);
-  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#1a1a1a' : '#fff176');
-  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#000000' : '#FFED00');
+  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#6d2600' : '#ffe082');
+  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#4a1800' : '#ffb300');
 
   _sitadelChart = new Chart(canvas, {
     type: 'bar',
@@ -5291,7 +5333,7 @@ function _sitadelChartInit(year, indic, selectedCode) {
       scales: {
         x: {
           ticks: { font: { size: 8 }, maxRotation: 45, autoSkip: false,
-            color: ctx => ctx.tick.label === year ? '#1a1a1a' : '#9ca3af' },
+            color: ctx => ctx.tick.label === year ? '#6d2600' : '#9ca3af' },
           grid: { display: false },
           border: { color: 'rgba(0,0,0,0.1)' }
         },
@@ -5315,13 +5357,13 @@ function _sitadelChartUpdate(year, indic, selectedCode) {
     return;
   }
   const values  = _sitadelChartGetValues(indic, selectedCode);
-  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#1a1a1a' : '#fff176');
-  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#000000' : '#FFED00');
+  const bgColors = _SITADEL_YEARS.map(y => y === year ? '#6d2600' : '#ffe082');
+  const bdColors = _SITADEL_YEARS.map(y => y === year ? '#4a1800' : '#ffb300');
   _sitadelChart.data.datasets[0].data             = values;
   _sitadelChart.data.datasets[0].backgroundColor  = bgColors;
   _sitadelChart.data.datasets[0].borderColor       = bdColors;
   _sitadelChart.options.scales.x.ticks.color =
-    ctx => ctx.tick.label === year ? '#1a1a1a' : '#9ca3af';
+    ctx => ctx.tick.label === year ? '#6d2600' : '#9ca3af';
   _sitadelChart.update('none');
 }
 
