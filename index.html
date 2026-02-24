@@ -1079,9 +1079,10 @@
 
       <!-- ===== Carte EDS — Points GPS ===== -->
       <div style="margin-top:1.5rem;border:1px solid rgba(56,142,60,0.25);border-radius:12px;padding:16px 20px;background:rgba(56,142,60,0.03);">
-        <div class="section-title" style="margin-top:0;margin-bottom:0.75rem;">
+        <div class="section-title" style="margin-top:0;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
           <div class="icon" style="background:rgba(56,142,60,0.12);color:#388e3c;">📍</div>
           Carte EDS <span style="color:#e53935;font-style:italic;">(Mode Test pour le moment)</span>
+          <button onclick="edsConfigToken()" title="Configurer le token GitHub pour la sauvegarde" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;background:transparent;border:1px solid rgba(56,142,60,0.35);border-radius:5px;color:#388e3c;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">⚙️ Token GitHub</button>
         </div>
 
         <!-- Carte -->
@@ -3595,14 +3596,131 @@ function loadStylesheet(href) {
 }
 
 // ===== CARTE EDS =====
+const _EDS_REPO   = 'vincentsld/GEOCARTO';
+const _EDS_FILE   = 'eds_additions.xml';
+const _EDS_BRANCH = 'main';
+
 let _edsData        = [];
 let _edsNewEntries  = [];
+let _edsSavedPts    = [];   // points déjà dans eds_additions.xml
+let _edsXmlSha      = null; // SHA du fichier sur GitHub
 let _edsMapReady    = false;
 let _edsMarkerGroup = null;
 let _edsInvMarker   = null;
 let _edsPendingInv  = null;
-let _edsCsvFileHandle = null;
 window.edsMap       = null;
+
+// --- Token GitHub ---
+function _edsGetToken() { return localStorage.getItem('eds_github_token') || ''; }
+
+function edsConfigToken() {
+  document.getElementById('eds-token-overlay')?.remove();
+  const cur = _edsGetToken();
+  const ov = document.createElement('div');
+  ov.id = 'eds-token-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:430px;width:93%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;">
+      <div style="font-weight:700;font-size:0.92rem;color:#1a1a1a;margin-bottom:6px;">🔑 Token GitHub — Sauvegarde EDS</div>
+      <div style="font-size:0.72rem;color:#6b7280;margin-bottom:12px;line-height:1.6;">
+        Créez un <strong>Fine-grained token</strong> sur <a href="https://github.com/settings/tokens" target="_blank" style="color:#388e3c;">github.com/settings/tokens</a><br>
+        Permissions requises : <code>Contents → Read &amp; Write</code> sur <code>vincentsld/GEOCARTO</code>.
+      </div>
+      <input id="eds-token-input" type="password" value="${cur}" placeholder="github_pat_…"
+        style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #ccc;font-size:0.78rem;font-family:'DM Mono',monospace;box-sizing:border-box;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+        <button id="eds-tok-del" style="padding:7px 14px;border-radius:7px;border:1px solid #fca5a5;background:transparent;color:#e53935;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">🗑 Effacer</button>
+        <button id="eds-tok-cancel" style="padding:7px 14px;border-radius:7px;border:1px solid #e5e7eb;background:transparent;color:#6b7280;font-size:0.78rem;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
+        <button id="eds-tok-save" style="padding:7px 18px;border-radius:7px;border:none;background:#1a1a1a;color:#fff;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  document.getElementById('eds-tok-cancel').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  document.getElementById('eds-tok-del').onclick = () => { localStorage.removeItem('eds_github_token'); close(); };
+  document.getElementById('eds-tok-save').onclick = () => {
+    const val = document.getElementById('eds-token-input').value.trim();
+    if (val) localStorage.setItem('eds_github_token', val); else localStorage.removeItem('eds_github_token');
+    close();
+  };
+}
+
+// --- XML builder / parser ---
+function _edsBuildXml(points) {
+  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const rows = points.map(p => `  <point>
+    <Dossier>${esc(p.Dossier)}</Dossier>
+    <Reference>${esc(p.Référence)}</Reference>
+    <Nom>${esc(p.Nom)}</Nom>
+    <Adresse>${esc(p.Adresse)}</Adresse>
+    <Code_Postal>${esc(p['Code Postal'])}</Code_Postal>
+    <Ville>${esc(p.Ville)}</Ville>
+    <Categorie>${esc(p.Catégorie)}</Categorie>
+    <Notes>${esc(p.Notes)}</Notes>
+    <Latitude>${esc(p.Latitude)}</Latitude>
+    <Longitude>${esc(p.Longitude)}</Longitude>
+  </point>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<eds_additions>\n${rows}\n</eds_additions>`;
+}
+
+function _edsParseXml(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const pts = [];
+  doc.querySelectorAll('point').forEach(el => {
+    const g = tag => el.querySelector(tag)?.textContent?.trim() || '';
+    const lat = g('Latitude'), lng = g('Longitude');
+    if (!lat || !lng) return;
+    pts.push({ Dossier: g('Dossier'), Référence: g('Reference'), Nom: g('Nom'),
+      Adresse: g('Adresse'), 'Code Postal': g('Code_Postal'), Ville: g('Ville'),
+      Catégorie: g('Categorie'), Notes: g('Notes'), 'Description brute': g('Notes'),
+      Latitude: lat, Longitude: lng });
+  });
+  return pts;
+}
+
+// --- Charger eds_additions.xml depuis GitHub ---
+async function _edsLoadAdditions() {
+  try {
+    const headers = { 'Accept': 'application/vnd.github+json' };
+    const tok = _edsGetToken();
+    if (tok) headers['Authorization'] = `Bearer ${tok}`;
+    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}`, { headers });
+    if (resp.status === 404) { _edsXmlSha = null; _edsSavedPts = []; return; }
+    if (!resp.ok) return;
+    const json = await resp.json();
+    _edsXmlSha  = json.sha;
+    const xml   = decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))));
+    _edsSavedPts = _edsParseXml(xml);
+    if (_edsSavedPts.length > 0) {
+      _edsNewEntries.push(..._edsSavedPts);
+      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+    }
+  } catch(e) { console.warn('EDS additions load error:', e); }
+}
+
+// --- Sauvegarder sur GitHub ---
+async function edsSaveToGitHub(newEntry) {
+  const tok = _edsGetToken();
+  if (!tok) { edsConfigToken(); return 'notoken'; }
+  const allPts = [..._edsSavedPts, newEntry];
+  const xml    = _edsBuildXml(allPts);
+  const b64    = btoa(unescape(encodeURIComponent(xml)));
+  const body   = { message: `Ajout EDS : ${newEntry.Nom}`, content: b64, branch: _EDS_BRANCH };
+  if (_edsXmlSha) body.sha = _edsXmlSha;
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${tok}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) { const e = await resp.json(); console.error('GitHub API:', e); return 'error'; }
+    const json  = await resp.json();
+    _edsXmlSha  = json.content.sha;
+    _edsSavedPts.push(newEntry);
+    return 'saved';
+  } catch(e) { console.error('GitHub save:', e); return 'error'; }
+}
 
 function _edsPlaceInvMarker() {
   if (!window.edsMap || !_edsPendingInv) return;
@@ -3712,6 +3830,8 @@ function _edsProcessCsv(text) {
   if (loader) loader.style.display = 'none';
   _edsRenderMarkers(_edsData);
   setTimeout(() => window.edsMap?.invalidateSize(), 200);
+  // Charger les points ajoutés manuellement (eds_additions.xml sur GitHub)
+  _edsLoadAdditions();
 }
 
 function _edsRenderMarkers(data) {
@@ -3954,24 +4074,16 @@ function edsAddPoint() {
       _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
       window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
     }
-    const result = await edsSaveToFile(_edsBuildCsvText());
+    const result = await edsSaveToGitHub(entry);
     const ok = result === 'saved';
-    const label  = result === 'saved'        ? '✅ Enregistré dans Carte_EDS_V1.csv'
-                 : result === 'cancelled'    ? '⚠️ Sélection annulée — point ajouté en mémoire uniquement'
-                 : result === 'denied'       ? '⚠️ Permission refusée — point ajouté en mémoire uniquement'
-                 : result === 'unsupported'  ? '⚠️ Navigateur incompatible — utilisez Chrome ou Edge'
-                 :                            '⚠️ Erreur d\'écriture — point ajouté en mémoire uniquement';
+    const label  = result === 'saved'    ? '✅ Enregistré dans eds_additions.xml (GitHub)'
+                 : result === 'notoken' ? '⚠️ Token GitHub requis — configurez-le via ⚙️'
+                 : result === 'error'   ? '⚠️ Erreur GitHub — vérifiez le token et la connexion'
+                 :                       '⚠️ Enregistrement annulé';
     if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = ok ? '#388e3c' : '#e65100'; }
     ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   });
-}
-
-function edsExportCsv() {
-  if (_edsData.length === 0 && _edsNewEntries.length === 0) {
-    alert('Aucune donnée à exporter. Chargez d\'abord la carte.'); return;
-  }
-  edsSaveToFile(_edsBuildCsvText());
 }
 
 // ====== KML / KMZ EXPORT ======
