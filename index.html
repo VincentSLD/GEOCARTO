@@ -1817,7 +1817,7 @@ function initPickerMap() {
   // Default center: France
   pickerMap = L.map('picker-map', {
     center: [46.6, 2.5],
-    zoom: 6,
+    zoom: 5,
     zoomControl: true,
   });
 
@@ -4287,52 +4287,59 @@ async function captureLeaflet(mapContainerId, label, rawName) {
     window.photoMap, window.histoMap, window.sitadelDepMap
   ];
   const lmap = _allMaps.find(m => {
-    try { return m && m.getContainer && m.getContainer().id === mapContainerId; } catch { return false; }
+    try { return m?.getContainer?.().id === mapContainerId; } catch { return false; }
   });
 
-  // Reset view pour ramener le pane principal à l'origine
+  // Reset view : ramène le map-pane à (0,0) pour minimiser les offsets résiduels
   if (lmap) {
     lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
-    await new Promise(r => setTimeout(r, 150));
+    // Attendre 2 frames + 250 ms pour que Leaflet finisse de repositionner tuiles et SVG
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 250));
   }
 
   // ---------------------------------------------------------------
-  // Cause réelle du décalage :
-  // html2canvas sérialise les éléments SVG en image SANS appliquer
-  // leur CSS transform. Le SVG Leaflet (GeoJSON) atterrit à (0,0)
-  // alors que les tuiles raster sont positionnées correctement.
-  // Solution : convertir le transform du SVG en position:absolute
-  // left/top (layout normal que html2canvas gère parfaitement),
-  // et faire de même pour les containers de tuiles.
+  // Stratégie onclone :
+  // html2canvas clone le DOM avant de le rasteriser. Le callback
+  // onclone permet de corriger le clone (pas le DOM live) AVANT le
+  // rendu. On y convertit tous les translate3d/matrix en left/top
+  // (layout statique) — html2canvas positionne alors chaque élément
+  // correctement sans interpréter de transform.
   // ---------------------------------------------------------------
-  const _fixedNodes = [];
+  function _fixTransformsInClone(root) {
+    root.querySelectorAll('*').forEach(node => {
+      const t = node.style.transform;
+      if (!t || t === 'none') return;
 
-  function _transformToLayout(node) {
-    const t = node.style.transform || '';
-    const m = t.match(/translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/);
-    if (!m) return;
-    _fixedNodes.push({
-      node,
-      transform: t,
-      position: node.style.position,
-      left:     node.style.left,
-      top:      node.style.top,
+      let tx = 0, ty = 0, matched = false;
+
+      // translate3d(x, y, z)
+      const m3 = t.match(/translate3d\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px/);
+      if (m3) { tx = parseFloat(m3[1]); ty = parseFloat(m3[2]); matched = true; }
+
+      // translate(x, y) ou translate(x)
+      if (!matched) {
+        const m2 = t.match(/^translate\(\s*(-?[\d.]+)px(?:,\s*(-?[\d.]+)px)?/);
+        if (m2) { tx = parseFloat(m2[1]); ty = parseFloat(m2[2] || '0'); matched = true; }
+      }
+
+      // matrix(a,b,c,d,tx,ty)
+      if (!matched) {
+        const mm = t.match(/matrix\(\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*(-?[\d.]+),\s*(-?[\d.]+)\s*\)/);
+        if (mm) { tx = parseFloat(mm[1]); ty = parseFloat(mm[2]); matched = true; }
+      }
+
+      if (!matched) return;
+
+      const baseLeft = parseFloat(node.style.left) || 0;
+      const baseTop  = parseFloat(node.style.top)  || 0;
+      node.style.willChange = 'auto';
+      node.style.transform  = 'none';
+      node.style.position   = node.style.position || 'absolute';
+      node.style.left = (baseLeft + tx) + 'px';
+      node.style.top  = (baseTop  + ty) + 'px';
     });
-    node.style.transform = 'none';
-    node.style.position  = 'absolute';
-    node.style.left      = m[1] + 'px';
-    node.style.top       = m[2] + 'px';
   }
-
-  // SVG overlay (GeoJSON, WMS polygones…)
-  el.querySelectorAll('.leaflet-overlay-pane svg, .leaflet-overlay-pane canvas')
-    .forEach(_transformToLayout);
-  // Containers de tuiles
-  el.querySelectorAll('.leaflet-tile-container')
-    .forEach(_transformToLayout);
-  // Pane principal (sécurité si non réinitialisé)
-  el.querySelectorAll('.leaflet-map-pane')
-    .forEach(_transformToLayout);
 
   try {
     const canvas = await html2canvas(el, {
@@ -4343,22 +4350,20 @@ async function captureLeaflet(mapContainerId, label, rawName) {
       logging: false,
       foreignObjectRendering: false,
       imageTimeout: 0,
+      onclone: (_clonedDoc, clonedEl) => {
+        const target = clonedEl?.id === mapContainerId
+          ? clonedEl
+          : _clonedDoc.getElementById(mapContainerId);
+        if (target) _fixTransformsInClone(target);
+      },
     });
-    const filename = rawName ? `${label}.png` : screenshotFilename(label);
-    downloadCanvas(canvas, filename);
+    downloadCanvas(canvas, rawName ? `${label}.png` : screenshotFilename(label));
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);
     btnFeedback(btn, false, '❌', origHTML);
   }
 
-  // Restaurer les styles originaux
-  _fixedNodes.forEach(({ node, transform, position, left, top }) => {
-    node.style.transform = transform;
-    node.style.position  = position;
-    node.style.left      = left;
-    node.style.top       = top;
-  });
   btn.classList.remove('busy');
 }
 
