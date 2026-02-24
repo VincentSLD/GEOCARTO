@@ -1077,7 +1077,7 @@
             <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;">Points d'intérêt EDS GPH<br><span style="font-size:0.7rem;color:var(--text-muted);">Chargement automatique au lancement d'une investigation…</span></div>
           </div>
           <!-- Barre visible uniquement en plein écran -->
-          <div id="eds-fs-bar" style="position:absolute;bottom:0;left:0;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
+          <div id="eds-fs-bar" style="position:absolute;bottom:0;left:44px;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:4px 8px;border-radius:5px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
             <span id="eds-fs-count" style="font-size:0.7rem;color:#6b7280;white-space:nowrap;"></span>
             <button onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">➕ Ajouter un point</button>
@@ -1900,8 +1900,9 @@ function initPickerMap() {
   pickerMap = L.map('picker-map', {
     center: [46.6, 2.5],
     zoom: 5,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(pickerMap);
 
   pickerOsmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM',
@@ -2772,8 +2773,9 @@ function setupMaps(lat, lng) {
   argilesMap = L.map('map-argiles', {
     center: [lat, lng],
     zoom: 14,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(argilesMap);
 
   // Fond de carte OSM
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -2853,8 +2855,9 @@ function setupMaps(lat, lng) {
   window.geologieMap = L.map('map-geologie', {
     center: [lat, lng],
     zoom: 14,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.geologieMap);
 
   // Fond de carte OSM léger
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -2923,8 +2926,9 @@ function setupMaps(lat, lng) {
   window.cavitesMap = L.map('map-cavites', {
     center: [lat, lng],
     zoom: 13,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.cavitesMap);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM',
@@ -2958,8 +2962,9 @@ function setupMaps(lat, lng) {
   window.sismiqueMap = L.map('map-sismique', {
     center: [lat, lng],
     zoom: 9,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.sismiqueMap);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM',
@@ -3006,8 +3011,9 @@ function setupMaps(lat, lng) {
   window.bssMap = L.map('map-bss', {
     center: [lat, lng],
     zoom: 14,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.bssMap);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM',
@@ -3047,8 +3053,9 @@ function setupMaps(lat, lng) {
   window.nappesMap = L.map('map-nappes', {
     center: [lat, lng],
     zoom: 11,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.nappesMap);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM',
@@ -3109,9 +3116,10 @@ function setupMaps(lat, lng) {
   window.reliefMap = L.map('map-relief', {
     center: [lat, lng],
     zoom: 15,
-    zoomControl: true,
+    zoomControl: false,
     attributionControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.reliefMap);
 
   // Fond de carte OpenTopoMap (courbes de niveau, relief ombré)
   L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
@@ -3143,8 +3151,9 @@ function setupMaps(lat, lng) {
   window.ignMap = L.map('map-ign-leaflet', {
     center: [lat, lng],
     zoom: 16, // ~1/25000
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.ignMap);
 
   // Tuiles IGN via Géoplateforme (accès libre)
   L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/png', {
@@ -3167,7 +3176,8 @@ function setupMaps(lat, lng) {
 
   // ====== Photos Aériennes Historiques ======
   if (window.photoMap) { window.photoMap.remove(); window.photoMap = null; }
-  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 16, zoomControl: true });
+  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 16, zoomControl: false });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.photoMap);
   window.photoCurrentPeriod = 'actuel';
   const _pd = photoPeriods['actuel'];
   window.photoLayer = L.tileLayer(
@@ -3187,8 +3197,9 @@ function setupMaps(lat, lng) {
   window.histoMap = L.map('map-histo', {
     center: [lat, lng],
     zoom: 13,
-    zoomControl: true,
+    zoomControl: false,
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.histoMap);
   window.histoLayers = {
     etatmajor: L.tileLayer(
       'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
@@ -3628,8 +3639,9 @@ async function initEdsMap() {
   // Créer la carte
   window.edsMap = L.map('map-eds', {
     center: [46.8, 2.2], zoom: 6,
-    zoomControl: true, scrollWheelZoom: true, attributionControl: false
+    zoomControl: false, scrollWheelZoom: true, attributionControl: false
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.edsMap);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19, opacity: 1
   }).addTo(window.edsMap);
@@ -3698,9 +3710,9 @@ function _edsRenderMarkers(data) {
     iconCreateFunction: cluster => {
       const n    = cluster.getChildCount();
       const size = n < 100 ? 30 : n < 1000 ? 36 : 42;
-      const bg   = n < 50 ? '#66bb6a' : n < 500 ? '#388e3c' : '#1b5e20';
+      const bg   = n < 50 ? '#ffe57f' : n < 500 ? '#ffd600' : '#f9a825';
       return L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${size < 36 ? 10 : 12}px;font-weight:700;font-family:'Space Grotesk',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.28);border:2px solid rgba(255,255,255,0.85);">${n >= 1000 ? (n/1000).toFixed(1)+'k' : n}</div>`,
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};color:#5a3e00;display:flex;align-items:center;justify-content:center;font-size:${size < 36 ? 10 : 12}px;font-weight:700;font-family:'Space Grotesk',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.28);border:2px solid rgba(255,255,255,0.85);">${n >= 1000 ? (n/1000).toFixed(1)+'k' : n}</div>`,
         className: '', iconSize: [size, size], iconAnchor: [size/2, size/2]
       });
     }
@@ -3708,9 +3720,9 @@ function _edsRenderMarkers(data) {
 
   const dotIcon = L.divIcon({
     html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
-      <circle cx="11" cy="10" r="9" fill="#388e3c" stroke="#fff" stroke-width="2.5"/>
-      <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.55"/>
-      <line x1="11" y1="19" x2="11" y2="29" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="11" cy="10" r="9" fill="#ffd600" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.6"/>
+      <line x1="11" y1="19" x2="11" y2="29" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
     </svg>`,
     className: '', iconSize: [22, 30], iconAnchor: [11, 29]
   });
@@ -5458,8 +5470,9 @@ async function initSitadelDepMap() {
 
   window.sitadelDepMap = L.map('map-sitadel-dep', {
     center: [46.5, 2.3], zoom: 5,
-    zoomControl: true, scrollWheelZoom: false, attributionControl: false
+    zoomControl: false, scrollWheelZoom: false, attributionControl: false
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.sitadelDepMap);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd', maxZoom: 12, opacity: 0.45
