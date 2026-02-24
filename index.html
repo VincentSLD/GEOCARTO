@@ -1065,8 +1065,9 @@
         </div>
 
         <!-- Carte -->
-        <div style="position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+        <div class="map-embed" style="position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
           <div id="map-eds" style="width:100%;height:100%;background:#f0f4f0;"></div>
+          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
           <div id="eds-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.95);gap:0.7rem;">
             <span style="font-size:2.2rem;">📍</span>
             <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;">Points d'intérêt EDS GPH<br><span style="font-size:0.7rem;color:var(--text-muted);">Chargement automatique au lancement d'une investigation…</span></div>
@@ -1078,7 +1079,7 @@
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
           <span id="eds-count" style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;"></span>
           <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.35);background:rgba(56,142,60,0.06);color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.15s;">➕ Ajouter un point</button>
-          <button onclick="edsExportCsv()" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.4);background:transparent;color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,142,60,0.07)'" onmouseout="this.style.background='transparent'">💾 Exporter CSV</button>
+
         </div>
 
         <!-- Formulaire ajout point -->
@@ -3814,28 +3815,33 @@ function edsShowConfirm(message, onOui) {
 
 async function edsSaveToFile(csvText) {
   const content = '\uFEFF' + csvText;
-  if ('showSaveFilePicker' in window) {
-    try {
-      if (!_edsCsvFileHandle) {
-        _edsCsvFileHandle = await window.showSaveFilePicker({
-          suggestedName: 'Carte_EDS_V1.csv',
-          types: [{ description: 'Fichier CSV', accept: { 'text/csv': ['.csv'] } }]
-        });
-      }
-      const writable = await _edsCsvFileHandle.createWritable();
-      await writable.write(content);
-      await writable.close();
-      return 'saved';
-    } catch(e) {
-      _edsCsvFileHandle = null;
-      if (e.name === 'AbortError') return 'cancelled';
-    }
+  if (!('showOpenFilePicker' in window)) {
+    return 'unsupported';
   }
-  // Fallback : téléchargement
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'Carte_EDS_V1.csv' });
-  a.click(); URL.revokeObjectURL(a.href);
-  return 'downloaded';
+  try {
+    if (!_edsCsvFileHandle) {
+      // Ouvre le fichier EXISTANT en mode lecture+écriture
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Fichier CSV', accept: { 'text/csv': ['.csv'], 'text/plain': ['.csv'] } }],
+        multiple: false
+      });
+      // Vérifier/demander la permission d'écriture
+      const perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') {
+        const req = await handle.requestPermission({ mode: 'readwrite' });
+        if (req !== 'granted') return 'denied';
+      }
+      _edsCsvFileHandle = handle;
+    }
+    const writable = await _edsCsvFileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+    return 'saved';
+  } catch(e) {
+    _edsCsvFileHandle = null;
+    if (e.name === 'AbortError') return 'cancelled';
+    return 'error';
+  }
 }
 
 // --- Ajout d'un point ---
@@ -3872,10 +3878,13 @@ function edsAddPoint() {
       window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
     }
     const result = await edsSaveToFile(_edsBuildCsvText());
-    const label  = result === 'saved'      ? '✅ Enregistré directement dans le CSV'
-                 : result === 'downloaded' ? '✅ CSV téléchargé — remplacez le fichier d\'origine'
-                 :                          '⚠️ Enregistrement annulé';
-    if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = result === 'cancelled' ? '#e53935' : '#388e3c'; }
+    const ok = result === 'saved';
+    const label  = result === 'saved'        ? '✅ Enregistré dans Carte_EDS_V1.csv'
+                 : result === 'cancelled'    ? '⚠️ Sélection annulée — point ajouté en mémoire uniquement'
+                 : result === 'denied'       ? '⚠️ Permission refusée — point ajouté en mémoire uniquement'
+                 : result === 'unsupported'  ? '⚠️ Navigateur incompatible — utilisez Chrome ou Edge'
+                 :                            '⚠️ Erreur d\'écriture — point ajouté en mémoire uniquement';
+    if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = ok ? '#388e3c' : '#e65100'; }
     ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   });
