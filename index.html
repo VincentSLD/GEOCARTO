@@ -3630,8 +3630,8 @@ async function initEdsMap() {
     center: [46.8, 2.2], zoom: 6,
     zoomControl: true, scrollWheelZoom: true, attributionControl: false
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 18, opacity: 0.65
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, opacity: 1
   }).addTo(window.edsMap);
 
   // Placer le marqueur rouge si une investigation est déjà en cours
