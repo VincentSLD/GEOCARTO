@@ -416,7 +416,20 @@
     line-height: 1.5;
   }
   .btn-map-fs:hover { background: rgba(0,0,0,0.82); }
-  .map-embed:fullscreen { border-radius: 0; }
+  .map-embed:fullscreen {
+    border-radius: 0 !important;
+    aspect-ratio: unset !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+  }
+  .map-embed:-webkit-full-screen {
+    border-radius: 0 !important;
+    aspect-ratio: unset !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+  }
+  .map-embed:fullscreen #map-eds,
+  .map-embed:-webkit-full-screen #map-eds { height: 100% !important; }
   .map-embed:fullscreen .btn-map-fs { display: none; }
   #eds-fs-bar { display: none; }
   .map-embed:fullscreen #eds-fs-bar,
@@ -4915,10 +4928,10 @@ function _closeManualFullscreen(container, closeBtn) {
 }
 
 document.addEventListener('fullscreenchange', function() {
-  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
+  [100, 300, 600, 1000, 1500].forEach(d => setTimeout(_invalidateAllMaps, d));
 });
 document.addEventListener('webkitfullscreenchange', function() {
-  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
+  [100, 300, 600, 1000, 1500].forEach(d => setTimeout(_invalidateAllMaps, d));
 });
 
 // ====== EN COURS DE DÉVELOPPEMENT — ACCORDION ======
