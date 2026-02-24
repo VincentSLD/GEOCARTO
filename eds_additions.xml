@@ -12,4 +12,16 @@
     <Latitude>46.8242732357</Latitude>
     <Longitude>-1.9979792662</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>REF DOSSIER</Reference>
+    <Nom>NOM DOSSIER</Nom>
+    <Adresse>48 Chemin de la bourière 85300 Froidfond</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Froidfond</Ville>
+    <Categorie></Categorie>
+    <Notes>NOTES</Notes>
+    <Latitude>46.8678835696</Latitude>
+    <Longitude>-1.7690616415</Longitude>
+  </point>
 </eds_additions>
