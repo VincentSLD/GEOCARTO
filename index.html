@@ -418,6 +418,10 @@
   .btn-map-fs:hover { background: rgba(0,0,0,0.82); }
   .map-embed:fullscreen { border-radius: 0; }
   .map-embed:fullscreen .btn-map-fs { display: none; }
+  #eds-fs-bar { display: none; }
+  .map-embed:fullscreen #eds-fs-bar,
+  .map-embed:-webkit-full-screen #eds-fs-bar,
+  .map-embed.fs-manual #eds-fs-bar { display: flex; }
   .map-embed:fullscreen #photo-period-overlay { display: flex !important; }
   .map-embed:-webkit-full-screen #photo-period-overlay { display: flex !important; }
   .map-embed.fs-manual #photo-period-overlay { display: flex !important; }
@@ -1072,6 +1076,12 @@
             <span style="font-size:2.2rem;">📍</span>
             <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;">Points d'intérêt EDS GPH<br><span style="font-size:0.7rem;color:var(--text-muted);">Chargement automatique au lancement d'une investigation…</span></div>
           </div>
+          <!-- Barre visible uniquement en plein écran -->
+          <div id="eds-fs-bar" style="position:absolute;bottom:0;left:0;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:4px 8px;border-radius:5px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
+            <span id="eds-fs-count" style="font-size:0.7rem;color:#6b7280;white-space:nowrap;"></span>
+            <button onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">➕ Ajouter un point</button>
+          </div>
         </div>
 
         <!-- Barre de filtre + compteur + export -->
@@ -1083,7 +1093,7 @@
         </div>
 
         <!-- Formulaire ajout point -->
-        <div style="margin-top:0.6rem;">
+        <div id="eds-add-form-container" style="margin-top:0.6rem;">
           <div id="eds-add-form" style="display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
               <div style="grid-column:1/-1;">
@@ -3761,6 +3771,50 @@ function toggleEdsForm() {
   f.style.display = open ? 'block' : 'none';
   if (btn) btn.textContent = open ? '✖ Fermer le formulaire' : '➕ Ajouter un point';
 }
+
+// Recherche synchronisée depuis la barre plein écran
+function edsFsFilter(val) {
+  const ext = document.getElementById('eds-search');
+  if (ext) ext.value = val;
+  edsFilterMarkers();
+  // Sync compteur
+  const fsCount = document.getElementById('eds-fs-count');
+  const extCount = document.getElementById('eds-count');
+  if (fsCount && extCount) fsCount.textContent = extCount.textContent;
+}
+
+// Toggle formulaire en mode plein écran (déplace le DOM dans le conteneur fullscreen)
+function edsToggleFsForm() {
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement
+             || document.querySelector('.map-embed.fs-manual');
+  if (!fsEl) { toggleEdsForm(); return; }
+
+  const form      = document.getElementById('eds-add-form');
+  const container = document.getElementById('eds-add-form-container');
+  if (!form || !container) return;
+
+  if (form.parentNode === fsEl) {
+    // Fermer : remettre à sa place originale
+    form.style.cssText = 'display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);';
+    container.appendChild(form);
+  } else {
+    // Ouvrir : déplacer dans l'élément fullscreen en overlay
+    form.style.cssText = 'display:block;position:absolute;bottom:40px;left:0;right:0;z-index:600;max-height:62%;overflow-y:auto;margin:0 6px;padding:13px 15px;background:rgba(255,255,255,0.97);border-radius:10px 10px 0 0;border:1px solid rgba(56,142,60,0.25);box-shadow:0 -4px 20px rgba(0,0,0,0.15);box-sizing:border-box;';
+    fsEl.appendChild(form);
+  }
+}
+
+// Remettre le formulaire à sa place quand on quitte le plein écran
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement) {
+    const form      = document.getElementById('eds-add-form');
+    const container = document.getElementById('eds-add-form-container');
+    if (form && container && form.parentNode !== container) {
+      form.style.cssText = 'display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);';
+      container.appendChild(form);
+    }
+  }
+});
 
 function edsPrefillFromInvestigation() {
   if (typeof currentLat === 'number') document.getElementById('eds-new-lat').value = currentLat;
