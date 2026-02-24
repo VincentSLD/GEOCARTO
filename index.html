@@ -4878,7 +4878,8 @@ function captureIframe(iframeId, label) {
 
 function _invalidateAllMaps() {
   [window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
-   window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap, window.histoMap]
+   window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap,
+   window.histoMap, window.edsMap]
     .forEach(function(m) { if (m) m.invalidateSize(); });
 }
 
@@ -4903,21 +4904,21 @@ function openFullscreen(btn) {
   closeBtn.onclick = function() { _closeManualFullscreen(container, closeBtn); };
   document.body.appendChild(closeBtn);
 
-  setTimeout(_invalidateAllMaps, 200);
+  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
 }
 
 function _closeManualFullscreen(container, closeBtn) {
   container.classList.remove('fs-manual');
   document.body.style.overflow = '';
   if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
-  setTimeout(_invalidateAllMaps, 200);
+  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
 }
 
 document.addEventListener('fullscreenchange', function() {
-  setTimeout(_invalidateAllMaps, 200);
+  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
 });
 document.addEventListener('webkitfullscreenchange', function() {
-  setTimeout(_invalidateAllMaps, 200);
+  [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
 });
 
 // ====== EN COURS DE DÉVELOPPEMENT — ACCORDION ======
