@@ -1061,11 +1061,11 @@
       <div style="margin-top:1.5rem;border:1px solid rgba(56,142,60,0.25);border-radius:12px;padding:16px 20px;background:rgba(56,142,60,0.03);">
         <div class="section-title" style="margin-top:0;margin-bottom:0.75rem;">
           <div class="icon" style="background:rgba(56,142,60,0.12);color:#388e3c;">📍</div>
-          Carte EDS — Points d'intérêt
+          Carte EDS <span style="color:#e53935;font-style:italic;">(Mode Test pour le moment)</span>
         </div>
 
         <!-- Carte -->
-        <div style="position:relative;height:420px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+        <div style="position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
           <div id="map-eds" style="width:100%;height:100%;background:#f0f4f0;"></div>
           <div id="eds-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.95);gap:0.7rem;">
             <span style="font-size:2.2rem;">📍</span>
@@ -1077,12 +1077,12 @@
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
           <span id="eds-count" style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;"></span>
+          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.35);background:rgba(56,142,60,0.06);color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.15s;">➕ Ajouter un point</button>
           <button onclick="edsExportCsv()" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.4);background:transparent;color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,142,60,0.07)'" onmouseout="this.style.background='transparent'">💾 Exporter CSV</button>
         </div>
 
         <!-- Formulaire ajout point -->
         <div style="margin-top:0.6rem;">
-          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:5px 14px;border-radius:6px;border:1px solid rgba(56,142,60,0.35);background:rgba(56,142,60,0.06);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.15s;">➕ Ajouter un point</button>
           <div id="eds-add-form" style="display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
               <div style="grid-column:1/-1;">
@@ -1125,11 +1125,11 @@
             </div>
           </div>
         </div>
-        <div style="font-size:0.6rem;color:var(--text-muted);margin-top:0.4rem;line-height:1.4;">Source : Carte_EDS_V1.csv — L'export génère un CSV mis à jour à remplacer dans le dossier.</div>
+
       </div>
 
       <div id="capture-argiles" class="capturable">
-      <div class="section-title" style="margin-top:0">
+      <div class="section-title" style="margin-top:2rem">
         <div class="icon amber">🏺</div>
         Carte RGA
         <button class="btn-screenshot" onclick="captureLeaflet('map-argiles','ARGILES', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
@@ -3565,6 +3565,7 @@ let _edsMapReady    = false;
 let _edsMarkerGroup = null;
 let _edsInvMarker   = null;
 let _edsPendingInv  = null;
+let _edsCsvFileHandle = null;
 window.edsMap       = null;
 
 function _edsPlaceInvMarker() {
@@ -3695,8 +3696,12 @@ function _edsRenderMarkers(data) {
   });
 
   const dotIcon = L.divIcon({
-    html: `<div style="width:10px;height:10px;border-radius:50%;background:#388e3c;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
-    className: '', iconSize: [10, 10], iconAnchor: [5, 5]
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+      <circle cx="11" cy="10" r="9" fill="#388e3c" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.55"/>
+      <line x1="11" y1="19" x2="11" y2="29" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`,
+    className: '', iconSize: [22, 30], iconAnchor: [11, 29]
   });
 
   const markers = [];
@@ -3773,6 +3778,68 @@ function _edsDossierNow() {
   return `Mes lieux préférés/${d.getFullYear()}/${mois[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// --- Helpers sauvegarde CSV ---
+
+function _edsBuildCsvText() {
+  const all = [..._edsData, ..._edsNewEntries];
+  const headers = ['Dossier','Référence','Nom','Adresse','Code Postal','Ville','Catégorie','Notes','Description brute','Latitude','Longitude'];
+  const esc = v => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return (s.includes(';') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(';'), ...all.map(r => headers.map(h => esc(r[h])).join(';'))].join('\r\n');
+}
+
+function edsShowConfirm(message, onOui) {
+  document.getElementById('eds-confirm-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'eds-confirm-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">💾</div>
+      <div style="font-size:0.9rem;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:20px;">${message}</div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button id="eds-confirm-oui" style="padding:9px 28px;background:#388e3c;color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✅ Oui</button>
+        <button id="eds-confirm-non" style="padding:9px 28px;background:transparent;border:1.5px solid #9ca3af;border-radius:8px;font-size:0.85rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✖ Non</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  document.getElementById('eds-confirm-non').onclick = close;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  document.getElementById('eds-confirm-oui').onclick = async () => { close(); await onOui(); };
+}
+
+async function edsSaveToFile(csvText) {
+  const content = '\uFEFF' + csvText;
+  if ('showSaveFilePicker' in window) {
+    try {
+      if (!_edsCsvFileHandle) {
+        _edsCsvFileHandle = await window.showSaveFilePicker({
+          suggestedName: 'Carte_EDS_V1.csv',
+          types: [{ description: 'Fichier CSV', accept: { 'text/csv': ['.csv'] } }]
+        });
+      }
+      const writable = await _edsCsvFileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      return 'saved';
+    } catch(e) {
+      _edsCsvFileHandle = null;
+      if (e.name === 'AbortError') return 'cancelled';
+    }
+  }
+  // Fallback : téléchargement
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'Carte_EDS_V1.csv' });
+  a.click(); URL.revokeObjectURL(a.href);
+  return 'downloaded';
+}
+
+// --- Ajout d'un point ---
+
 function edsAddPoint() {
   const nom  = (document.getElementById('eds-new-nom')?.value || '').trim();
   const latS = (document.getElementById('eds-new-lat')?.value || '').trim().replace(',', '.');
@@ -3780,50 +3847,45 @@ function edsAddPoint() {
   const lat  = parseFloat(latS);
   const lng  = parseFloat(lngS);
   const msg  = document.getElementById('eds-add-msg');
-
-  const warn = (txt) => { if (msg) { msg.textContent = txt; msg.style.color = '#e53935'; } };
-  if (!nom)              { warn('⚠️ Le nom est requis.'); return; }
+  const warn = txt => { if (msg) { msg.textContent = txt; msg.style.color = '#e53935'; } };
+  if (!nom)                     { warn('⚠️ Le nom est requis.'); return; }
   if (isNaN(lat) || isNaN(lng)) { warn('⚠️ Coordonnées invalides.'); return; }
 
   const entry = {
-    Dossier:            _edsDossierNow(),
-    Référence:          (document.getElementById('eds-new-ref')?.value   || '').trim(),
-    Nom:                nom,
-    Adresse:            (document.getElementById('eds-new-adresse')?.value || '').trim(),
-    'Code Postal':      (document.getElementById('eds-new-cp')?.value    || '').trim(),
-    Ville:              (document.getElementById('eds-new-ville')?.value  || '').trim(),
-    Catégorie:          '',
-    Notes:              (document.getElementById('eds-new-notes')?.value  || '').trim(),
-    'Description brute':(document.getElementById('eds-new-notes')?.value  || '').trim(),
-    Latitude:           latS,
-    Longitude:          lngS
+    Dossier:             _edsDossierNow(),
+    Référence:           (document.getElementById('eds-new-ref')?.value    || '').trim(),
+    Nom:                 nom,
+    Adresse:             (document.getElementById('eds-new-adresse')?.value || '').trim(),
+    'Code Postal':       (document.getElementById('eds-new-cp')?.value     || '').trim(),
+    Ville:               (document.getElementById('eds-new-ville')?.value   || '').trim(),
+    Catégorie:           '',
+    Notes:               (document.getElementById('eds-new-notes')?.value   || '').trim(),
+    'Description brute': (document.getElementById('eds-new-notes')?.value   || '').trim(),
+    Latitude:            latS,
+    Longitude:           lngS
   };
 
-  _edsNewEntries.push(entry);
-
-  if (window.edsMap && _edsMarkerGroup) {
-    _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
-    window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
-  }
-
-  if (msg) { msg.textContent = `✅ "${nom}" ajouté — ${_edsNewEntries.length} nouveau${_edsNewEntries.length > 1 ? 'x' : ''} point${_edsNewEntries.length > 1 ? 's' : ''} en attente d'export`; msg.style.color = '#388e3c'; }
-  ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  edsShowConfirm('Voulez-vous enregistrer ce point dans la base de données ?', async () => {
+    _edsNewEntries.push(entry);
+    if (window.edsMap && _edsMarkerGroup) {
+      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+      window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
+    }
+    const result = await edsSaveToFile(_edsBuildCsvText());
+    const label  = result === 'saved'      ? '✅ Enregistré directement dans le CSV'
+                 : result === 'downloaded' ? '✅ CSV téléchargé — remplacez le fichier d\'origine'
+                 :                          '⚠️ Enregistrement annulé';
+    if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = result === 'cancelled' ? '#e53935' : '#388e3c'; }
+    ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  });
 }
 
 function edsExportCsv() {
-  const all = [..._edsData, ..._edsNewEntries];
-  if (all.length === 0) { alert('Aucune donnée à exporter. Chargez d\'abord la carte.'); return; }
-  const headers = ['Dossier','Référence','Nom','Adresse','Code Postal','Ville','Catégorie','Notes','Description brute','Latitude','Longitude'];
-  const esc = v => {
-    if (v === null || v === undefined) return '';
-    const s = String(v);
-    return (s.includes(';') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const lines = [headers.join(';'), ...all.map(r => headers.map(h => esc(r[h])).join(';'))];
-  const blob  = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'Carte_EDS_V1.csv' });
-  a.click(); URL.revokeObjectURL(a.href);
+  if (_edsData.length === 0 && _edsNewEntries.length === 0) {
+    alert('Aucune donnée à exporter. Chargez d\'abord la carte.'); return;
+  }
+  edsSaveToFile(_edsBuildCsvText());
 }
 
 // ====== KML / KMZ EXPORT ======
