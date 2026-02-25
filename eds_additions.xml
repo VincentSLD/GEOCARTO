@@ -74,26 +74,38 @@
   </point>
   <point>
     <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
-    <Reference>33333</Reference>
-    <Nom>NAP3</Nom>
-    <Adresse>32 Place napoléon 85000 La Roche-sur-Yon</Adresse>
-    <Code_Postal>85000</Code_Postal>
-    <Ville>La Roche-sur-Yon</Ville>
-    <Categorie></Categorie>
-    <Notes>3DFBSDFBD</Notes>
-    <Latitude>46.6700781092</Latitude>
-    <Longitude>-1.4274716377</Longitude>
-  </point>
-  <point>
-    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
-    <Reference>44444</Reference>
-    <Nom>NAP4</Nom>
+    <Reference>44444bfdf</Reference>
+    <Nom>NAP4dff</Nom>
     <Adresse>1 Rue anatole france 85000 La Roche-sur-Yon</Adresse>
     <Code_Postal>85000</Code_Postal>
     <Ville>La Roche-sur-Yon</Ville>
     <Categorie></Categorie>
-    <Notes>4DGNDFGNDF</Notes>
+    <Notes>4DGNDFGNDFdfbdfb</Notes>
     <Latitude>46.6708952972</Latitude>
     <Longitude>-1.4280670881</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>dfvd</Reference>
+    <Nom>fvdfvds</Nom>
+    <Adresse>16 Place napoléon 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>dfvsdfsd</Notes>
+    <Latitude>46.6703863104</Latitude>
+    <Longitude>-1.425293684</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>vcbnv</Reference>
+    <Nom>bvcvbn</Nom>
+    <Adresse>30 Place napoléon 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>vbnhdfgh</Notes>
+    <Latitude>46.6705004223</Latitude>
+    <Longitude>-1.4271229506</Longitude>
   </point>
 </eds_additions>
