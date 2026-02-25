@@ -84,4 +84,16 @@
     <Latitude>46.6708952972</Latitude>
     <Longitude>-1.4280670881</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>dfvd</Reference>
+    <Nom>fvdfvds</Nom>
+    <Adresse>16 Place napoléon 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>dfvsdfsd</Notes>
+    <Latitude>46.6703863104</Latitude>
+    <Longitude>-1.425293684</Longitude>
+  </point>
 </eds_additions>
