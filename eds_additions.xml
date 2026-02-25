@@ -84,4 +84,16 @@
     <Latitude>46.6700781092</Latitude>
     <Longitude>-1.4274716377</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>44444</Reference>
+    <Nom>NAP4</Nom>
+    <Adresse>1 Rue anatole france 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>4DGNDFGNDF</Notes>
+    <Latitude>46.6708952972</Latitude>
+    <Longitude>-1.4280670881</Longitude>
+  </point>
 </eds_additions>
