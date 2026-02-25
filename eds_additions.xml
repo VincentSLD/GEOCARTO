@@ -48,4 +48,16 @@
     <Latitude>46.6430520885</Latitude>
     <Longitude>-1.4375320252</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>DSGF</Reference>
+    <Nom>DGDFGTYG</Nom>
+    <Adresse>Place de la résistance 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>DSGFGERTJKYUK</Notes>
+    <Latitude>46.6715796329</Latitude>
+    <Longitude>-1.4225879925</Longitude>
+  </point>
 </eds_additions>
