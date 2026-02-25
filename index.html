@@ -3710,10 +3710,26 @@ async function _edsLoadAdditions() {
   } catch(e) { console.warn('EDS additions load error:', e); }
 }
 
+// --- Récupérer le SHA actuel du fichier sur GitHub ---
+async function _edsFetchSha(tok) {
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}?ref=${_EDS_BRANCH}`, {
+      headers: { 'Authorization': `Bearer ${tok}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (resp.status === 404) return null;
+    if (!resp.ok) return _edsXmlSha;
+    const json = await resp.json();
+    _edsXmlSha = json.sha;
+    return json.sha;
+  } catch(e) { return _edsXmlSha; }
+}
+
 // --- Synchroniser _edsSavedPts vers GitHub ---
 async function _edsSyncGitHub(commitMsg) {
   const tok = _edsGetToken();
   if (!tok) { edsConfigToken(); return 'notoken'; }
+  // Toujours récupérer le SHA le plus récent avant d'écrire
+  await _edsFetchSha(tok);
   const xml = _edsBuildXml(_edsSavedPts);
   const b64 = btoa(unescape(encodeURIComponent(xml)));
   const body = { message: commitMsg, content: b64, branch: _EDS_BRANCH };
