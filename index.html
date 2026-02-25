@@ -1096,14 +1096,14 @@
           <div id="eds-fs-bar" style="position:absolute;bottom:0;left:44px;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
             <button onclick="edsExitFullscreen()" style="padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,0.3);background:rgba(0,0,0,0.75);color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">✕</button>
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:4px 8px;border-radius:5px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
-            <button id="eds-fs-form-toggle" onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">➕ Ajouter un point</button>
+            <button id="eds-fs-form-toggle" onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">+ Ajouter un point</button>
           </div>
         </div>
 
         <!-- Barre de filtre + compteur + export -->
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
-          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:10px 22px;border-radius:10px;border:2px solid var(--gph-yellow);background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:var(--gph-yellow);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">➕ Ajouter un point</button>
+          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:10px 22px;border-radius:10px;border:2px solid var(--gph-yellow);background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:var(--gph-yellow);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">+ Ajouter un point</button>
 
         </div>
 
@@ -3639,7 +3639,7 @@ function edsConfigToken() {
         <button id="eds-tok-save" style="padding:7px 18px;border-radius:7px;border:none;background:#1a1a1a;color:#fff;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Enregistrer</button>
       </div>
     </div>`;
-  document.body.appendChild(ov);
+  _edsOverlayParent().appendChild(ov);
   const close = () => ov.remove();
   document.getElementById('eds-tok-cancel').onclick = close;
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
@@ -3764,11 +3764,11 @@ function edsEditPoint(eIdx) {
       ${field('eds-edit-lng', 'Longitude', pt.Longitude)}
       <div id="eds-edit-msg" style="font-size:0.72rem;min-height:1.2em;margin-bottom:8px;"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;">
-        <button id="eds-edit-cancel" style="padding:8px 20px;border:1.5px solid #9ca3af;background:transparent;border-radius:8px;font-size:0.8rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
-        <button id="eds-edit-save" style="padding:8px 24px;border:none;background:#1976d2;border-radius:8px;font-size:0.8rem;font-weight:700;color:#fff;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">💾 Enregistrer</button>
+        <button id="eds-edit-cancel" style="padding:10px 22px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.82rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">Annuler</button>
+        <button id="eds-edit-save" style="padding:10px 24px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">💾 Enregistrer</button>
       </div>
     </div>`;
-  document.body.appendChild(ov);
+  _edsOverlayParent().appendChild(ov);
   document.getElementById('eds-edit-cancel').onclick = () => ov.remove();
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   document.getElementById('eds-edit-save').onclick = () => {
@@ -4012,7 +4012,7 @@ function toggleEdsForm() {
   if (!f) return;
   const open = f.style.display === 'none';
   f.style.display = open ? 'block' : 'none';
-  if (btn) btn.textContent = open ? '✖ Fermer le formulaire' : '➕ Ajouter un point';
+  if (btn) btn.textContent = open ? '✖ Fermer le formulaire' : '+ Ajouter un point';
 }
 
 // Recherche synchronisée depuis la barre plein écran
@@ -4086,6 +4086,11 @@ function _edsBuildCsvText() {
   return [headers.join(';'), ...all.map(r => headers.map(h => esc(r[h])).join(';'))].join('\r\n');
 }
 
+// Conteneur parent pour les overlays (plein écran ou body)
+function _edsOverlayParent() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.querySelector('.map-embed.fs-manual') || document.body;
+}
+
 function edsShowConfirm(message, onOui) {
   document.getElementById('eds-confirm-overlay')?.remove();
   const overlay = document.createElement('div');
@@ -4096,11 +4101,11 @@ function edsShowConfirm(message, onOui) {
       <div style="font-size:2rem;margin-bottom:10px;">💾</div>
       <div style="font-size:0.9rem;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:20px;">${message}</div>
       <div style="display:flex;gap:12px;justify-content:center;">
-        <button id="eds-confirm-oui" style="padding:9px 28px;background:#388e3c;color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✅ Oui</button>
-        <button id="eds-confirm-non" style="padding:9px 28px;background:transparent;border:1.5px solid #9ca3af;border-radius:8px;font-size:0.85rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✖ Non</button>
+        <button id="eds-confirm-oui" style="padding:10px 28px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">✅ Oui</button>
+        <button id="eds-confirm-non" style="padding:10px 28px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.85rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">✖ Non</button>
       </div>
     </div>`;
-  document.body.appendChild(overlay);
+  _edsOverlayParent().appendChild(overlay);
   const close = () => overlay.remove();
   document.getElementById('eds-confirm-non').onclick = close;
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
