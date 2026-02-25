@@ -108,4 +108,16 @@
     <Latitude>46.6705004223</Latitude>
     <Longitude>-1.4271229506</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Février 2026</Dossier>
+    <Reference>erferf</Reference>
+    <Nom>rferf</Nom>
+    <Adresse>30 Boulevard Jean Monnet 44000 Nantes</Adresse>
+    <Code_Postal>44000</Code_Postal>
+    <Ville>Nantes</Ville>
+    <Categorie></Categorie>
+    <Notes>erferf</Notes>
+    <Latitude>47.2107501994</Latitude>
+    <Longitude>-1.5518188477</Longitude>
+  </point>
 </eds_additions>
