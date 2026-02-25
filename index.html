@@ -3997,7 +3997,8 @@ function _edsRenderMarkers(data) {
     const dossier = (r.Dossier || '').trim();
 
     let actions = '';
-    if (r._editable) {
+    const _isMobile = window.matchMedia('(pointer: coarse)').matches;
+    if (r._editable && !_isMobile) {
       const eIdx = _edsEditableRefs.length;
       _edsEditableRefs.push(r);
       actions = `<div style="display:flex;gap:6px;margin-top:8px;padding-top:7px;border-top:1px solid #e5e7eb;">
@@ -5207,10 +5208,22 @@ document.addEventListener('webkitfullscreenchange', function() {
 
 // ====== EN COURS DE DÉVELOPPEMENT — ACCORDION ======
 
+let _devSectionUnlocked = false;
+
 function toggleDevSection() {
   const content = document.getElementById('dev-section-content');
   const arrow = document.getElementById('dev-section-arrow');
+
   if (content.style.display === 'none') {
+    // Demander le code si pas encore déverrouillé
+    if (!_devSectionUnlocked) {
+      const code = prompt('🔒 Section protégée — Entrez le code d\'accès :');
+      if (!code || code.trim().toUpperCase() !== 'VSA') {
+        alert('Code incorrect.');
+        return;
+      }
+      _devSectionUnlocked = true;
+    }
     content.style.display = 'block';
     arrow.textContent = '▼';
     // Forcer Leaflet à recalculer la taille des cartes cachées
