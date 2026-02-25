@@ -1094,6 +1094,7 @@
           </div>
           <!-- Barre visible uniquement en plein écran -->
           <div id="eds-fs-bar" style="position:absolute;bottom:0;left:44px;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:5px 8px;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button onclick="edsExitFullscreen()" style="padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,0.3);background:rgba(0,0,0,0.75);color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">✕</button>
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:4px 8px;border-radius:5px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
             <button id="eds-fs-form-toggle" onclick="edsToggleFsForm()" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(56,142,60,0.4);background:rgba(56,142,60,0.08);color:#388e3c;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;">➕ Ajouter un point</button>
           </div>
@@ -1101,8 +1102,8 @@
 
         <!-- Barre de filtre + compteur + export -->
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
-          <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;font-family:'Bricolage Grotesque',sans-serif;">
-          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(56,142,60,0.35);background:rgba(56,142,60,0.06);color:#388e3c;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.15s;">➕ Ajouter un point</button>
+          <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
+          <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:10px 22px;border-radius:10px;border:2px solid var(--gph-yellow);background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:var(--gph-yellow);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">➕ Ajouter un point</button>
 
         </div>
 
@@ -2027,6 +2028,10 @@ function togglePickerLayer() {
     pickerOsmLayer.addTo(pickerMap);
     pickerCurrentLayer = 'osm';
     btn.innerHTML = '🛰 Satellite';
+  }
+  // Remettre le cadastre au-dessus du nouveau fond de carte
+  if (pickerCadastreVisible && pickerCadastreLayer) {
+    pickerCadastreLayer.bringToFront();
   }
 }
 
@@ -3607,6 +3612,7 @@ let _edsMapReady    = false;
 let _edsMarkerGroup = null;
 let _edsInvMarker   = null;
 let _edsPendingInv  = null;
+let _edsEditableRefs = [];  // refs vers points éditables pour popup edit/delete
 window.edsMap       = null;
 
 // --- Token GitHub ---
@@ -3691,6 +3697,7 @@ async function _edsLoadAdditions() {
     _edsXmlSha  = json.sha;
     const xml   = decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))));
     _edsSavedPts = _edsParseXml(xml);
+    _edsSavedPts.forEach(p => p._editable = true);
     if (_edsSavedPts.length > 0) {
       _edsNewEntries.push(..._edsSavedPts);
       _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
@@ -3698,14 +3705,13 @@ async function _edsLoadAdditions() {
   } catch(e) { console.warn('EDS additions load error:', e); }
 }
 
-// --- Sauvegarder sur GitHub ---
-async function edsSaveToGitHub(newEntry) {
+// --- Synchroniser _edsSavedPts vers GitHub ---
+async function _edsSyncGitHub(commitMsg) {
   const tok = _edsGetToken();
   if (!tok) { edsConfigToken(); return 'notoken'; }
-  const allPts = [..._edsSavedPts, newEntry];
-  const xml    = _edsBuildXml(allPts);
-  const b64    = btoa(unescape(encodeURIComponent(xml)));
-  const body   = { message: `Ajout EDS : ${newEntry.Nom}`, content: b64, branch: _EDS_BRANCH };
+  const xml = _edsBuildXml(_edsSavedPts);
+  const b64 = btoa(unescape(encodeURIComponent(xml)));
+  const body = { message: commitMsg, content: b64, branch: _EDS_BRANCH };
   if (_edsXmlSha) body.sha = _edsXmlSha;
   try {
     const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}`, {
@@ -3714,11 +3720,93 @@ async function edsSaveToGitHub(newEntry) {
       body: JSON.stringify(body)
     });
     if (!resp.ok) { const e = await resp.json(); console.error('GitHub API:', e); return 'error'; }
-    const json  = await resp.json();
-    _edsXmlSha  = json.content.sha;
-    _edsSavedPts.push(newEntry);
+    const json = await resp.json();
+    _edsXmlSha = json.content.sha;
     return 'saved';
   } catch(e) { console.error('GitHub save:', e); return 'error'; }
+}
+
+// --- Ajouter un point et sauvegarder ---
+async function edsSaveToGitHub(newEntry) {
+  _edsSavedPts.push(newEntry);
+  const result = await _edsSyncGitHub(`Ajout EDS : ${newEntry.Nom}`);
+  if (result !== 'saved') _edsSavedPts.pop();
+  return result;
+}
+
+// --- Modifier un point (popup formulaire) ---
+function edsEditPoint(eIdx) {
+  const pt = _edsEditableRefs[eIdx];
+  if (!pt) return;
+  window.edsMap?.closePopup();
+  document.getElementById('eds-edit-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'eds-edit-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  const field = (id, label, val) =>
+    `<div style="margin-bottom:8px;">
+      <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">${label}</label>
+      <input id="${id}" value="${(val||'').replace(/"/g,'&quot;')}" style="width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.78rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;">
+    </div>`;
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:400px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:14px;">✏️ Modifier le point</div>
+      ${field('eds-edit-nom', 'Nom *', pt.Nom)}
+      ${field('eds-edit-ref', 'Référence', pt.Référence)}
+      ${field('eds-edit-adresse', 'Adresse', pt.Adresse)}
+      ${field('eds-edit-cp', 'Code Postal', pt['Code Postal'])}
+      ${field('eds-edit-ville', 'Ville', pt.Ville)}
+      <div style="margin-bottom:8px;">
+        <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Notes</label>
+        <textarea id="eds-edit-notes" rows="3" style="width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.78rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;resize:vertical;">${(pt.Notes||'').replace(/</g,'&lt;')}</textarea>
+      </div>
+      ${field('eds-edit-lat', 'Latitude', pt.Latitude)}
+      ${field('eds-edit-lng', 'Longitude', pt.Longitude)}
+      <div id="eds-edit-msg" style="font-size:0.72rem;min-height:1.2em;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="eds-edit-cancel" style="padding:8px 20px;border:1.5px solid #9ca3af;background:transparent;border-radius:8px;font-size:0.8rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
+        <button id="eds-edit-save" style="padding:8px 24px;border:none;background:#1976d2;border-radius:8px;font-size:0.8rem;font-weight:700;color:#fff;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">💾 Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('eds-edit-cancel').onclick = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  document.getElementById('eds-edit-save').onclick = () => {
+    const nom = (document.getElementById('eds-edit-nom')?.value || '').trim();
+    const msgEl = document.getElementById('eds-edit-msg');
+    if (!nom) { if (msgEl) { msgEl.textContent = '⚠️ Le nom est requis.'; msgEl.style.color = '#e53935'; } return; }
+    edsShowConfirm('Voulez-vous enregistrer les modifications ?', async () => {
+      pt.Nom            = nom;
+      pt.Référence      = (document.getElementById('eds-edit-ref')?.value || '').trim();
+      pt.Adresse        = (document.getElementById('eds-edit-adresse')?.value || '').trim();
+      pt['Code Postal'] = (document.getElementById('eds-edit-cp')?.value || '').trim();
+      pt.Ville          = (document.getElementById('eds-edit-ville')?.value || '').trim();
+      pt.Notes          = (document.getElementById('eds-edit-notes')?.value || '').trim();
+      pt['Description brute'] = pt.Notes;
+      pt.Latitude       = (document.getElementById('eds-edit-lat')?.value || '').trim();
+      pt.Longitude      = (document.getElementById('eds-edit-lng')?.value || '').trim();
+      const result = await _edsSyncGitHub(`Modif EDS : ${pt.Nom}`);
+      ov.remove();
+      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+      if (result !== 'saved') alert(result === 'notoken' ? 'Token GitHub requis.' : 'Erreur GitHub — vérifiez le token.');
+    });
+  };
+}
+
+// --- Supprimer un point ---
+function edsDeletePoint(eIdx) {
+  const pt = _edsEditableRefs[eIdx];
+  if (!pt) return;
+  window.edsMap?.closePopup();
+  edsShowConfirm(`Voulez-vous supprimer le point « ${pt.Nom || '—'} » ?`, async () => {
+    const si = _edsSavedPts.indexOf(pt);
+    if (si >= 0) _edsSavedPts.splice(si, 1);
+    const ni = _edsNewEntries.indexOf(pt);
+    if (ni >= 0) _edsNewEntries.splice(ni, 1);
+    const result = await _edsSyncGitHub(`Suppression EDS : ${pt.Nom || '—'}`);
+    _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+    if (result !== 'saved') alert(result === 'notoken' ? 'Token GitHub requis.' : 'Erreur GitHub — vérifiez le token.');
+  });
 }
 
 function _edsPlaceInvMarker() {
@@ -3860,6 +3948,7 @@ function _edsRenderMarkers(data) {
     className: '', iconSize: [22, 30], iconAnchor: [11, 29]
   });
 
+  _edsEditableRefs = [];
   const markers = [];
   data.forEach(r => {
     const lat = parseFloat((r.Latitude  || '').replace(',', '.'));
@@ -3872,12 +3961,23 @@ function _edsRenderMarkers(data) {
     const loc    = [r.Adresse, r['Code Postal'], r.Ville].filter(Boolean).join(' ').trim();
     const dossier = (r.Dossier || '').trim();
 
+    let actions = '';
+    if (r._editable) {
+      const eIdx = _edsEditableRefs.length;
+      _edsEditableRefs.push(r);
+      actions = `<div style="display:flex;gap:6px;margin-top:8px;padding-top:7px;border-top:1px solid #e5e7eb;">
+        <button onclick="edsEditPoint(${eIdx})" style="flex:1;padding:5px 0;border:1px solid #1976d2;background:rgba(25,118,210,0.08);color:#1976d2;border-radius:6px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✏️ Modifier</button>
+        <button onclick="edsDeletePoint(${eIdx})" style="flex:1;padding:5px 0;border:1px solid #e53935;background:rgba(229,57,53,0.08);color:#e53935;border-radius:6px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">🗑 Supprimer</button>
+      </div>`;
+    }
+
     const popup = `<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:190px;max-width:270px;">
       <div style="font-weight:700;font-size:0.83rem;color:#1a1a1a;margin-bottom:4px;">${nom}</div>
       ${ref  ? `<div style="font-size:0.7rem;color:#6b7280;">📁 ${ref}</div>` : ''}
       ${loc  ? `<div style="font-size:0.7rem;color:#6b7280;">📍 ${loc}</div>` : ''}
       ${notes ? `<div style="font-size:0.72rem;color:#374151;margin-top:5px;padding-top:5px;border-top:1px solid #e5e7eb;white-space:pre-wrap;max-height:110px;overflow-y:auto;">${notes}</div>` : ''}
       ${dossier ? `<div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;font-style:italic;">${dossier}</div>` : ''}
+      ${actions}
     </div>`;
 
     const m = L.marker([lat, lng], { icon: dotIcon });
@@ -4064,7 +4164,8 @@ function edsAddPoint() {
     Notes:               (document.getElementById('eds-new-notes')?.value   || '').trim(),
     'Description brute': (document.getElementById('eds-new-notes')?.value   || '').trim(),
     Latitude:            latS,
-    Longitude:           lngS
+    Longitude:           lngS,
+    _editable:           true
   };
 
   edsShowConfirm('Voulez-vous enregistrer ce point dans la base de données ?', async () => {
@@ -5036,6 +5137,20 @@ function _closeManualFullscreen(container, closeBtn) {
   document.body.style.overflow = '';
   if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
   [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
+}
+
+function edsExitFullscreen() {
+  // API native (Android Chrome, desktop)
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    return;
+  }
+  // Fallback manuel (iOS Safari)
+  const container = document.querySelector('.map-embed.fs-manual');
+  if (container) {
+    const closeBtn = document.querySelector('.btn-map-fs-close');
+    _closeManualFullscreen(container, closeBtn);
+  }
 }
 
 document.addEventListener('fullscreenchange', function() {
