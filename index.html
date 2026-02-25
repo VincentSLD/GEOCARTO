@@ -1133,7 +1133,7 @@
               </div>
               <div style="grid-column:1/-1;">
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Notes</label>
-                <textarea id="eds-new-notes" rows="2" placeholder="Information importante, risque, particularité…" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;resize:vertical;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;"></textarea>
+                <textarea id="eds-new-notes" rows="2" placeholder="Prescripteur ou autres informations" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;resize:vertical;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;"></textarea>
               </div>
               <div>
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Latitude *</label>
@@ -1145,7 +1145,7 @@
               </div>
             </div>
             <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">
-              <button onclick="edsAddPoint()" style="padding:6px 18px;background:#388e3c;color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">✅ Enregistrer</button>
+              <button onclick="edsAddPoint()" style="padding:10px 24px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">Enregistrer</button>
               <button onclick="edsPrefillFromInvestigation()" style="padding:6px 14px;background:transparent;border:1px solid rgba(56,142,60,0.4);color:#388e3c;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;" title="Utiliser les coordonnées de l'investigation en cours">📍 Point actuel</button>
               <span id="eds-add-msg" style="font-size:0.7rem;"></span>
             </div>
@@ -3740,7 +3740,7 @@ async function _edsSyncGitHub(commitMsg) {
       headers: { 'Authorization': `Bearer ${tok}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!resp.ok) { const e = await resp.json(); console.error('GitHub API:', e); return 'error'; }
+    if (!resp.ok) { const e = await resp.json(); console.error('GitHub API error:', resp.status, e); return 'error'; }
     const json = await resp.json();
     _edsXmlSha = json.content.sha;
     return 'saved';
@@ -3797,6 +3797,10 @@ function edsEditPoint(eIdx) {
     const msgEl = document.getElementById('eds-edit-msg');
     if (!nom) { if (msgEl) { msgEl.textContent = '⚠️ Le nom est requis.'; msgEl.style.color = '#e53935'; } return; }
     edsShowConfirm('Voulez-vous enregistrer les modifications ?', async () => {
+      // Sauvegarder les anciennes valeurs pour rollback
+      const backup = { Nom: pt.Nom, Référence: pt.Référence, Adresse: pt.Adresse,
+        'Code Postal': pt['Code Postal'], Ville: pt.Ville, Notes: pt.Notes,
+        'Description brute': pt['Description brute'], Latitude: pt.Latitude, Longitude: pt.Longitude };
       pt.Nom            = nom;
       pt.Référence      = (document.getElementById('eds-edit-ref')?.value || '').trim();
       pt.Adresse        = (document.getElementById('eds-edit-adresse')?.value || '').trim();
@@ -3807,9 +3811,13 @@ function edsEditPoint(eIdx) {
       pt.Latitude       = (document.getElementById('eds-edit-lat')?.value || '').trim();
       pt.Longitude      = (document.getElementById('eds-edit-lng')?.value || '').trim();
       const result = await _edsSyncGitHub(`Modif EDS : ${pt.Nom}`);
+      if (result !== 'saved') {
+        // Rollback
+        Object.assign(pt, backup);
+        alert(result === 'notoken' ? 'Token GitHub requis — configurez-le dans la section En Cours de Développement.' : 'Erreur GitHub — ouvrez la console (F12) pour le détail.');
+      }
       ov.remove();
       _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
-      if (result !== 'saved') alert(result === 'notoken' ? 'Token GitHub requis.' : 'Erreur GitHub — vérifiez le token.');
     });
   };
 }
@@ -3820,13 +3828,19 @@ function edsDeletePoint(eIdx) {
   if (!pt) return;
   window.edsMap?.closePopup();
   edsShowConfirm(`Voulez-vous supprimer le point « ${pt.Nom || '—'} » ?`, async () => {
+    // Retirer temporairement
     const si = _edsSavedPts.indexOf(pt);
     if (si >= 0) _edsSavedPts.splice(si, 1);
     const ni = _edsNewEntries.indexOf(pt);
     if (ni >= 0) _edsNewEntries.splice(ni, 1);
     const result = await _edsSyncGitHub(`Suppression EDS : ${pt.Nom || '—'}`);
+    if (result !== 'saved') {
+      // Rollback : remettre le point dans les tableaux
+      if (si >= 0) _edsSavedPts.splice(si, 0, pt);
+      if (ni >= 0) _edsNewEntries.splice(ni, 0, pt);
+      alert(result === 'notoken' ? 'Token GitHub requis — configurez-le dans la section En Cours de Développement.' : 'Erreur GitHub — ouvrez la console (F12) pour le détail.');
+    }
     _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
-    if (result !== 'saved') alert(result === 'notoken' ? 'Token GitHub requis.' : 'Erreur GitHub — vérifiez le token.');
   });
 }
 
@@ -4122,8 +4136,8 @@ function edsShowConfirm(message, onOui) {
       <div style="font-size:2rem;margin-bottom:10px;">💾</div>
       <div style="font-size:0.9rem;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:20px;">${message}</div>
       <div style="display:flex;gap:12px;justify-content:center;">
-        <button id="eds-confirm-oui" style="padding:10px 28px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">Oui</button>
-        <button id="eds-confirm-non" style="padding:10px 28px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.85rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;">Non</button>
+        <button id="eds-confirm-oui" style="padding:10px 28px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">Oui</button>
+        <button id="eds-confirm-non" style="padding:10px 28px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.85rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='';this.style.boxShadow=''">Non</button>
       </div>
     </div>`;
   _edsOverlayParent().appendChild(overlay);
@@ -4209,6 +4223,11 @@ function edsAddPoint() {
     if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = ok ? '#388e3c' : '#e65100'; }
     ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    // Fermer le formulaire
+    const f = document.getElementById('eds-add-form');
+    if (f) f.style.display = 'none';
+    const btn = document.getElementById('eds-form-toggle');
+    if (btn) btn.textContent = '+ Ajouter un point';
   });
 }
 
