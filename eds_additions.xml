@@ -132,4 +132,16 @@
     <Latitude>46.8400728358</Latitude>
     <Longitude>-1.8704223633</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>3012025</Reference>
+    <Nom>MAISON TEST ICI</Nom>
+    <Adresse>4 Rue des bosquets</Adresse>
+    <Code_Postal>85800</Code_Postal>
+    <Ville>Saint-Gilles-Croix-de-Vie</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.68986</Latitude>
+    <Longitude>-1.935286</Longitude>
+  </point>
 </eds_additions>
