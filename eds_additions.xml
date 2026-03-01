@@ -168,4 +168,16 @@
     <Latitude>46.411072</Latitude>
     <Longitude>-1.404512</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>23456</Reference>
+    <Nom>FDH JJ</Nom>
+    <Adresse>166 Route du Baril</Adresse>
+    <Code_Postal>44270</Code_Postal>
+    <Ville>Machecoul-Saint-Même</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.972246</Latitude>
+    <Longitude>-1.817315</Longitude>
+  </point>
 </eds_additions>
