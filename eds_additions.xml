@@ -156,4 +156,16 @@
     <Latitude>46.663821</Latitude>
     <Longitude>-1.417687</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>32345324</Reference>
+    <Nom>DSFBDSFBDFBDSFB</Nom>
+    <Adresse>6 Impasse des caves</Adresse>
+    <Code_Postal>85750</Code_Postal>
+    <Ville>Angles</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.411072</Latitude>
+    <Longitude>-1.404512</Longitude>
+  </point>
 </eds_additions>
