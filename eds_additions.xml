@@ -120,4 +120,16 @@
     <Latitude>47.2107501994</Latitude>
     <Longitude>-1.5518188477</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>2601001</Reference>
+    <Nom>MAISON VINCENT</Nom>
+    <Adresse>8 Square maurice utrillo 85300 Challans</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Challans</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.8400728358</Latitude>
+    <Longitude>-1.8704223633</Longitude>
+  </point>
 </eds_additions>
