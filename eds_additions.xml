@@ -180,4 +180,16 @@
     <Latitude>46.972246</Latitude>
     <Longitude>-1.817315</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>76253764</Reference>
+    <Nom>GNFDNNRNER</Nom>
+    <Adresse>Route de la roche</Adresse>
+    <Code_Postal>85800</Code_Postal>
+    <Ville>Saint-Gilles-Croix-de-Vie</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.693887</Latitude>
+    <Longitude>-1.901536</Longitude>
+  </point>
 </eds_additions>
