@@ -204,4 +204,16 @@
     <Latitude>46.584051</Latitude>
     <Longitude>-1.795149</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>é"'é</Reference>
+    <Nom>hrh</Nom>
+    <Adresse>27 Boulevard lucien dodin</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Challans</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.843521</Latitude>
+    <Longitude>-1.876602</Longitude>
+  </point>
 </eds_additions>
