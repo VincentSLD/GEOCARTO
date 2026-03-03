@@ -192,4 +192,16 @@
     <Latitude>46.693887</Latitude>
     <Longitude>-1.901536</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>76537652</Reference>
+    <Nom>FGNDFG?D?FD?DF</Nom>
+    <Adresse>2 Rue des hirondelles</Adresse>
+    <Code_Postal>85340</Code_Postal>
+    <Ville>L'Île-d'Olonne</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.584051</Latitude>
+    <Longitude>-1.795149</Longitude>
+  </point>
 </eds_additions>
