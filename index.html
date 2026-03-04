@@ -1189,7 +1189,7 @@
           <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
         </div>
         <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-          ⏳ Interrogation du serveur WMS BRGM…
+          ⏳ Interrogation InfoTerre (BD Charm-50)…
         </div>
         <div id="geol-info-content" style="display:none;">
           <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
@@ -1205,7 +1205,7 @@
             </span>
             <span style="font-weight:600;color:#795548;">Nom carte :</span>
             <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
-            <span style="font-weight:600;color:#795548;">Type :</span>
+            <span style="font-weight:600;color:#795548;">Notation :</span>
             <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
             <span style="font-weight:600;color:#795548;">Description :</span>
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
@@ -2132,6 +2132,28 @@ function selectAddressSuggestion(index) {
 
 // Init picker map when DOM ready
 document.addEventListener('DOMContentLoaded', initPickerMap);
+
+// Pre-fill EDS form from URL params (sent by GéoTer)
+document.addEventListener('DOMContentLoaded', function(){
+  const params=new URLSearchParams(window.location.search);
+  const ref=params.get('ref'),nom=params.get('nom'),lat=params.get('lat'),lng=params.get('lng'),addr=params.get('addr'),cp=params.get('cp'),ville=params.get('ville');
+  if(!ref&&!lat&&!nom)return;
+  if(ref){const el=document.getElementById('eds-new-ref');if(el)el.value=ref;}
+  if(nom){const el=document.getElementById('eds-new-nom');if(el)el.value=nom;}
+  if(addr){const el=document.getElementById('eds-new-adresse');if(el)el.value=addr;}
+  if(cp){const el=document.getElementById('eds-new-cp');if(el)el.value=cp;}
+  if(ville){const el=document.getElementById('eds-new-ville');if(el)el.value=ville;}
+  if(lat&&lng){
+    const elLat=document.getElementById('eds-new-lat'),elLng=document.getElementById('eds-new-lng');
+    if(elLat)elLat.value=lat;if(elLng)elLng.value=lng;
+    const mainLat=document.getElementById('lat'),mainLng=document.getElementById('lng');
+    if(mainLat)mainLat.value=lat;if(mainLng)mainLng.value=lng;
+    const la=parseFloat(lat),lo=parseFloat(lng);
+    if(!isNaN(la)&&!isNaN(lo)){
+      setTimeout(function(){updatePickerMarker(la,lo,true);},500);
+    }
+  }
+});
 
 
 function showError(msg) {
@@ -4712,23 +4734,24 @@ function copyGeolNumCarte() {
   });
 }
 
-// ====== CARTE GÉOLOGIQUE BRGM — WFS (CORS ouvert) ======
-// Couche 1 : index des feuilles 1:50k  →  ms:SCAN_F_GEOL50_CATALOG  (numero, nom)
-// Couche 2 : lithologie simplifiée 1:1M →  ms:LITHO_1M_SIMPLIFIEE   (DESCR, TYPE)
-// BBOX WFS 2.0 : ordre lat,lng (pas lng,lat) avec urn:ogc:def:crs:EPSG::4326
+// ====== CARTE GÉOLOGIQUE BRGM — InfoTerre GetFeatureInfo (SCAN_GEOL50 — BD Charm-50) ======
+// Endpoint : https://infoterre.brgm.fr/services/gfi  (WMS GetFeatureInfo)
+// Couche : SCAN_GEOL50 — carte géologique harmonisée 1/50 000
+// Champs : notation, description, carte (n°), nom (feuille)
+// Projection requise : EPSG:2154 (Lambert-93)
 
-function buildGeolCatalogUrl(lat, lng) {
-  const d = 0.005;
-  return `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
-    `&TYPENAMES=ms:SCAN_F_GEOL50_CATALOG&COUNT=1` +
-    `&BBOX=${lat - d},${lng - d},${lat + d},${lng + d},urn:ogc:def:crs:EPSG::4326`;
-}
-
-function buildGeolLithoUrl(lat, lng) {
-  const d = 0.05;
-  return `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
-    `&TYPENAMES=ms:LITHO_1M_SIMPLIFIEE&COUNT=1` +
-    `&BBOX=${lat - d},${lng - d},${lat + d},${lng + d},urn:ogc:def:crs:EPSG::4326`;
+// Conversion WGS84 (lat/lng) → Lambert-93 (x/y) — formule simplifiée haute précision
+function wgs84ToLambert93(lat, lng) {
+  const deg = Math.PI / 180;
+  const a = 6378137.0, e = 0.08181919106;
+  const lc = 3 * deg, phi0 = 46.5 * deg;
+  const n = 0.7256077650, C = 11754255.426, Xs = 700000, Ys = 12655612.050;
+  const phi = lat * deg, lambda = lng * deg;
+  const sinPhi = Math.sin(phi);
+  const L = 0.5 * Math.log((1 + sinPhi) / (1 - sinPhi)) - (e / 2) * Math.log((1 + e * sinPhi) / (1 - e * sinPhi));
+  const R = C * Math.exp(-n * L);
+  const gamma = n * (lambda - lc);
+  return { x: Xs + R * Math.sin(gamma), y: Ys - R * Math.cos(gamma) };
 }
 
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
@@ -4760,22 +4783,26 @@ async function fetchGeologicalInfo(lat, lng) {
   contentDiv.style.display = 'none';
 
   try {
-    const [catalogResp, lithoResp] = await Promise.all([
-      fetch(buildGeolCatalogUrl(lat, lng), { signal: AbortSignal.timeout(12000) }),
-      fetch(buildGeolLithoUrl(lat, lng),   { signal: AbortSignal.timeout(12000) }),
-    ]);
-    const [catalogXml, lithoXml] = await Promise.all([
-      catalogResp.ok ? catalogResp.text() : Promise.resolve(''),
-      lithoResp.ok   ? lithoResp.text()   : Promise.resolve(''),
-    ]);
+    // Conversion WGS84 → Lambert-93
+    const { x, y } = wgs84ToLambert93(lat, lng);
+    const d = 500; // demi-côté de la BBOX en mètres
+    const bbox = `${x - d},${y - d},${x + d},${y + d}`;
+    const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+      `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+      `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
+      `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
 
-    const numero = extractGmlField(catalogXml, 'numero');
-    const nom    = extractGmlField(catalogXml, 'nom');
-    const descr  = extractGmlField(lithoXml, 'DESCR', 'descr');
-    const type   = extractGmlField(lithoXml, 'TYPE',  'type');
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const xml = await resp.text();
 
-    if (numero || nom || descr) {
-      populateGeolFields(numero, nom, type, descr);
+    const carte    = extractGmlField(xml, 'carte');
+    const nom      = extractGmlField(xml, 'nom');
+    const notation = extractGmlField(xml, 'notation');
+    const descr    = extractGmlField(xml, 'description');
+
+    if (carte || nom || notation || descr) {
+      populateGeolFields(carte, nom, notation, descr);
     } else {
       loading.style.display = 'none';
       errorDiv.innerHTML = '⚠️ Aucune donnée géologique trouvée pour ce point.';

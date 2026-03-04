@@ -3,7 +3,25 @@
     "allow": [
       "Bash(cut:*)",
       "Bash(python3:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:geoservices.brgm.fr)",
+      "WebFetch(domain:bdcharm50.brgm.fr)",
+      "WebFetch(domain:infoterre.brgm.fr)",
+      "WebFetch(domain:gexplor.fr)",
+      "Bash(curl -s \"http://infoterre.brgm.fr/geoserver/ows?service=WMS&version=1.1.1&request=GetCapabilities\")",
+      "Bash(curl -s -L \"http://infoterre.brgm.fr/geoserver/ows?service=WMS&version=1.1.1&request=GetCapabilities\")",
+      "Bash(curl -s -L \"https://infoterre.brgm.fr/viewer/MainTileForward.do\")",
+      "Bash(curl -s \"https://infoterre.brgm.fr/viewer/MainTileForward.do\")",
+      "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities\")",
+      "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:4326&BBOX=46.80,-1.70,46.82,-1.68&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/vnd.ogc.gml\")",
+      "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:4326&BBOX=46.0,-2.0,48.0,0.0&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml\")",
+      "Bash(curl -s \"https://infoterre.brgm.fr/viewer/buildjs/infoterre.js\")",
+      "Bash(curl -s \"http://infoterre.brgm.fr/geoserver/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities\")",
+      "Bash(curl -s \"https://mapsref.brgm.fr/wxs/infoterre/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities\")",
+      "Bash(done)",
+      "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:2154&BBOX=309661.333333,6659661.333333,310338.666667,6660338.666667&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml\")",
+      "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:2154&BBOX=309329.333401,6659661.333333,310006.666734504,6660338.666666504&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml\")",
+      "Bash(curl -s \"https://infoterre.brgm.fr/services/gfi?VERSION=1.1.1&REQUEST=GetFeatureInfo&SERVICE=WMS&LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=325766.29617288,6643282.1279812,344816.28588588,6653746.3931638&WIDTH=1440&HEIGHT=791&INFO_FORMAT=application/vnd.ogc.gml&FORMAT=image/png&FEATURE_COUNT=100&QUERY_LAYERS=SCAN_GEOL50&X=328&Y=343\")"
     ]
   }
 }
