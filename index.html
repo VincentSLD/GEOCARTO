@@ -914,6 +914,7 @@
         <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
           <input type="text" id="address-search" placeholder="Adresse…"
             style="flex:1;min-width:0;font-size:0.82rem;"
+            oninput="document.getElementById('altitude').value='';"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
           <button class="preset-btn" onclick="searchAddress()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">
             🔍
