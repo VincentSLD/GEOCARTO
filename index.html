@@ -2371,15 +2371,15 @@ function renderCatNat(items) {
 
   // Sort by date desc
   items.sort((a, b) => {
-    const da = a.dat_deb || '';
-    const db = b.dat_deb || '';
+    const da = a.date_debut_evt || '';
+    const db = b.date_debut_evt || '';
     return db.localeCompare(da);
   });
 
   container.innerHTML = items.map(item => `
     <div class="catnat-item">
-      <span class="catnat-date">${formatDate(item.dat_deb)}</span>
-      <span class="catnat-type">${item.lib_risque_jo || 'Type inconnu'}</span>
+      <span class="catnat-date">${formatDate(item.date_debut_evt)}</span>
+      <span class="catnat-type">${item.libelle_risque_jo || 'Type inconnu'}</span>
     </div>
   `).join('');
 }
@@ -2533,7 +2533,7 @@ function renderCavites(items) {
 // ICPE
 async function fetchICPE(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/installations?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const url = `https://georisques.gouv.fr/api/v1/installations_classees?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const icpes = data.data || [];
     renderICPE(icpes);
@@ -2559,9 +2559,10 @@ function renderICPE(items) {
       <div class="icpe-name">${item.raisonSociale || item.nom || 'Installation sans nom'}</div>
       <div class="icpe-detail">
         ${item.regime ? `Régime : ${item.regime}` : ''}
-        ${item.seveso ? ` · Seveso : ${item.seveso}` : ''}
+        ${item.statutSeveso && item.statutSeveso !== 'Non Seveso' ? ` · Seveso : ${item.statutSeveso}` : ''}
+        ${item.etatActivite ? ` · ${item.etatActivite}` : ''}
         ${item.commune ? ` · ${item.commune}` : ''}
-        ${item.adresse ? ` · ${item.adresse}` : ''}
+        ${item.adresse1 ? ` · ${item.adresse1}` : ''}
       </div>
     </div>
   `).join('');

@@ -21,7 +21,11 @@
       "Bash(done)",
       "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:2154&BBOX=309661.333333,6659661.333333,310338.666667,6660338.666667&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml\")",
       "Bash(curl -s \"http://geoservices.brgm.fr/WMS-C/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=Geologie&QUERY_LAYERS=Geologie&SRS=EPSG:2154&BBOX=309329.333401,6659661.333333,310006.666734504,6660338.666666504&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml\")",
-      "Bash(curl -s \"https://infoterre.brgm.fr/services/gfi?VERSION=1.1.1&REQUEST=GetFeatureInfo&SERVICE=WMS&LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=325766.29617288,6643282.1279812,344816.28588588,6653746.3931638&WIDTH=1440&HEIGHT=791&INFO_FORMAT=application/vnd.ogc.gml&FORMAT=image/png&FEATURE_COUNT=100&QUERY_LAYERS=SCAN_GEOL50&X=328&Y=343\")"
+      "Bash(curl -s \"https://infoterre.brgm.fr/services/gfi?VERSION=1.1.1&REQUEST=GetFeatureInfo&SERVICE=WMS&LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=325766.29617288,6643282.1279812,344816.28588588,6653746.3931638&WIDTH=1440&HEIGHT=791&INFO_FORMAT=application/vnd.ogc.gml&FORMAT=image/png&FEATURE_COUNT=100&QUERY_LAYERS=SCAN_GEOL50&X=328&Y=343\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=75056&page=1&page_size=3\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/installations?latlon=2.35,48.85&rayon=2000&page=1&page_size=3\")",
+      "WebFetch(domain:www.georisques.gouv.fr)",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/installations_classees?latlon=2.35,48.85&rayon=2000&page=1&page_size=3\")"
     ]
   }
 }
