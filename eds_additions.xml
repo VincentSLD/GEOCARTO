@@ -120,4 +120,100 @@
     <Latitude>47.2107501994</Latitude>
     <Longitude>-1.5518188477</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>2601001</Reference>
+    <Nom>MAISON VINCENT</Nom>
+    <Adresse>8 Square maurice utrillo 85300 Challans</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Challans</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.8400728358</Latitude>
+    <Longitude>-1.8704223633</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>3012025</Reference>
+    <Nom>MAISON TEST ICI</Nom>
+    <Adresse>4 Rue des bosquets</Adresse>
+    <Code_Postal>85800</Code_Postal>
+    <Ville>Saint-Gilles-Croix-de-Vie</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.68986</Latitude>
+    <Longitude>-1.935286</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>3112125</Reference>
+    <Nom>MAISON TEST 02</Nom>
+    <Adresse>54 Rue alain 85000 La Roche-sur-Yon</Adresse>
+    <Code_Postal>85000</Code_Postal>
+    <Ville>La Roche-sur-Yon</Ville>
+    <Categorie></Categorie>
+    <Notes>HEY ! TEST</Notes>
+    <Latitude>46.663821</Latitude>
+    <Longitude>-1.417687</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>32345324</Reference>
+    <Nom>DSFBDSFBDFBDSFB</Nom>
+    <Adresse>6 Impasse des caves</Adresse>
+    <Code_Postal>85750</Code_Postal>
+    <Ville>Angles</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.411072</Latitude>
+    <Longitude>-1.404512</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>23456</Reference>
+    <Nom>FDH JJ</Nom>
+    <Adresse>166 Route du Baril</Adresse>
+    <Code_Postal>44270</Code_Postal>
+    <Ville>Machecoul-Saint-Même</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.972246</Latitude>
+    <Longitude>-1.817315</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>76253764</Reference>
+    <Nom>GNFDNNRNER</Nom>
+    <Adresse>Route de la roche</Adresse>
+    <Code_Postal>85800</Code_Postal>
+    <Ville>Saint-Gilles-Croix-de-Vie</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.693887</Latitude>
+    <Longitude>-1.901536</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>76537652</Reference>
+    <Nom>FGNDFG?D?FD?DF</Nom>
+    <Adresse>2 Rue des hirondelles</Adresse>
+    <Code_Postal>85340</Code_Postal>
+    <Ville>L'Île-d'Olonne</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.584051</Latitude>
+    <Longitude>-1.795149</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>é"'é</Reference>
+    <Nom>hrh</Nom>
+    <Adresse>27 Boulevard lucien dodin</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Challans</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.843521</Latitude>
+    <Longitude>-1.876602</Longitude>
+  </point>
 </eds_additions>
