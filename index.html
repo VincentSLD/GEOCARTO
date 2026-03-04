@@ -2387,7 +2387,10 @@ function renderCatNat(items) {
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr);
+    // Gère le format JJ/MM/AAAA renvoyé par Géorisques
+    const parts = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const d = parts ? new Date(parts[3], parts[2] - 1, parts[1]) : new Date(dateStr);
+    if (isNaN(d)) return dateStr;
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
