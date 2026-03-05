@@ -27,7 +27,9 @@
       "WebFetch(domain:www.georisques.gouv.fr)",
       "Bash(curl -s \"https://georisques.gouv.fr/api/v1/installations_classees?latlon=2.35,48.85&rayon=2000&page=1&page_size=3\")",
       "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=75056&page=1&page_size=5\")",
-      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=-1.88,46.85&rayon=1000&page=1&page_size=100\")"
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=-1.88,46.85&rayon=1000&page=1&page_size=100\")",
+      "Bash(gh repo view VincentSLD/GEOCARTO --json defaultBranchRef,url)",
+      "Bash(gh api repos/VincentSLD/GEOCARTO/commits/main --jq '.sha, .commit.message')"
     ]
   }
 }
