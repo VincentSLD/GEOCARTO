@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
   :root {
@@ -1400,431 +1401,12 @@
       <div style="margin-top:2rem;">
         <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:12px 16px;user-select:none;transition:background 0.2s;">
           <div style="display:flex;align-items:center;gap:0.6rem;">
-            <span style="font-size:1.1rem;">🚧</span>
-            <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">En Cours de Développement</span>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Google Earth · Risques · CatNat · Environnement · Géologie · Cartes Historiques · SITADEL · DT-DICT · Liens</span>
+            <span style="font-size:1.1rem;">ℹ️</span>
+            <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">Informations complémentaires sur les Risques</span>
           </div>
-          <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▶</span>
+          <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▼</span>
         </div>
         <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
-
-      <!-- ===== Google Earth & Export KML/KMZ ===== -->
-      <div class="section-title" style="margin-top:1rem;">
-        <div class="icon" style="background:rgba(66,133,244,0.12);color:#4285F4;">🌐</div>
-        Google Earth &amp; Export KML/KMZ
-      </div>
-      <div class="info-card" style="padding:1rem;">
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-          <a class="ext-link" id="link-earth-open" href="#" target="_blank" rel="noopener">
-            🌐 Ouvrir dans Google Earth (navigateur)
-          </a>
-          <button class="preset-btn" onclick="exportKML()" id="btn-export-kml" style="padding:6px 14px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.75rem;color:var(--accent-teal);border-color:var(--accent-teal);">
-            📥 Exporter KML
-          </button>
-          <button class="preset-btn" onclick="exportKMZ()" id="btn-export-kmz" style="padding:6px 14px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.75rem;color:var(--accent-purple);border-color:var(--accent-purple);">
-            📦 Exporter KMZ (compressé)
-          </button>
-        </div>
-      </div>
-
-      <!-- ===== Liens Géorisques / Argiles ===== -->
-      <div class="section-title" style="margin-top:1rem;">
-        <div class="icon" style="background:rgba(239,83,80,0.12);color:#e53935;">⚠️</div>
-        Liens Géorisques &amp; Argiles
-      </div>
-      <div class="info-card" style="padding:1rem;">
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-          <a class="ext-link" id="link-argiles-georisques" href="#" target="_blank" rel="noopener">
-            🗺 Carte interactive Géorisques
-          </a>
-          <a class="ext-link" href="https://www.georisques.gouv.fr/minformer-sur-un-risque/retrait-gonflement-des-argiles" target="_blank" rel="noopener">
-            📖 Dossier Retrait-Gonflement des Argiles
-          </a>
-        </div>
-      </div>
-
-      <!-- ===== Informations Géologiques Détaillées ===== -->
-      <div class="section-title" style="margin-top:1rem;">
-        <div class="icon" style="background:rgba(121,85,72,0.12);color:#795548;">🔬</div>
-        Informations Géologiques Détaillées (BD Charm-50)
-      </div>
-      <div class="info-card" style="padding:1rem;">
-        <!-- Légende géologique WMS GetLegendGraphic -->
-        <div style="margin-bottom:1.5rem;">
-          <div style="font-size:0.8rem;font-weight:600;color:#795548;margin-bottom:6px;">📋 Légende géologique (BRGM — BD Charm-50)</div>
-          <div id="geol-legend-container" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">
-            <img id="geol-legend-img" alt="Légende géologique BRGM" style="max-width:100%;display:none;" />
-            <div id="geol-legend-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:20px;">
-              ⏳ Chargement de la légende…
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== Cartes Historiques IGN ===== -->
-      <div class="section-title" style="margin-top:2rem;">
-        <div class="icon" style="background:rgba(121,85,72,0.12);">📜</div>
-        Cartes Historiques — IGN Géoplateforme
-      </div>
-      <div class="info-card" style="padding:1rem;">
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <button id="btn-histo-etatmajor" onclick="switchHistoLayer('etatmajor')"
-            style="padding:7px 14px;background:#795548;border:2px solid #795548;border-radius:8px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;">
-            📜 État-Major (1820–1866)
-          </button>
-          <button id="btn-histo-cassini" onclick="switchHistoLayer('cassini')"
-            style="padding:7px 14px;background:var(--bg-secondary);border:2px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
-            🗺 Cassini (1756–1815)
-          </button>
-        </div>
-        <div class="map-embed full-map" style="margin-bottom:0.5rem;">
-          <div id="map-histo" style="width:100%;height:100%;"></div>
-          <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
-        </div>
-        <div id="histo-info" style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;">
-          Carte de l'État-Major — 1ère couverture topographique nationale de la France (1820–1866) — Source : IGN Géoplateforme
-        </div>
-      </div>
-
-      <!-- ===== Permis de Construire — SITADEL ===== -->
-      <div style="margin-top:1.5rem;border:1px solid rgba(33,150,243,0.2);border-radius:12px;padding:16px 20px;background:rgba(33,150,243,0.04);">
-        <div class="section-title" style="margin-top:0;margin-bottom:0.75rem;">
-          <div class="icon" style="background:rgba(33,150,243,0.12);color:#1976d2;">🏗</div>
-          Permis de Construire — Base SITADEL
-        </div>
-        <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.75rem;line-height:1.5;">
-          La base SITADEL recense les autorisations d'urbanisme (permis de construire, déclarations préalables, permis d'aménager, permis de démolir) déposées en France depuis 2013.
-          Filtrez par type : <strong>maison individuelle pure</strong>, logements collectifs, locaux… et par statut : autorisé, commencé, achevé.
-        </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <a class="ext-link" id="link-sitadel-logements" href="#" target="_blank" rel="noopener"
-            style="background:rgba(33,150,243,0.1);border-color:rgba(33,150,243,0.3);color:#1565c0;font-weight:700;padding:8px 16px;">
-            🏗 Carte SITADEL — Permis logements
-          </a>
-          <a class="ext-link" id="link-sitadel-locaux" href="#" target="_blank" rel="noopener"
-            style="background:rgba(33,150,243,0.06);border-color:rgba(33,150,243,0.2);color:#1976d2;font-weight:600;">
-            🏢 Carte SITADEL — Locaux
-          </a>
-          <a class="ext-link" id="link-vigibati" href="#" target="_blank" rel="noopener"
-            style="background:rgba(76,175,80,0.06);border-color:rgba(76,175,80,0.2);color:#2e7d32;font-weight:600;">
-            📍 VigiBati — Veille permis
-          </a>
-          <a class="ext-link" id="link-geofoncier" href="#" target="_blank" rel="noopener"
-            style="background:rgba(156,39,176,0.06);border-color:rgba(156,39,176,0.2);color:#7b1fa2;font-weight:600;">
-            📐 Géofoncier — Permis sur parcelles
-          </a>
-        </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-          <a class="ext-link" href="https://www.statistiques.developpement-durable.gouv.fr/donnees-des-permis-de-construire-et-autres-autorisations-durbanisme" target="_blank" rel="noopener">
-            📊 Données brutes SDES (CSV)
-          </a>
-          <a class="ext-link" href="https://www.data.gouv.fr/datasets/base-des-permis-de-construire-et-autres-autorisations-durbanisme-sitadel/" target="_blank" rel="noopener">
-            📂 Data.gouv.fr — SITADEL
-          </a>
-        </div>
-        <div style="font-size:0.6rem;color:var(--text-muted);line-height:1.4;">
-          💡 Sur la carte Koumoul/SITADEL, utilisez le filtre à gauche pour sélectionner « Individuel pur » et l'état d'avancement (autorisé / commencé / achevé).
-          Source : SDES / Ministère de la Transition Écologique — base SITADEL (mise à jour mensuelle).
-        </div>
-
-        <!-- == Choroplèthe SITADEL par département == -->
-        <div style="margin-top:1rem;border-top:1px solid rgba(33,150,243,0.2);padding-top:1rem;">
-          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem;">
-            <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);font-family:'Space Grotesk',sans-serif;">🗺 Carte par département</span>
-            <select id="sitadel-year-sel" onchange="renderSitadelLayer()" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">
-              <!-- options générées dynamiquement par initSitadelYearSelect() -->
-            </select>
-            <select id="sitadel-indic-sel" onchange="renderSitadelLayer()" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">
-              <option value="auto">Logements autorisés</option>
-              <option value="com">Logements commencés</option>
-            </select>
-            <!-- Multi-sélection type de logement -->
-            <div style="position:relative;display:inline-block;" id="sitadel-type-wrapper">
-              <button id="sitadel-type-btn" onclick="toggleSitadelTypeMenu(event)" title="Filtrer par type de logement" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">Indiv. pur ▾</button>
-              <div id="sitadel-type-menu" style="display:none;position:absolute;top:calc(100% + 3px);left:0;z-index:9999;background:var(--bg-primary,#fff);border:1px solid var(--border);border-radius:7px;padding:5px 0;min-width:215px;box-shadow:0 6px 18px rgba(0,0,0,0.13);">
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-pur" checked onchange="onSitadelTypeChange()"> Individuel pur</label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-indiv-groupe" onchange="onSitadelTypeChange()"> Individuel groupé <span style="font-size:0.65rem;color:var(--text-muted);">(incl. en bande)</span></label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-collectif" onchange="onSitadelTypeChange()"> Collectif</label>
-                <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:0.72rem;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'"><input type="checkbox" id="sit-type-residences" onchange="onSitadelTypeChange()"> Résidences</label>
-              </div>
-            </div>
-            <button id="sitadel-btn-france" onclick="sitadelResetToFrance()" title="Afficher le total France + Corse" style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-size:0.72rem;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.background='var(--bg-tertiary,#e8eaf0)'" onmouseout="this.style.background='var(--bg-secondary)'">🇫🇷 France</button>
-            <button class="btn-screenshot" onclick="captureLeaflet('map-sitadel-dep','SITADEL-DEPT',true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
-          </div>
-          <div style="position:relative;height:360px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-            <div id="map-sitadel-dep" style="width:100%;height:100%;background:#e8f4f8;"></div>
-            <div id="sitadel-dep-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.88);font-size:0.82rem;color:var(--text-muted);gap:0.5rem;">⏳ Chargement de la carte…</div>
-          </div>
-          <div id="sitadel-dep-legend" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center;min-height:20px;"></div>
-          <div id="sitadel-dep-info" style="margin-top:0.5rem;padding:8px 12px;border-radius:7px;background:var(--bg-secondary);border:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);min-height:40px;display:flex;align-items:center;">
-            Cliquez sur un département pour afficher les statistiques.
-          </div>
-          <!-- Graphique évolution temporelle -->
-          <div style="margin-top:0.6rem;padding:10px 12px 8px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
-            <div id="sitadel-chart-title" style="font-size:0.68rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;font-family:'Space Grotesk',sans-serif;"></div>
-            <div style="position:relative;height:130px;">
-              <canvas id="sitadel-chart"></canvas>
-            </div>
-          </div>
-          <div style="font-size:0.6rem;color:var(--text-muted);margin-top:0.4rem;line-height:1.4;">
-            France métropolitaine + Corse. Données indicatives annuelles — Source : SDES / Ministère de la Transition Écologique — base SITADEL.
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== DT-DICT — Déclarations de travaux / Réseaux ===== -->
-      <div style="margin-top:1.5rem;border:1px solid rgba(255,152,0,0.25);border-radius:12px;padding:16px 20px;background:rgba(255,152,0,0.04);">
-        <div class="section-title" style="margin-top:0;margin-bottom:0.75rem;">
-          <div class="icon" style="background:rgba(255,152,0,0.12);color:#e65100;">⚠️</div>
-          DT-DICT — Réseaux et Canalisations
-        </div>
-        <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.75rem;line-height:1.5;">
-          Avant tout projet de travaux, il est <strong>obligatoire</strong> de consulter le <strong>Guichet Unique</strong> (INERIS) pour identifier les réseaux souterrains et aériens à proximité du chantier.
-          Le téléservice permet d'effectuer les déclarations <strong>DT</strong> (Déclaration de projet de Travaux — maître d'ouvrage) et <strong>DICT</strong> (Déclaration d'Intention de Commencement de Travaux — exécutant).
-        </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <a class="ext-link" id="link-dict-gu" href="https://www.reseaux-et-canalisations.ineris.fr/gu-presentation/front/index.action" target="_blank" rel="noopener"
-            style="background:rgba(255,152,0,0.12);border-color:rgba(255,152,0,0.35);color:#e65100;font-weight:700;padding:8px 16px;">
-            ⚠️ Guichet Unique — DT / DICT (INERIS)
-          </a>
-          <a class="ext-link" id="link-dict-carto" href="#" target="_blank" rel="noopener"
-            style="background:rgba(255,152,0,0.08);border-color:rgba(255,152,0,0.25);color:#ef6c00;font-weight:600;">
-            🗺 Cartographie des réseaux (INERIS)
-          </a>
-        </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <a class="ext-link" href="https://entreprendre.service-public.fr/vosdroits/F23491" target="_blank" rel="noopener">
-            📖 Guide DT-DICT (Service-Public.fr)
-          </a>
-          <a class="ext-link" href="https://www.reseaux-et-canalisations.ineris.fr/gu-presentation/front/faq.action" target="_blank" rel="noopener">
-            ❓ FAQ DT-DICT (INERIS)
-          </a>
-          <a class="ext-link" href="https://www.reseaux-et-canalisations.ineris.fr/gu-presentation/userfile?path=/fichiers/textes_reglementaires/Notice_DT-DICT.pdf" target="_blank" rel="noopener">
-            📄 Notice Cerfa DT-DICT (PDF)
-          </a>
-        </div>
-        <div style="background:rgba(255,152,0,0.06);border:1px solid rgba(255,152,0,0.15);border-radius:8px;padding:10px 14px;margin-bottom:0.5rem;">
-          <div style="font-size:0.72rem;font-weight:700;color:#e65100;margin-bottom:4px;">📋 Procédure rapide :</div>
-          <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.5;">
-            1. Créez un compte sur le <strong>Guichet Unique INERIS</strong> (gratuit)<br>
-            2. Renseignez l'adresse ou les <strong>coordonnées GPS</strong> du chantier : <strong id="dict-coords-display" style="color:#e65100;font-family:'DM Mono',monospace;">—</strong><br>
-            3. Dessinez l'<strong>emprise du chantier</strong> sur la carte interactive<br>
-            4. Consultez la <strong>liste des exploitants de réseaux</strong> concernés<br>
-            5. Préparez et envoyez vos formulaires <strong>DT et/ou DICT</strong> pré-remplis
-          </div>
-        </div>
-        <div style="font-size:0.6rem;color:var(--text-muted);line-height:1.4;">
-          💡 La consultation du Guichet Unique est <strong>gratuite et obligatoire</strong> (art. R.554-20 du Code de l'environnement).
-          La DT-DICT conjointe est possible si le responsable de projet est aussi l'exécutant.
-          Délai de validité : 3 mois à compter de la consultation.
-        </div>
-      </div>
-
-      <!-- ===== FORMULAIRE DT-DICT PRÉ-REMPLISSAGE ===== -->
-      <div id="dtdict-form-section" style="margin-top:1.5rem;border:1px solid rgba(245,197,24,0.35);border-radius:12px;padding:0;background:var(--bg-card);overflow:hidden;">
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleDtdictForm()">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:1.2rem;">📝</span>
-            <span style="color:#f5c518;font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;">Formulaire DT / DICT — Pré-remplissage Cerfa 14434*03</span>
-          </div>
-          <span id="dtdict-toggle-arrow" style="color:#f5c518;font-size:1rem;transition:transform 0.3s;">▼</span>
-        </div>
-        <!-- Collapsible form body -->
-        <div id="dtdict-form-body" style="display:none;padding:16px 20px;">
-          <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:12px;line-height:1.4;">
-            💡 Remplissez ce formulaire pour <strong>générer un PDF pré-rempli</strong> du Cerfa DT/DICT. Les coordonnées GPS et l'adresse du point investigué sont automatiquement reportées. Le PDF généré pourra être imprimé ou envoyé aux exploitants.
-          </div>
-
-          <!-- Type de déclaration -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">📌 Type de déclaration</div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-              <label class="dtdict-radio"><input type="radio" name="dtdict-type" value="DT" checked> <span>DT</span> <small>Déclaration de projet de Travaux</small></label>
-              <label class="dtdict-radio"><input type="radio" name="dtdict-type" value="DICT"> <span>DICT</span> <small>Déclaration d'Intention de Commencement</small></label>
-              <label class="dtdict-radio"><input type="radio" name="dtdict-type" value="DT-DICT"> <span>DT-DICT conjointe</span></label>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div class="dtdict-field">
-                <label>Nature de la déclaration</label>
-                <select id="dtdict-nature">
-                  <option value="INITIAL">INITIAL — Déclaration initiale</option>
-                  <option value="INVEST">INVEST — Investigation complémentaire</option>
-                  <option value="3MR">3MR — Renouvelée (travaux non entrepris 3 mois)</option>
-                  <option value="INTERUP">INTERUP — Renouvelée (interruption > 3 mois)</option>
-                  <option value="6MR">6MR — Renouvelée (durée > 6 mois)</option>
-                </select>
-              </div>
-              <div class="dtdict-field">
-                <label>N° consultation téléservice</label>
-                <input type="text" id="dtdict-num-consult" placeholder="Ex: 2024-12345678">
-              </div>
-            </div>
-          </div>
-
-          <!-- Destinataire (Exploitant) -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">📬 Destinataire (Exploitant de réseaux)</div>
-            <div class="dtdict-field"><label>Nom de l'exploitant *</label><input type="text" id="dtdict-expl-nom" placeholder="Ex: ENEDIS, GRDF, Orange..."></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Adresse</label><input type="text" id="dtdict-expl-adresse" placeholder="N° et voie"></div>
-              <div class="dtdict-field"><label>Complément</label><input type="text" id="dtdict-expl-complement" placeholder="BP, Lieu-dit..."></div>
-            </div>
-            <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Code postal</label><input type="text" id="dtdict-expl-cp" placeholder="69003"></div>
-              <div class="dtdict-field"><label>Commune</label><input type="text" id="dtdict-expl-commune"></div>
-              <div class="dtdict-field"><label>Pays</label><input type="text" id="dtdict-expl-pays" value="France"></div>
-            </div>
-          </div>
-
-          <!-- Responsable du projet -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">🏗 Responsable du projet (Maître d'ouvrage)</div>
-            <div class="dtdict-field"><label>Nom ou dénomination *</label><input type="text" id="dtdict-mo-nom" placeholder="Société ou nom du maître d'ouvrage"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Adresse *</label><input type="text" id="dtdict-mo-adresse"></div>
-              <div class="dtdict-field"><label>Complément</label><input type="text" id="dtdict-mo-complement"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Code postal *</label><input type="text" id="dtdict-mo-cp"></div>
-              <div class="dtdict-field"><label>Commune *</label><input type="text" id="dtdict-mo-commune"></div>
-              <div class="dtdict-field"><label>Pays</label><input type="text" id="dtdict-mo-pays" value="France"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>N° SIRET</label><input type="text" id="dtdict-mo-siret" placeholder="123 456 789 00012"></div>
-              <div class="dtdict-field"><label>Personne à contacter *</label><input type="text" id="dtdict-mo-contact"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Téléphone *</label><input type="tel" id="dtdict-mo-tel"></div>
-              <div class="dtdict-field"><label>Fax</label><input type="tel" id="dtdict-mo-fax"></div>
-              <div class="dtdict-field"><label>Courriel</label><input type="email" id="dtdict-mo-email"></div>
-            </div>
-          </div>
-
-          <!-- Exécutant des travaux -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">👷 Exécutant des travaux</div>
-            <div style="margin-bottom:8px;">
-              <label style="font-size:0.7rem;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:6px;">
-                <input type="checkbox" id="dtdict-exec-same" onchange="dtdictCopyMO()"> Identique au responsable du projet (DT-DICT conjointe)
-              </label>
-            </div>
-            <div id="dtdict-exec-fields">
-              <div class="dtdict-field"><label>Nom ou dénomination *</label><input type="text" id="dtdict-exec-nom"></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div class="dtdict-field"><label>Adresse *</label><input type="text" id="dtdict-exec-adresse"></div>
-                <div class="dtdict-field"><label>Complément</label><input type="text" id="dtdict-exec-complement"></div>
-              </div>
-              <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;">
-                <div class="dtdict-field"><label>Code postal *</label><input type="text" id="dtdict-exec-cp"></div>
-                <div class="dtdict-field"><label>Commune *</label><input type="text" id="dtdict-exec-commune"></div>
-                <div class="dtdict-field"><label>Pays</label><input type="text" id="dtdict-exec-pays" value="France"></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div class="dtdict-field"><label>N° SIRET</label><input type="text" id="dtdict-exec-siret"></div>
-                <div class="dtdict-field"><label>Personne à contacter *</label><input type="text" id="dtdict-exec-contact"></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                <div class="dtdict-field"><label>Téléphone *</label><input type="tel" id="dtdict-exec-tel"></div>
-                <div class="dtdict-field"><label>Fax</label><input type="tel" id="dtdict-exec-fax"></div>
-                <div class="dtdict-field"><label>Courriel</label><input type="email" id="dtdict-exec-email"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Emplacement des travaux (pré-rempli GPS) -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">📍 Emplacement des travaux <span style="font-weight:400;font-size:0.65rem;color:var(--accent-amber);">(pré-rempli depuis le point investigué)</span></div>
-            <div class="dtdict-field"><label>Adresse ou lieu-dit *</label><input type="text" id="dtdict-lieu-adresse" placeholder="Adresse du chantier"></div>
-            <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Code postal *</label><input type="text" id="dtdict-lieu-cp"></div>
-              <div class="dtdict-field"><label>Commune *</label><input type="text" id="dtdict-lieu-commune"></div>
-            </div>
-            <div class="dtdict-field">
-              <label>Coordonnées GPS</label>
-              <input type="text" id="dtdict-lieu-gps" readonly style="background:#f0efe8;color:var(--text-secondary);font-family:'DM Mono',monospace;font-size:0.72rem;">
-            </div>
-          </div>
-
-          <!-- Description du projet / travaux -->
-          <div class="dtdict-group">
-            <div class="dtdict-group-title">📋 Description du projet / des travaux</div>
-            <div class="dtdict-field">
-              <label>Description *</label>
-              <textarea id="dtdict-description" rows="3" placeholder="Ex: Construction d'une maison individuelle avec sous-sol, nécessitant des fouilles..."></textarea>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div class="dtdict-field">
-                <label>Nature des travaux (codes) *</label>
-                <select id="dtdict-nature-travaux" multiple size="4" style="font-size:0.68rem;">
-                  <option value="ABT">ABT — Abattage d'arbres</option>
-                  <option value="CAR">CAR — Carottage</option>
-                  <option value="CNS" selected>CNS — Construction</option>
-                  <option value="ERP">ERP — Construction/ext. ERP</option>
-                  <option value="ICP">ICP — Construction/ext. ICPE</option>
-                  <option value="CUR">CUR — Curage fossés</option>
-                  <option value="DEC">DEC — Décapage chaussée</option>
-                  <option value="DEM">DEM — Démolition</option>
-                  <option value="DRA">DRA — Drainage</option>
-                  <option value="ELG">ELG — Élagage</option>
-                  <option value="ESC">ESC — Source de chaleur</option>
-                  <option value="FOH">FOH — Forage horizontal</option>
-                  <option value="FOV">FOV — Forage vertical</option>
-                  <option value="FOU">FOU — Fouille, excavation</option>
-                  <option value="CHA">CHA — Réseaux de chaleur</option>
-                  <option value="SOU">SOU — Réseaux souterrains</option>
-                  <option value="RBL">RBL — Remblaiement</option>
-                  <option value="TER">TER — Terrassement</option>
-                  <option value="OUV">OUV — Fouille déjà ouverte</option>
-                  <option value="AER">AER — Travaux aériens</option>
-                  <option value="FAC">FAC — Façades/toitures</option>
-                  <option value="OTR">OTR — Autres</option>
-                </select>
-                <small style="font-size:0.6rem;color:var(--text-muted);">Ctrl+clic pour sélection multiple</small>
-              </div>
-              <div class="dtdict-field">
-                <label>Techniques utilisées (codes) *</label>
-                <select id="dtdict-techniques" multiple size="4" style="font-size:0.68rem;">
-                  <option value="PEL" selected>PEL — Pelles mécaniques</option>
-                  <option value="MAN">MAN — Manuel</option>
-                  <option value="BRO">BRO — Brise-roche</option>
-                  <option value="ECH">ECH — Échafaudage</option>
-                  <option value="ELE">ELE — Engin élévateur</option>
-                  <option value="VIB">VIB — Engin vibrant</option>
-                  <option value="GRU">GRU — Grue</option>
-                  <option value="ENG">ENG — Autres engins</option>
-                  <option value="BTO">BTO — Battage tube ouvert</option>
-                  <option value="TUB">TUB — Fonçage de tubes</option>
-                  <option value="FOD">FOD — Forage dirigé</option>
-                  <option value="TAR">TAR — Forage tarière</option>
-                  <option value="TUN">TUN — Microtunnelier</option>
-                  <option value="ECL">ECL — Tubage éclatement</option>
-                </select>
-                <small style="font-size:0.6rem;color:var(--text-muted);">Ctrl+clic pour sélection multiple</small>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-              <div class="dtdict-field"><label>Profondeur max. excavation (cm)</label><input type="number" id="dtdict-profondeur" placeholder="Ex: 300"></div>
-              <div class="dtdict-field"><label>Date début travaux *</label><input type="date" id="dtdict-date-debut"></div>
-              <div class="dtdict-field"><label>Durée chantier (jours) *</label><input type="number" id="dtdict-duree" placeholder="Ex: 180"></div>
-            </div>
-          </div>
-
-          <!-- Boutons d'action -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-            <button onclick="generateDtdictPDF()" style="background:linear-gradient(135deg,#1a1a1a,#333);color:#f5c518;border:2px solid #f5c518;border-radius:8px;padding:10px 24px;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px;transition:all 0.2s;">
-              📄 Générer le PDF pré-rempli
-            </button>
-            <button onclick="saveDtdictData()" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:0.75rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
-              💾 Sauvegarder les données (JSON)
-            </button>
-            <button onclick="loadDtdictData()" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:0.75rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
-              📂 Charger des données (JSON)
-            </button>
-            <input type="file" id="dtdict-file-input" accept=".json" style="display:none;" onchange="handleDtdictFileLoad(event)">
-          </div>
-        </div>
-      </div>
 
       <!-- ===== Risques ===== -->
       <div class="section-title" style="margin-top:1rem;">
@@ -1859,14 +1441,6 @@
         <div class="icon amber">🕳</div>
         Cavités souterraines
       </div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-        <a class="ext-link" href="https://www.georisques.gouv.fr/risques/cavites-souterraines/donnees" target="_blank" rel="noopener">
-          📊 Données Géorisques — Cavités
-        </a>
-        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-secondary);">
-          Cavités proches : <span id="cavites-count-text" style="font-weight:600;color:var(--text-primary);">chargement…</span>
-        </div>
-      </div>
       <div id="cavites-list">
         <div class="empty-state">Chargement des données cavités…</div>
       </div>
@@ -1887,30 +1461,16 @@
         <div class="empty-state">Chargement des sondages BSS…</div>
       </div>
 
-      <!-- ===== Liens & Rapports ===== -->
-      <div class="section-title" style="margin-top:1rem;">
-        <div class="icon blue">🔗</div>
-        Liens officiels &amp; Rapports
-      </div>
-      <div class="info-card">
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
-          Accédez directement aux portails officiels pour approfondir votre investigation :
-        </p>
-        <div class="external-links" id="external-links"></div>
-        <div style="margin-top:1.5rem">
-          <a class="report-link" id="report-pdf-link" href="#" target="_blank">
-            📄 Télécharger le rapport PDF Géorisques
-          </a>
-        </div>
-      </div>
-
-        <!-- Token GitHub EDS -->
-        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
-          <button onclick="edsConfigToken()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-muted);font-size:0.7rem;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">🔑 Configurer le token GitHub (EDS)</button>
-        </div>
 
         </div><!-- fin dev-section-content -->
-      </div><!-- fin En Cours de Développement -->
+      </div><!-- fin Informations complémentaires sur les Risques -->
+
+      <!-- Bouton export Excel -->
+      <div style="margin-top:1rem;text-align:center;">
+        <button onclick="exportRisquesExcel()" style="padding:10px 24px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s;">
+          📊 Télécharger tous les risques en tableur
+        </button>
+      </div>
 
     </div>
 
@@ -1920,6 +1480,7 @@
 <script>
 // Globals
 let currentLat = null, currentLng = null, currentInsee = null;
+let _lastRisques = [], _lastCatNat = [], _lastICPE = [], _lastCavites = [], _lastMvt = [], _lastBSS = [];
 
 
 function setCoords(lat, lng) {
@@ -2450,10 +2011,12 @@ async function fetchRisques(lat, lng) {
       : `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const risks = data.data || [];
+    _lastRisques = risks;
     renderRisques(risks);
     document.getElementById('stat-risques').textContent = risks.length;
     return risks;
   } catch (e) {
+    _lastRisques = [];
     console.error('Risques error:', e);
     document.getElementById('stat-risques').textContent = '?';
     document.getElementById('risk-grid').innerHTML = `<div class="empty-state">Erreur lors du chargement des risques. ${e.message}<br>L'API Géorisques peut être temporairement indisponible.</div>`;
@@ -2504,10 +2067,12 @@ async function fetchCatNat(lat, lng) {
       : `https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=${lng},${lat}&rayon=1000&page=1&page_size=100`;
     const data = await fetchJSON(url, 10000);
     const catnat = data.data || [];
+    _lastCatNat = catnat;
     renderCatNat(catnat);
     document.getElementById('stat-catnat').textContent = catnat.length;
     return catnat;
   } catch (e) {
+    _lastCatNat = [];
     console.error('CatNat error:', e);
     document.getElementById('stat-catnat').textContent = '?';
     document.getElementById('catnat-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données CatNat. ${e.message}</div>`;
@@ -2666,10 +2231,12 @@ async function fetchCavites(lat, lng) {
     const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const cavites = data.data || [];
+    _lastCavites = cavites;
     renderCavites(cavites);
     document.getElementById('stat-cavites').textContent = cavites.length;
     return cavites;
   } catch (e) {
+    _lastCavites = [];
     console.error('Cavités error:', e);
     document.getElementById('stat-cavites').textContent = '?';
     document.getElementById('cavites-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données cavités. ${e.message}</div>`;
@@ -2702,10 +2269,12 @@ async function fetchICPE(lat, lng) {
     const url = `https://georisques.gouv.fr/api/v1/installations_classees?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const icpes = data.data || [];
+    _lastICPE = icpes;
     renderICPE(icpes);
     document.getElementById('stat-icpe').textContent = icpes.length;
     return icpes;
   } catch (e) {
+    _lastICPE = [];
     console.error('ICPE error:', e);
     document.getElementById('stat-icpe').textContent = '?';
     document.getElementById('icpe-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données ICPE. ${e.message}</div>`;
@@ -2740,10 +2309,12 @@ async function fetchMvtTerrain(lat, lng) {
     const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const mvts = data.data || [];
+    _lastMvt = mvts;
     renderMvtTerrain(mvts);
     document.getElementById('stat-mvt').textContent = mvts.length;
     return mvts;
   } catch (e) {
+    _lastMvt = [];
     console.error('Mvt terrain error:', e);
     document.getElementById('stat-mvt').textContent = '?';
     document.getElementById('mvt-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données mouvements de terrain. ${e.message}</div>`;
@@ -2790,6 +2361,7 @@ async function fetchBSS(lat, lng) {
     const features = parseBSSGml(text, lat, lng);
 
     bssData = features;
+    _lastBSS = features;
     renderBSS(features);
     document.getElementById('stat-bss').textContent = features.length;
     addBSSMarkersToMap(features);
@@ -2799,11 +2371,7 @@ async function fetchBSS(lat, lng) {
     document.getElementById('stat-bss').textContent = '?';
     document.getElementById('bss-list').innerHTML = `
       <div class="empty-state">
-        Impossible de charger les sondages BSS automatiquement.<br>
-        <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank"
-           style="color:var(--accent-blue);text-decoration:underline;">
-          → Consultez InfoTerre directement
-        </a>
+        Impossible de charger les sondages BSS automatiquement.
       </div>`;
     throw e;
   }
@@ -2868,11 +2436,7 @@ function renderBSS(features) {
   if (!features || features.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        Aucun sondage BSS trouvé dans un rayon de 2 km.<br>
-        <a href="https://infoterre.brgm.fr/viewer/MainTileForward.do?" target="_blank"
-           style="color:var(--accent-blue);text-decoration:underline;">
-          → Vérifiez sur InfoTerre (couche « Dossiers du sous-sol BSS »)
-        </a>
+        Aucun sondage BSS trouvé dans un rayon de 2 km.
       </div>`;
     return;
   }
@@ -3061,7 +2625,8 @@ function setupMaps(lat, lng) {
   fetchArgilesAndDraw(lat, lng);
 
   // Link to Georisques interactive map with argile layer
-  document.getElementById('link-argiles-georisques').href =
+  const linkArgiles = document.getElementById('link-argiles-georisques');
+  if (linkArgiles) linkArgiles.href =
     `https://www.georisques.gouv.fr/cartes-interactives#/dossier/ARGILE?center=${lng},${lat}&zoom=15`;
 
   // ====== Carte Géologique BRGM ======
@@ -3117,20 +2682,22 @@ function setupMaps(lat, lng) {
   ];
   const legendImg = document.getElementById('geol-legend-img');
   const legendLoading = document.getElementById('geol-legend-loading');
-  let legendIdx = 0;
-  function tryNextLegend() {
-    if (legendIdx >= legendUrls.length) {
-      legendLoading.textContent = '⚠️ Légende indisponible — consultez InfoTerre pour la légende détaillée.';
-      return;
+  if (legendImg && legendLoading) {
+    let legendIdx = 0;
+    function tryNextLegend() {
+      if (legendIdx >= legendUrls.length) {
+        legendLoading.textContent = '⚠️ Légende indisponible — consultez InfoTerre pour la légende détaillée.';
+        return;
+      }
+      legendImg.onload = function() {
+        legendImg.style.display = 'block';
+        legendLoading.style.display = 'none';
+      };
+      legendImg.onerror = function() { legendIdx++; tryNextLegend(); };
+      legendImg.src = legendUrls[legendIdx];
     }
-    legendImg.onload = function() {
-      legendImg.style.display = 'block';
-      legendLoading.style.display = 'none';
-    };
-    legendImg.onerror = function() { legendIdx++; tryNextLegend(); };
-    legendImg.src = legendUrls[legendIdx];
+    tryNextLegend();
   }
-  tryNextLegend();
 
   // Fetch geological info via WMS GetFeatureInfo (BD Charm-50)
   fetchGeologicalInfo(lat, lng);
@@ -3300,24 +2867,8 @@ function setupMaps(lat, lng) {
   addMeasureTool(window.nappesMap);
   setTimeout(() => { window.nappesMap.invalidateSize(); }, 300);
 
-  // ====== Liens Permis de Construire SITADEL ======
-  // Carte Koumoul SITADEL logements — centrée sur le point
-  document.getElementById('link-sitadel-logements').href =
-    `https://opendata.koumoul.com/applications/sitadel-logements?lat=${lat}&lon=${lng}&zoom=13`;
-  // Carte Koumoul SITADEL locaux
-  document.getElementById('link-sitadel-locaux').href =
-    `https://opendata.koumoul.com/applications/sitadel-locaux?lat=${lat}&lon=${lng}&zoom=13`;
-  // VigiBati — carte permis centrée
-  document.getElementById('link-vigibati').href =
-    `https://www.vigibati.fr/carte?lat=${lat}&lng=${lng}&zoom=14`;
-  // Géofoncier
-  document.getElementById('link-geofoncier').href =
-    `https://www.geofoncier.fr/parcelle?lat=${lat}&lng=${lng}`;
-
-  // ====== Liens DT-DICT ======
-  // Cartographie INERIS pré-centrée sur le point
-  document.getElementById('link-dict-carto').href =
-    `https://www.reseaux-et-canalisations.ineris.fr/gu-presentation/front/index.action#coordinates=${lng},${lat}`;
+  // ====== Liens Permis de Construire SITADEL (supprimés du HTML) ======
+  // ====== Liens DT-DICT (supprimés du HTML) ======
   // Afficher les coordonnées GPS dans la procédure
   const dictCoords = document.getElementById('dict-coords-display');
   if (dictCoords) dictCoords.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -3384,9 +2935,7 @@ function setupMaps(lat, lng) {
 
   setTimeout(() => { window.ignMap.invalidateSize(); }, 300);
 
-  // Google Earth link
-  const earthUrl = `https://earth.google.com/web/@${lat},${lng},0a,1500d,35y,0h,0t,0r`;
-  document.getElementById('link-earth-open').href = earthUrl;
+  // Google Earth link (élément supprimé du HTML)
 
   // ====== Photos Aériennes Historiques ======
   if (window.photoMap) { window.photoMap.remove(); window.photoMap = null; }
@@ -3406,34 +2955,7 @@ function setupMaps(lat, lng) {
   addMeasureTool(window.photoMap);
   setTimeout(() => { window.photoMap.invalidateSize(); }, 300);
 
-  // ====== Cartes Historiques IGN ======
-  if (window.histoMap) { window.histoMap.remove(); window.histoMap = null; }
-  window.histoMap = L.map('map-histo', {
-    center: [lat, lng],
-    zoom: 13,
-    zoomControl: false,
-  });
-  L.control.zoom({ position: 'bottomleft' }).addTo(window.histoMap);
-  window.histoLayers = {
-    etatmajor: L.tileLayer(
-      'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
-      '&LAYER=GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40&TILEMATRIXSET=PM_6_15' +
-      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/jpeg',
-      { attribution: '© IGN Géoplateforme', minZoom: 6, maxZoom: 15, maxNativeZoom: 15 }
-    ),
-    cassini: L.tileLayer(
-      'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
-      '&LAYER=AN-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI&TILEMATRIXSET=PM_0_14' +
-      '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&STYLE=normal&FORMAT=image/jpeg',
-      { attribution: '© IGN Géoplateforme', minZoom: 0, maxZoom: 14, maxNativeZoom: 14 }
-    ),
-  };
-  window.histoCurrentLayer = 'etatmajor';
-  window.histoLayers.etatmajor.addTo(window.histoMap);
-  L.marker([lat, lng]).addTo(window.histoMap)
-    .bindPopup('<strong>Projet étudié</strong>').openPopup();
-  addMeasureTool(window.histoMap);
-  setTimeout(() => { window.histoMap.invalidateSize(); }, 300);
+  // ====== Cartes Historiques IGN (supprimées du HTML) ======
 }
 
 // Fetch argiles data from API, draw on Leaflet map, and update text
@@ -3572,6 +3094,7 @@ function wktToGeoJSON(wkt) {
 // External links
 function setupExternalLinks(lat, lng) {
   const container = document.getElementById('external-links');
+  if (!container) return;
   const links = [
     { name: 'Google Maps', url: `https://www.google.com/maps/@${lat},${lng},17z`, icon: '🗺' },
     { name: 'Google Street View', url: `https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m6!1e1`, icon: '👁' },
@@ -3594,8 +3117,10 @@ function setupExternalLinks(lat, lng) {
 
   // PDF report link
   const reportUrl = `https://georisques.gouv.fr/api/v1/rapport_pdf?latlon=${lng},${lat}`;
-  document.getElementById('report-pdf-link').href = reportUrl;
-  document.getElementById('report-pdf-top').href = reportUrl;
+  const rptLink = document.getElementById('report-pdf-link');
+  if (rptLink) rptLink.href = reportUrl;
+  const rptTop = document.getElementById('report-pdf-top');
+  if (rptTop) rptTop.href = reportUrl;
 }
 
 // ====== KMZ/KML IMPORT ======
@@ -4644,8 +4169,10 @@ async function fetchCavitesMap(lat, lng) {
     const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=5000`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
-    countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 5 km` : 'Aucune dans un rayon de 5 km';
-    countEl.style.color = items.length > 0 ? '#7e57c2' : 'var(--text-muted)';
+    if (countEl) {
+      countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 5 km` : 'Aucune dans un rayon de 5 km';
+      countEl.style.color = items.length > 0 ? '#7e57c2' : 'var(--text-muted)';
+    }
 
     if (!window.cavitesMap) return;
 
@@ -5401,35 +4928,100 @@ document.addEventListener('webkitfullscreenchange', function() {
   [100, 300, 600, 1000, 1500].forEach(d => setTimeout(_invalidateAllMaps, d));
 });
 
-// ====== EN COURS DE DÉVELOPPEMENT — ACCORDION ======
+// ====== INFORMATIONS COMPLÉMENTAIRES — ACCORDION ======
 
-let _devSectionUnlocked = false;
+// Export Excel de tous les risques
+function exportRisquesExcel() {
+  if (!currentLat || !currentLng) { alert('Veuillez d\'abord lancer une recherche.'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const addr = document.getElementById('addr-label')?.textContent || '';
+  const coords = `${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`;
+
+  // 1. Risques naturels & technologiques
+  const risquesRows = _lastRisques.map(r => ({
+    'Risque': r.libelle_risque_long || r.libelle_risque_jo || '',
+    'Niveau': (() => { const l = getRiskLevel(r); return l === 'high' ? 'Élevé' : l === 'medium' ? 'Moyen' : l === 'low' ? 'Faible' : 'Info'; })(),
+    'Code GASPAR': r.num_risque_gaspar || '',
+    'Libellé JO': r.libelle_risque_jo || ''
+  }));
+  const wsRisques = XLSX.utils.json_to_sheet(risquesRows.length ? risquesRows : [{ 'Info': 'Aucun risque répertorié' }]);
+  XLSX.utils.book_append_sheet(wb, wsRisques, 'Risques');
+
+  // 2. Catastrophes naturelles
+  const catnatRows = _lastCatNat.map(c => ({
+    'Date': formatDate(c.date_debut_evt),
+    'Type': c.libelle_risque_jo || ''
+  }));
+  const wsCatNat = XLSX.utils.json_to_sheet(catnatRows.length ? catnatRows : [{ 'Info': 'Aucun arrêté CatNat' }]);
+  XLSX.utils.book_append_sheet(wb, wsCatNat, 'CatNat');
+
+  // 3. ICPE
+  const icpeRows = _lastICPE.map(i => ({
+    'Nom': i.raisonSociale || i.nom || '',
+    'Régime': i.regime || '',
+    'Seveso': i.statutSeveso || '',
+    'État': i.etatActivite || '',
+    'Commune': i.commune || '',
+    'Adresse': i.adresse1 || ''
+  }));
+  const wsICPE = XLSX.utils.json_to_sheet(icpeRows.length ? icpeRows : [{ 'Info': 'Aucune ICPE' }]);
+  XLSX.utils.book_append_sheet(wb, wsICPE, 'ICPE');
+
+  // 4. Cavités souterraines
+  const cavRows = _lastCavites.map(c => ({
+    'Nom': c.nom || '',
+    'Type': c.type_cavite || '',
+    'Origine': c.origine || '',
+    'Commune': c.commune || ''
+  }));
+  const wsCav = XLSX.utils.json_to_sheet(cavRows.length ? cavRows : [{ 'Info': 'Aucune cavité' }]);
+  XLSX.utils.book_append_sheet(wb, wsCav, 'Cavités');
+
+  // 5. Mouvements de terrain
+  const mvtRows = _lastMvt.map(m => ({
+    'Type': m.type_mvt || '',
+    'Date': formatDate(m.date_debut),
+    'Commune': m.commune || '',
+    'Lieu-dit': m.lieu_dit || '',
+    'Précision': m.precision || ''
+  }));
+  const wsMvt = XLSX.utils.json_to_sheet(mvtRows.length ? mvtRows : [{ 'Info': 'Aucun mouvement de terrain' }]);
+  XLSX.utils.book_append_sheet(wb, wsMvt, 'Mouvements terrain');
+
+  // 6. Sondages BSS
+  const bssRows = _lastBSS.map(f => {
+    const p = f.properties || {};
+    return {
+      'Code BSS': p.code_bss || p.bss_id || '',
+      'Type': p.nature_pe || '',
+      'Profondeur (m)': p.prof_invest || '',
+      'Altitude (m NGF)': p.altitude || '',
+      'Piézométrie (mesures)': p.nb_mesures_piezo || '',
+      'Adresse': p.adresse || '',
+      'Commune': p.commune_actuelle || p.commune || '',
+      'Mise à jour': p.date_maj || ''
+    };
+  });
+  const wsBSS = XLSX.utils.json_to_sheet(bssRows.length ? bssRows : [{ 'Info': 'Aucun sondage BSS' }]);
+  XLSX.utils.book_append_sheet(wb, wsBSS, 'Sondages BSS');
+
+  const ts = new Date().toISOString().slice(0, 10);
+  const filename = `${ts}_RISQUES.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
 
 function toggleDevSection() {
   const content = document.getElementById('dev-section-content');
   const arrow = document.getElementById('dev-section-arrow');
 
   if (content.style.display === 'none') {
-    // Demander le code si pas encore déverrouillé
-    if (!_devSectionUnlocked) {
-      const code = prompt('🔒 Section protégée — Entrez le code d\'accès :');
-      if (!code || code.trim().toUpperCase() !== 'VSA') {
-        alert('Code incorrect.');
-        return;
-      }
-      _devSectionUnlocked = true;
-    }
     content.style.display = 'block';
-    arrow.textContent = '▼';
-    // Forcer Leaflet à recalculer la taille des cartes cachées
-    setTimeout(() => {
-      if (window.histoMap) window.histoMap.invalidateSize();
-    }, 200);
-    // Init lazy carte SITADEL choroplèthe
-    initSitadelDepMap();
+    arrow.textContent = '▲';
   } else {
     content.style.display = 'none';
-    arrow.textContent = '▶';
+    arrow.textContent = '▼';
   }
 }
 
