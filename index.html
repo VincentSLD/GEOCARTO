@@ -3116,7 +3116,7 @@ function setupExternalLinks(lat, lng) {
   `).join('');
 
   // PDF report link
-  const reportUrl = `https://georisques.gouv.fr/api/v1/rapport_pdf?latlon=${lng},${lat}`;
+  const reportUrl = `https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=${lat},${lng}`;
   const rptLink = document.getElementById('report-pdf-link');
   if (rptLink) rptLink.href = reportUrl;
   const rptTop = document.getElementById('report-pdf-top');
