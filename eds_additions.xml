@@ -228,4 +228,28 @@
     <Latitude>46.846897227</Latitude>
     <Longitude>-1.8720638752</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>1234567 MAISON COUCOU</Reference>
+    <Nom>MAISON COUCOU</Nom>
+    <Adresse>27 Chemin de la bourière</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Froidfond</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.867736</Latitude>
+    <Longitude>-1.768926</Longitude>
+  </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>3214321</Reference>
+    <Nom>REGEF</Nom>
+    <Adresse>l'abbaye</Adresse>
+    <Code_Postal>85210</Code_Postal>
+    <Ville>La Réorthe</Ville>
+    <Categorie></Categorie>
+    <Notes>la bocaine</Notes>
+    <Latitude>46.64048</Latitude>
+    <Longitude>-1.054688</Longitude>
+  </point>
 </eds_additions>
