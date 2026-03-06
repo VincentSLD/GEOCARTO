@@ -1238,6 +1238,22 @@
         <div id="map-geologie" style="width:100%;height:100%;"></div>
         <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
       </div>
+      <div style="display:flex;flex-direction:column;gap:0;margin-top:6px;margin-bottom:4px;">
+        <button id="btn-geol-query" onclick="toggleGeolQuery()"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 14px;font-size:0.78rem;font-weight:600;border:1px solid rgba(121,85,72,0.35);border-radius:7px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;text-align:center;"
+          onmouseover="this.style.background='rgba(121,85,72,0.08)'"
+          onmouseout="if(!window._geolQueryActive)this.style.background='#fff'"
+          title="Cliquez puis cliquez sur la carte pour interroger un point">
+          <svg width="20" height="18" viewBox="0 0 26 24" style="flex-shrink:0;"><polygon points="1,2 1,16 5,12 9,12" fill="#e67e22" stroke="#795548" stroke-width="1.5" stroke-linejoin="round"/><circle cx="18.5" cy="12" r="7" fill="#e67e22" stroke="#795548" stroke-width="1.5"/><text x="18.5" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="serif" font-style="italic">i</text></svg> Interroger un point sur la carte
+        </button>
+        <span id="geol-query-hint" style="font-size:0.72rem;color:#795548;opacity:0;transition:opacity 0.3s;text-align:center;width:100;">← Cliquez sur la carte géologique</span>
+        <button id="btn-geol-area" onclick="fetchGeolArea()"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 14px;font-size:0.78rem;font-weight:600;border:1px solid rgba(121,85,72,0.35);border-radius:7px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;text-align:center;"
+          onmouseover="this.style.background='rgba(121,85,72,0.08)'"
+          onmouseout="this.style.background='#fff'">
+          Formations géologiques dans un rayon de 500m <span style="font-size:1rem;font-weight:700;">?</span>
+        </button>
+      </div>
       </div><!-- /capture-geologie -->
 
       <!-- Informations géologiques au point -->
@@ -2348,25 +2364,63 @@ let bssData = []; // Store globally for map markers
 
 async function fetchBSS(lat, lng) {
   try {
-    const dLat = 0.018; // ~2km
-    const dLng = 0.025;
-    // WFS 2.0 BSS_EAU_POINT — BBOX ordre lat,lng (EPSG:4326 axis order)
-    const url = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
-      `&TYPENAMES=ms:BSS_EAU_POINT&COUNT=100` +
-      `&BBOX=${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
+    const dLat = 0.009; // ~1km
+    const dLng = 0.013;
+    const bboxStr = `${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    // Deux requêtes en parallèle : BSS_EAU_POINT (forages/puits) + BSS_TOTAL (tous types dont sondages)
+    const urlEau = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+      `&TYPENAMES=ms:BSS_EAU_POINT&COUNT=100&BBOX=${bboxStr}`;
+    const urlTotal = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+      `&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=80&BBOX=${bboxStr}`;
 
-    const text = await resp.text();
-    const features = parseBSSGml(text, lat, lng);
+    // Requêtes en parallèle
+    const safeFetch = async (url) => {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
+        return r.ok ? await r.text() : '';
+      } catch(e) { console.warn('BSS fetch error:', e); return ''; }
+    };
+    const [xmlEau, xmlTotal] = await Promise.all([safeFetch(urlEau), safeFetch(urlTotal)]);
+    const featEau = xmlEau ? parseBSSGml(xmlEau, lat, lng) : [];
+    const featTotal = xmlTotal ? parseBSSGml(xmlTotal, lat, lng) : [];
 
-    bssData = features;
-    _lastBSS = features;
-    renderBSS(features);
-    document.getElementById('stat-bss').textContent = features.length;
-    addBSSMarkersToMap(features);
-    return features;
+    // Fusionner et dédoublonner par bss_id ou reference
+    const seen = new Set();
+    const merged = [];
+    for (const f of [...featEau, ...featTotal]) {
+      const key = f.properties.bss_id || f.properties.reference || f.properties.code_bss || JSON.stringify(f.geometry?.coordinates);
+      if (!seen.has(key)) {
+        seen.add(key);
+        // Normaliser les noms de champs (BSS_TOTAL utilise des noms différents)
+        const p = f.properties;
+        if (!p.code_bss && p.reference) p.code_bss = p.reference;
+        if (!p.nature_pe && p.nature) p.nature_pe = p.nature;
+        if (!p.prof_invest && p.prof_atteinte) p.prof_invest = p.prof_atteinte;
+        if (!p.commune_actuelle && p.nom_commune) p.commune_actuelle = p.nom_commune;
+        if (!p.adresse && p.lieu_dit) p.adresse = p.lieu_dit;
+        if (!p.altitude && p.zsol) p.altitude = p.zsol;
+        if (!p.date_maj && p.date_dern_maj) p.date_maj = p.date_dern_maj;
+        merged.push(f);
+      }
+    }
+
+    // Filtrer à 1km du point investigué
+    const maxDist = 1.0;
+    const filtered = merged.filter(f => {
+      if (!f.geometry?.coordinates) return false;
+      const [fLng, fLat] = f.geometry.coordinates;
+      const dist = haversineKm(lat, lng, fLat, fLng);
+      f.properties._dist_km = dist;
+      return dist <= maxDist;
+    }).sort((a, b) => (a.properties._dist_km || 0) - (b.properties._dist_km || 0));
+
+    bssData = filtered;
+    _lastBSS = filtered;
+    renderBSS(filtered);
+    document.getElementById('stat-bss').textContent = filtered.length;
+    addBSSMarkersToMap(filtered);
+    return filtered;
   } catch (e) {
     console.error('BSS error:', e);
     document.getElementById('stat-bss').textContent = '?';
@@ -2376,6 +2430,14 @@ async function fetchBSS(lat, lng) {
       </div>`;
     throw e;
   }
+}
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 // Parse GML response from BRGM WFS BSS_EAU_POINT
@@ -2437,7 +2499,7 @@ function renderBSS(features) {
   if (!features || features.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        Aucun sondage BSS trouvé dans un rayon de 2 km.
+        Aucun sondage BSS trouvé dans un rayon de 1 km.
       </div>`;
     return;
   }
@@ -2537,6 +2599,79 @@ function addBSSMarkersToMap(features) {
         .addTo(map);
     });
   });
+}
+
+// Clic sur carte BSS → WFS GetFeature sur BSS_TOTAL autour du point cliqué
+async function onBssMapClick(e) {
+  const { lat, lng } = e.latlng;
+  const d = 0.0008; // ~80m
+  const bbox = `${(lat - d).toFixed(6)},${(lng - d).toFixed(6)},${(lat + d).toFixed(6)},${(lng + d).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
+  const url = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
+    `&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=5&BBOX=${bbox}`;
+
+  const popup = L.popup({ maxWidth: 320 })
+    .setLatLng([lat, lng])
+    .setContent('<div style="font-size:0.8rem;color:#795548;padding:4px;">⏳ Interrogation BSS…</div>')
+    .openOn(window.bssMap);
+
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const xml = await resp.text();
+
+    // Parser les membres
+    const members = xml.split(/<wfs:member>/i).slice(1);
+    if (!members.length) {
+      popup.setContent('<div style="font-size:0.8rem;color:#999;padding:4px;">Aucun sondage trouvé à proximité.</div>');
+      return;
+    }
+
+    // Trouver le plus proche
+    let best = null, bestDist = Infinity;
+    for (const m of members) {
+      const extractField = (name) => { const r = new RegExp(`<ms:${name}>([^<]*)</ms:${name}>`, 'i'); const match = m.match(r); return match ? match[1].trim() : ''; };
+      const fLat = parseFloat(extractField('latitude'));
+      const fLng = parseFloat(extractField('longitude'));
+      if (isNaN(fLat) || isNaN(fLng)) continue;
+      const dist = Math.hypot(fLat - lat, fLng - lng);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = {
+          lat: fLat, lng: fLng,
+          reference: extractField('reference'),
+          bssId: extractField('bss_id'),
+          nature: extractField('nature'),
+          profondeur: extractField('prof_atteinte'),
+          commune: extractField('nom_commune'),
+          lieuDit: extractField('lieu_dit'),
+          departement: extractField('nom_departement'),
+          region_geol: extractField('nom_region_geologique'),
+        };
+      }
+    }
+
+    if (!best) {
+      popup.setContent('<div style="font-size:0.8rem;color:#999;padding:4px;">Aucun sondage trouvé à proximité.</div>');
+      return;
+    }
+
+    const lien = `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(best.reference)}`;
+    const html = `<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;">
+      <strong style="color:#e0976e;">🔩 ${best.reference}</strong>
+      ${best.bssId ? `<span style="color:#888;font-size:10px;"> — ${best.bssId}</span>` : ''}<br>
+      ${best.nature ? `Type : <b>${best.nature}</b><br>` : ''}
+      ${best.profondeur ? `Profondeur : ${best.profondeur} m<br>` : ''}
+      ${best.commune ? `Commune : ${best.commune}<br>` : ''}
+      ${best.lieuDit ? `Lieu-dit : ${best.lieuDit}<br>` : ''}
+      ${best.departement ? `Dpt : ${best.departement}<br>` : ''}
+      ${best.region_geol ? `Région géol. : ${best.region_geol}<br>` : ''}
+      <a href="${lien}" target="_blank" style="color:#4a8eff;text-decoration:none;">Voir fiche InfoTerre →</a>
+    </div>`;
+
+    popup.setLatLng([best.lat, best.lng]).setContent(html);
+  } catch (err) {
+    popup.setContent(`<div style="font-size:0.8rem;color:#c62828;padding:4px;">⚠️ Erreur : ${err.message}</div>`);
+  }
 }
 
 // Maps setup
@@ -2829,6 +2964,13 @@ function setupMaps(lat, lng) {
 
   addMeasureTool(window.bssMap);
   setTimeout(() => { window.bssMap.invalidateSize(); }, 300);
+
+  // Clic sur la carte BSS → interrogation WFS du point le plus proche
+  // Forcer le curseur pointer sur tous les panes de la carte
+  const bssStyle = document.createElement('style');
+  bssStyle.textContent = '#map-bss, #map-bss * { cursor: pointer !important; }';
+  document.head.appendChild(bssStyle);
+  window.bssMap.on('click', onBssMapClick);
 
   // ====== Carte Remontées de Nappes ======
   if (window.nappesMap) { window.nappesMap.remove(); window.nappesMap = null; }
@@ -4511,6 +4653,211 @@ async function fetchGeologicalInfo(lat, lng) {
   }
 }
 
+// ====== Interrogation géologique par clic sur la carte ======
+window._geolQueryActive = false;
+window._geolQueryMarker = null;
+
+function toggleGeolQuery() {
+  const btn = document.getElementById('btn-geol-query');
+  const hint = document.getElementById('geol-query-hint');
+  if (!window.geologieMap) { alert("La carte géologique n'est pas encore chargée."); return; }
+
+  window._geolQueryActive = !window._geolQueryActive;
+
+  if (window._geolQueryActive) {
+    btn.style.background = 'rgba(121,85,72,0.15)';
+    btn.style.borderColor = '#795548';
+    hint.style.opacity = '1';
+    window.geologieMap.getContainer().style.cursor = 'crosshair';
+    window.geologieMap.once('click', onGeolMapQuery);
+  } else {
+    deactivateGeolQuery();
+  }
+}
+
+function deactivateGeolQuery() {
+  window._geolQueryActive = false;
+  const btn = document.getElementById('btn-geol-query');
+  const hint = document.getElementById('geol-query-hint');
+  if (btn) { btn.style.background = '#fff'; btn.style.borderColor = 'rgba(121,85,72,0.35)'; }
+  if (hint) hint.style.opacity = '0';
+  if (window.geologieMap) {
+    window.geologieMap.getContainer().style.cursor = '';
+    window.geologieMap.off('click', onGeolMapQuery);
+  }
+}
+
+async function onGeolMapQuery(e) {
+  const { lat, lng } = e.latlng;
+  deactivateGeolQuery();
+
+  // Marqueur temporaire
+  if (window._geolQueryMarker) window.geologieMap.removeLayer(window._geolQueryMarker);
+  window._geolQueryMarker = L.marker([lat, lng]).addTo(window.geologieMap)
+    .bindPopup('<div style="text-align:center;padding:4px;font-size:0.8rem;color:#795548;">⏳ Interrogation en cours…</div>')
+    .openPopup();
+  window._geolQueryMarker.on('popupclose', function() {
+    if (window._geolQueryMarker) { window.geologieMap.removeLayer(window._geolQueryMarker); window._geolQueryMarker = null; }
+  });
+
+  try {
+    const { x, y } = wgs84ToLambert93(lat, lng);
+    const d = 500;
+    const bbox = `${x - d},${y - d},${x + d},${y + d}`;
+    const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+      `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+      `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
+      `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const xml = await resp.text();
+
+    const carte    = extractGmlField(xml, 'carte');
+    const nom      = extractGmlField(xml, 'nom');
+    const notation = extractGmlField(xml, 'notation');
+    const descr    = extractGmlField(xml, 'description');
+
+    if (carte || nom || notation || descr) {
+      const html = `<div style="font-size:0.78rem;min-width:220px;max-width:320px;">
+        <div style="font-weight:700;color:#795548;margin-bottom:8px;font-size:0.85rem;">🔬 Info géologique</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="font-weight:600;color:#795548;padding:3px 8px 3px 0;white-space:nowrap;vertical-align:top;">N° Carte</td><td style="padding:3px 0;font-weight:700;color:#5d4037;">${carte || '—'}</td></tr>
+          <tr><td style="font-weight:600;color:#795548;padding:3px 8px 3px 0;white-space:nowrap;vertical-align:top;">Nom carte</td><td style="padding:3px 0;">${nom || '—'}</td></tr>
+          <tr><td style="font-weight:600;color:#795548;padding:3px 8px 3px 0;white-space:nowrap;vertical-align:top;">Notation</td><td style="padding:3px 0;font-family:monospace;font-weight:700;">${notation || '—'}</td></tr>
+          <tr><td style="font-weight:600;color:#795548;padding:3px 8px 3px 0;white-space:nowrap;vertical-align:top;">Description</td><td style="padding:3px 0;line-height:1.4;">${descr || '—'}</td></tr>
+        </table>
+      </div>`;
+      window._geolQueryMarker.setPopupContent(html).openPopup();
+    } else {
+      window._geolQueryMarker.setPopupContent('<div style="font-size:0.8rem;color:#999;padding:4px;">⚠️ Aucune donnée géologique à ce point.</div>').openPopup();
+    }
+  } catch(err) {
+    if (window._geolQueryMarker) {
+      window._geolQueryMarker.setPopupContent(`<div style="font-size:0.8rem;color:#c62828;padding:4px;">⚠️ Erreur : ${err.message}</div>`).openPopup();
+    }
+  }
+}
+
+// ====== Formations géologiques dans un rayon de 500m ======
+async function fetchGeolArea() {
+  if (!currentLat || !currentLng) { alert("Lancez d'abord une investigation !"); return; }
+  if (!window.geologieMap) { alert("La carte géologique n'est pas encore chargée."); return; }
+
+  const btn = document.getElementById('btn-geol-area');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Recherche des formations géologiques en cours…';
+
+  // Afficher le cercle de recherche 500m (au-dessus de la couche WMS)
+  if (window._geolAreaCircle) window.geologieMap.removeLayer(window._geolAreaCircle);
+  if (!window.geologieMap.getPane('geolCirclePane')) {
+    window.geologieMap.createPane('geolCirclePane');
+    window.geologieMap.getPane('geolCirclePane').style.zIndex = 500;
+  }
+  window._geolAreaCircle = L.circle([currentLat, currentLng], {
+    radius: 500,
+    pane: 'geolCirclePane',
+    color: '#d32f2f',
+    weight: 3,
+    dashArray: '8 6',
+    fillColor: '#d32f2f',
+    fillOpacity: 0.10,
+  }).addTo(window.geologieMap);
+
+  // Grille de points dans un rayon de 500m (limité à 35 points)
+  const { x: cx, y: cy } = wgs84ToLambert93(currentLat, currentLng);
+  const radius = 500;
+  const steps = 8;
+  const step = (radius * 2) / (steps - 1);
+  const points = [];
+  for (let i = 0; i < steps && points.length < 35; i++) {
+    for (let j = 0; j < steps && points.length < 35; j++) {
+      const px = cx - radius + i * step;
+      const py = cy - radius + j * step;
+      if (Math.hypot(px - cx, py - cy) <= radius) {
+        points.push({ x: px, y: py });
+      }
+    }
+  }
+
+  const formations = new Map(); // clé = notation, valeur = { carte, nom, notation, description }
+
+  // Requêtes en parallèle par batch de 10
+  const batchSize = 10;
+  for (let b = 0; b < points.length; b += batchSize) {
+    const batch = points.slice(b, b + batchSize);
+    const promises = batch.map(async (pt) => {
+      try {
+        const d = 50;
+        const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
+        const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+          `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+          `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
+          `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!resp.ok) return;
+        const xml = await resp.text();
+        const notation = extractGmlField(xml, 'notation');
+        if (notation && !formations.has(notation)) {
+          formations.set(notation, {
+            carte: extractGmlField(xml, 'carte'),
+            nom: extractGmlField(xml, 'nom'),
+            notation,
+            description: extractGmlField(xml, 'description'),
+          });
+        }
+      } catch(e) { /* skip */ }
+    });
+    await Promise.all(promises);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Formations géologiques dans un rayon de 500m <span style="font-size:1rem;font-weight:700;">?</span>';
+
+  if (formations.size === 0) {
+    const p = L.popup()
+      .setLatLng([currentLat, currentLng])
+      .setContent('<div style="font-size:0.8rem;color:#999;padding:4px;">⚠️ Aucune formation géologique trouvée dans un rayon de 500m.</div>')
+      .openOn(window.geologieMap);
+    p.on('remove', function() {
+      if (window._geolAreaCircle) { window.geologieMap.removeLayer(window._geolAreaCircle); window._geolAreaCircle = null; }
+    });
+    return;
+  }
+
+  // Construire le tableau HTML
+  const sorted = [...formations.values()].sort((a, b) => a.notation.localeCompare(b.notation));
+  let rows = sorted.map(f =>
+    `<tr>
+      <td style="padding:4px 8px;border-bottom:1px solid rgba(121,85,72,0.1);font-weight:700;color:#5d4037;white-space:nowrap;">${f.carte || '—'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid rgba(121,85,72,0.1);">${f.nom || '—'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid rgba(121,85,72,0.1);font-family:monospace;font-weight:700;">${f.notation}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid rgba(121,85,72,0.1);line-height:1.4;max-width:250px;">${f.description || '—'}</td>
+    </tr>`
+  ).join('');
+
+  const html = `<div style="font-size:0.75rem;max-width:520px;max-height:350px;overflow:auto;">
+    <div style="font-weight:700;color:#795548;margin-bottom:8px;font-size:0.85rem;">🔬 Formations géologiques — rayon 500m <span style="font-weight:400;font-size:0.72rem;color:var(--text-muted);">(${sorted.length} formation${sorted.length > 1 ? 's' : ''})</span></div>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr style="background:rgba(121,85,72,0.08);">
+        <th style="padding:5px 8px;text-align:left;font-weight:700;color:#795548;font-size:0.72rem;">N° Carte</th>
+        <th style="padding:5px 8px;text-align:left;font-weight:700;color:#795548;font-size:0.72rem;">Nom</th>
+        <th style="padding:5px 8px;text-align:left;font-weight:700;color:#795548;font-size:0.72rem;">Notation</th>
+        <th style="padding:5px 8px;text-align:left;font-weight:700;color:#795548;font-size:0.72rem;">Description</th>
+      </tr>
+      ${rows}
+    </table>
+  </div>`;
+
+  const popup = L.popup({ maxWidth: 550, maxHeight: 400 })
+    .setLatLng([currentLat, currentLng])
+    .setContent(html)
+    .openOn(window.geologieMap);
+  popup.on('remove', function() {
+    if (window._geolAreaCircle) { window.geologieMap.removeLayer(window._geolAreaCircle); window._geolAreaCircle = null; }
+  });
+}
+
 async function fetchAltitude(lat, lng) {
   const el = document.getElementById('altitude');
   el.value = '…';
@@ -4645,13 +4992,13 @@ function screenshotFilename(label) {
   const ts = now.toISOString().slice(0,19).replace(/[T:]/g, '-');
   const lat = currentLat ? currentLat.toFixed(4) : '0';
   const lng = currentLng ? currentLng.toFixed(4) : '0';
-  return `geocarto_${label}_${lat}_${lng}_${ts}.png`;
+  return `geocarto_${label}_${lat}_${lng}_${ts}.jpg`;
 }
 
 function downloadCanvas(canvas, filename) {
   const link = document.createElement('a');
   link.download = filename;
-  link.href = canvas.toDataURL('image/png');
+  link.href = canvas.toDataURL('image/jpeg', 0.92);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -4840,7 +5187,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         if (target) _fixTransformsInClone(target);
       },
     });
-    downloadCanvas(canvas, rawName ? `${label}.png` : screenshotFilename(label));
+    downloadCanvas(canvas, rawName ? `${label}.jpg` : screenshotFilename(label));
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);

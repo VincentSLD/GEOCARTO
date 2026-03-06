@@ -34,7 +34,21 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://georisques.gouv.fr/api/v1/rapport_pdf?latlon=48.8566,2.3522\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\" \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=2.3522,48.8566\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\" \"https://errial.georisques.gouv.fr/api/v1/rapport_pdf?latlon=48.8566,2.3522\")",
-      "Bash(curl -s -D - -o /dev/null \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=2.3522,48.8566\")"
+      "Bash(curl -s -D - -o /dev/null \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=2.3522,48.8566\")",
+      "Bash(curl -s \"https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=651500,6861500,652500,6862500&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=50\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=BSS_TOTAL_AVEC_LABEL&QUERY_LAYERS=BSS_TOTAL_AVEC_LABEL&SRS=EPSG:4326&BBOX=2.34,48.85,2.36,48.87&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/json&FEATURE_COUNT=1\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=BSS_TOTAL_AVEC_LABEL&QUERY_LAYERS=BSS_TOTAL_AVEC_LABEL&SRS=EPSG:4326&BBOX=2.34,48.85,2.36,48.87&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=3\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=BSS_TOTAL_AVEC_LABEL&QUERY_LAYERS=BSS_TOTAL_AVEC_LABEL&SRS=EPSG:4326&BBOX=2.345,48.855,2.355,48.865&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=5\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=BSS_TOTAL_SANS_LABEL&QUERY_LAYERS=BSS_TOTAL_SANS_LABEL&SRS=EPSG:4326&BBOX=2.345,48.855,2.355,48.865&WIDTH=256&HEIGHT=256&X=128&Y=128&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=5\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326&OUTPUTFORMAT=application/json\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=3&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=2&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_EAU_POINT&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} - Size: %{size_download} bytes - Time: %{time_total}s\" \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=150&BBOX=48.846,2.332,48.864,2.358,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s -D - -o /dev/null \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s -D - -o /dev/null \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_EAU_POINT&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")"
     ]
   }
 }
