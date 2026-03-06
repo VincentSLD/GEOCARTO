@@ -766,6 +766,9 @@
   .error-msg.active { display: block; }
 
   /* Responsive */
+  @media (max-width: 1023px) {
+    #parcel-search-row { display: none !important; }
+  }
   @media (max-width: 768px) {
     .header h1 { font-size: 1.8rem; }
     .search-row { flex-direction: column; }
@@ -976,7 +979,7 @@
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
+        <div id="parcel-search-row" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
           <input type="text" id="parcel-commune" placeholder="Commune…"
             style="flex:1;min-width:0;font-size:0.78rem;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
