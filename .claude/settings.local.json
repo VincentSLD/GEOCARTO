@@ -29,7 +29,12 @@
       "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=75056&page=1&page_size=5\")",
       "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=-1.88,46.85&rayon=1000&page=1&page_size=100\")",
       "Bash(gh repo view VincentSLD/GEOCARTO --json defaultBranchRef,url)",
-      "Bash(gh api repos/VincentSLD/GEOCARTO/commits/main --jq '.sha, .commit.message')"
+      "Bash(gh api repos/VincentSLD/GEOCARTO/commits/main --jq '.sha, .commit.message')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{redirect_url}\" \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=48.8566,2.3522\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://georisques.gouv.fr/api/v1/rapport_pdf?latlon=48.8566,2.3522\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\" \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=2.3522,48.8566\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\" \"https://errial.georisques.gouv.fr/api/v1/rapport_pdf?latlon=48.8566,2.3522\")",
+      "Bash(curl -s -D - -o /dev/null \"https://www.georisques.gouv.fr/api/v1/rapport_pdf?latlon=2.3522,48.8566\")"
     ]
   }
 }
