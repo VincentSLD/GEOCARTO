@@ -976,6 +976,20 @@
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
         </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
+          <input type="text" id="parcel-commune" placeholder="Commune…"
+            style="flex:1;min-width:0;font-size:0.78rem;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
+          <input type="text" id="parcel-section" placeholder="Section (ex: AB)"
+            style="width:80px;font-size:0.78rem;text-transform:uppercase;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
+          <input type="text" id="parcel-numero" placeholder="N° (ex: 0012)"
+            style="width:80px;font-size:0.78rem;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
+          <button class="preset-btn" onclick="searchParcel()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:#795548;border-color:#795548;" title="Rechercher une parcelle cadastrale">
+            🔍 Parcelle
+          </button>
+        </div>
         <div id="picker-map-wrapper" style="position:relative;">
           <div id="picker-map" style="width:100%;height:320px;border-radius:10px;border:1px solid var(--border);overflow:hidden;cursor:crosshair;"></div>
           <button class="btn-map-fs" onclick="togglePickerFullscreen()">⛶ Plein écran</button>
@@ -1472,7 +1486,7 @@
 
       <div class="section-title" style="margin-top:1rem;">
         <div class="icon" style="background:linear-gradient(135deg,#e0976e 0%,#c97b4e 100%)">🔩</div>
-        Sondages géotechniques (BSS — BRGM)
+        Sondages géotechniques (BSS — BRGM) dans un rayon de 5km
       </div>
       <div id="bss-list">
         <div class="empty-state">Chargement des sondages BSS…</div>
@@ -1590,6 +1604,7 @@ function initPickerMap() {
     document.getElementById('lat').value = lat.toFixed(10);
     document.getElementById('lng').value = lng.toFixed(10);
     updatePickerMarker(lat, lng, false);
+    reverseCadastre(lat, lng);
   });
 
   // Debounced address search
@@ -1631,6 +1646,7 @@ function updatePickerMarker(lat, lng, flyTo) {
       document.getElementById('lat').value = pos.lat.toFixed(10);
       document.getElementById('lng').value = pos.lng.toFixed(10);
       updatePickerInfo(pos.lat, pos.lng);
+      reverseCadastre(pos.lat, pos.lng);
     });
   }
 
@@ -1690,6 +1706,16 @@ function togglePickerCadastre() {
   }
 }
 
+// Sync fullscreen parcel fields → normal fields
+function syncFsParcelFields() {
+  const fc = document.getElementById('fs-parcel-commune');
+  const fs = document.getElementById('fs-parcel-section');
+  const fn = document.getElementById('fs-parcel-numero');
+  if (fc) document.getElementById('parcel-commune').value = fc.value;
+  if (fs) document.getElementById('parcel-section').value = fs.value;
+  if (fn) document.getElementById('parcel-numero').value = fn.value;
+}
+
 // Picker fullscreen mode
 let pickerFullscreen = false;
 function togglePickerFullscreen() {
@@ -1707,15 +1733,29 @@ function togglePickerFullscreen() {
     const top = document.createElement('div');
     top.className = 'picker-fs-controls';
     top.innerHTML = `
-      <input type="text" id="fs-address-search" placeholder="Adresse…"
-        style="flex:1;min-width:180px;font-size:0.82rem;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
-        oninput="document.getElementById('address-search').value=this.value;document.getElementById('altitude').value='';"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();this.blur();}">
-      <button class="preset-btn" onclick="document.getElementById('address-search').value=document.getElementById('fs-address-search').value;searchAddress();" style="padding:7px 12px;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">🔍</button>
-      <button class="btn-locate" onclick="locateMe()" title="Me localiser" style="padding:7px 10px;font-size:1rem;">🎯</button>
-      <button class="preset-btn" onclick="togglePickerLayer()" style="padding:7px 10px;font-size:0.72rem;">🛰 Satellite</button>
-      <button class="preset-btn" onclick="togglePickerCadastre()" style="padding:7px 10px;font-size:0.72rem;">📐 Cadastre</button>
-      <button class="preset-btn" onclick="togglePickerFullscreen()" style="padding:7px 10px;font-size:0.72rem;margin-left:auto;">✕ Fermer</button>
+      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;width:100%;">
+        <input type="text" id="fs-address-search" placeholder="Adresse…"
+          style="flex:1;min-width:150px;font-size:0.82rem;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
+          oninput="document.getElementById('address-search').value=this.value;document.getElementById('altitude').value='';"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();this.blur();}">
+        <button class="preset-btn" onclick="document.getElementById('address-search').value=document.getElementById('fs-address-search').value;searchAddress();" style="padding:7px 12px;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">🔍</button>
+        <button class="btn-locate" onclick="locateMe()" title="Me localiser" style="padding:7px 10px;font-size:1rem;">🎯</button>
+        <span style="width:1px;height:24px;background:var(--border);margin:0 2px;"></span>
+        <input type="text" id="fs-parcel-commune" placeholder="Commune…"
+          style="width:120px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
+        <input type="text" id="fs-parcel-section" placeholder="Section"
+          style="width:65px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;text-transform:uppercase;font-family:'Bricolage Grotesque',sans-serif;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
+        <input type="text" id="fs-parcel-numero" placeholder="N°"
+          style="width:55px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
+        <button class="preset-btn" onclick="syncFsParcelFields();searchParcel();" style="padding:7px 10px;font-size:0.78rem;color:#795548;border-color:#795548;">🔍 Parcelle</button>
+        <span style="width:1px;height:24px;background:var(--border);margin:0 2px;"></span>
+        <button class="preset-btn" onclick="togglePickerLayer()" style="padding:7px 10px;font-size:0.72rem;">🛰 Satellite</button>
+        <button class="preset-btn" onclick="togglePickerCadastre()" style="padding:7px 10px;font-size:0.72rem;">📐 Cadastre</button>
+        <button class="preset-btn" onclick="togglePickerFullscreen()" style="padding:7px 10px;font-size:0.72rem;margin-left:auto;">✕ Fermer</button>
+      </div>
     `;
     fs.appendChild(top);
 
@@ -1749,8 +1789,11 @@ function togglePickerFullscreen() {
     if (fsBtn) fsBtn.style.display = 'none';
     setTimeout(() => { pickerMap.invalidateSize(); }, 100);
 
-    // Sync address field
+    // Sync address & parcel fields
     document.getElementById('fs-address-search').value = document.getElementById('address-search').value;
+    document.getElementById('fs-parcel-commune').value = document.getElementById('parcel-commune').value;
+    document.getElementById('fs-parcel-section').value = document.getElementById('parcel-section').value;
+    document.getElementById('fs-parcel-numero').value = document.getElementById('parcel-numero').value;
 
     // Escape key to close
     fs._escHandler = (e) => { if (e.key === 'Escape') togglePickerFullscreen(); };
@@ -1777,6 +1820,7 @@ function togglePickerFullscreen() {
       }
       const fsAddr = document.getElementById('fs-address-search');
       if (fsAddr) document.getElementById('address-search').value = fsAddr.value;
+      syncFsParcelFields();
 
       document.removeEventListener('keydown', fs._escHandler);
       clearInterval(fs._syncInterval);
@@ -1808,6 +1852,197 @@ async function searchAddress() {
   } catch (e) {
     console.error('Address search error:', e);
   }
+}
+
+async function searchParcel() {
+  const communeInput = document.getElementById('parcel-commune').value.trim();
+  const section = document.getElementById('parcel-section').value.trim().toUpperCase();
+  const numero = document.getElementById('parcel-numero').value.trim();
+  const coordsEl = document.getElementById('picker-coords');
+
+  if (!communeInput || !numero) {
+    coordsEl.innerHTML = '<span style="color:var(--accent-amber);">Renseignez au moins la commune et le numéro de parcelle.</span>';
+    return;
+  }
+
+  const numPadded = numero.padStart(4, '0');
+  coordsEl.innerHTML = '<span style="color:var(--text-muted);">⏳ Recherche de la parcelle…</span>';
+
+  try {
+    // 1. Trouver le code INSEE de la commune via l'API geo
+    const geoResp = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(communeInput)}&fields=nom,code&limit=5`);
+    const communes = await geoResp.json();
+    if (!communes.length) {
+      coordsEl.innerHTML = `<span style="color:var(--accent-amber);">Commune "${communeInput}" non trouvée.</span>`;
+      return;
+    }
+
+    const commune = communes.find(c => c.nom.toLowerCase() === communeInput.toLowerCase()) || communes[0];
+    const codeInsee = commune.code;
+
+    // 2. Rechercher la parcelle via l'API Carto IGN
+    const url = section
+      ? `https://apicarto.ign.fr/api/cadastre/parcelle?code_insee=${codeInsee}&section=${section}&numero=${numPadded}`
+      : `https://apicarto.ign.fr/api/cadastre/parcelle?code_insee=${codeInsee}&numero=${numPadded}`;
+    const parcResp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    const parcData = await parcResp.json();
+    const features = parcData.features || [];
+
+    if (!features.length) {
+      coordsEl.innerHTML = `<span style="color:var(--accent-amber);">Parcelle ${section ? section + ' ' : ''}${numPadded} non trouvée sur ${commune.nom} (${codeInsee}).</span>`;
+      return;
+    }
+
+    // Si pas de section et plusieurs résultats → afficher les suggestions
+    if (!section && features.length > 1) {
+      showParcelSuggestions(features, commune, numPadded);
+      return;
+    }
+
+    // Sélectionner la parcelle
+    selectParcel(features[0], commune, section || features[0].properties.section, numPadded);
+  } catch (e) {
+    console.error('Parcel search error:', e);
+    coordsEl.innerHTML = `<span style="color:var(--accent-amber);">Erreur : ${e.message}</span>`;
+  }
+}
+
+function showParcelSuggestions(features, commune, numero) {
+  const container = document.getElementById('address-suggestions');
+  const list = document.getElementById('address-suggestions-list');
+
+  // Stocker les features pour la sélection
+  window._parcelSuggestions = features;
+  window._parcelCommune = commune;
+  window._parcelNumero = numero;
+
+  list.innerHTML = `<div style="padding:8px 12px;font-size:0.72rem;color:var(--text-muted);border-bottom:1px solid var(--border);">${features.length} parcelles n°${numero} trouvées sur <strong>${commune.nom}</strong> — choisissez la section :</div>` +
+    features.map((f, i) => {
+      const p = f.properties || {};
+      return `<div class="addr-suggestion" onclick="selectParcelSuggestion(${i})" style="cursor:pointer;">
+        <div><strong>Section ${p.section}</strong> n°${p.numero} — ${p.contenance || '?'} m²</div>
+      </div>`;
+    }).join('');
+
+  container.style.display = 'block';
+
+  // Afficher toutes les parcelles sur la carte avec leur section en label
+  if (window._parcelLayer && pickerMap) pickerMap.removeLayer(window._parcelLayer);
+  const group = L.featureGroup();
+  features.forEach((f, i) => {
+    const p = f.properties || {};
+    const layer = L.geoJSON(f.geometry, {
+      style: { color: '#e67e22', weight: 2, fillColor: '#e67e22', fillOpacity: 0.1, dashArray: '4 3' }
+    });
+    layer.bindTooltip(`<strong>${p.section} ${p.numero}</strong><br>${p.contenance || '?'} m²`, {
+      permanent: true, direction: 'center',
+      className: 'parcel-label',
+      offset: [0, 0]
+    });
+    layer.on('click', () => selectParcelSuggestion(i));
+    layer.addTo(group);
+  });
+  group.addTo(pickerMap);
+  window._parcelLayer = group;
+  pickerMap.fitBounds(group.getBounds(), { padding: [30, 30] });
+
+  document.getElementById('picker-coords').innerHTML = `<span style="color:var(--accent-teal);">${features.length} parcelles trouvées — sélectionnez une section ci-dessus ou cliquez sur la carte.</span>`;
+}
+
+function selectParcelSuggestion(index) {
+  const feat = window._parcelSuggestions[index];
+  const commune = window._parcelCommune;
+  const numero = window._parcelNumero;
+  const section = feat.properties.section;
+
+  // Remplir le champ section
+  document.getElementById('parcel-section').value = section;
+
+  // Masquer les suggestions
+  document.getElementById('address-suggestions').style.display = 'none';
+
+  selectParcel(feat, commune, section, numero);
+}
+
+// Reverse cadastral lookup: find parcel at a given lat/lng
+async function reverseCadastre(lat, lng) {
+  try {
+    const url = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=%7B%22type%22%3A%22Point%22%2C%22coordinates%22%3A%5B${lng}%2C${lat}%5D%7D`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const feat = (data.features || [])[0];
+    if (!feat) {
+      // Vider les champs si pas de parcelle
+      ['parcel-commune','parcel-section','parcel-numero'].forEach(id => document.getElementById(id).value = '');
+      ['fs-parcel-commune','fs-parcel-section','fs-parcel-numero'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      return;
+    }
+    const p = feat.properties || {};
+    const commune = p.nom_com || '';
+    const section = p.section || '';
+    const numero = p.numero || '';
+
+    document.getElementById('parcel-commune').value = commune;
+    document.getElementById('parcel-section').value = section;
+    document.getElementById('parcel-numero').value = numero;
+    const fsC = document.getElementById('fs-parcel-commune');
+    const fsS = document.getElementById('fs-parcel-section');
+    const fsN = document.getElementById('fs-parcel-numero');
+    if (fsC) fsC.value = commune;
+    if (fsS) fsS.value = section;
+    if (fsN) fsN.value = numero;
+
+    document.getElementById('picker-coords').innerHTML =
+      `<span style="color:var(--accent-teal);">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)} — Parcelle <strong>${section} ${numero}</strong> · ${commune} · ${p.contenance || '?'} m²</span>`;
+  } catch (e) {
+    // Silencieux si erreur réseau
+  }
+}
+
+function selectParcel(feat, commune, section, numero) {
+  const coords = feat.geometry.coordinates;
+  const coordsEl = document.getElementById('picker-coords');
+
+  // Calculer le centroïde de la parcelle
+  let ring;
+  if (feat.geometry.type === 'MultiPolygon') {
+    ring = coords[0][0];
+  } else {
+    ring = coords[0];
+  }
+  let sumLng = 0, sumLat = 0;
+  for (const pt of ring) { sumLng += pt[0]; sumLat += pt[1]; }
+  const cLat = sumLat / ring.length;
+  const cLng = sumLng / ring.length;
+
+  // Mettre à jour les champs lat/lng
+  document.getElementById('lat').value = cLat.toFixed(6);
+  document.getElementById('lng').value = cLng.toFixed(6);
+
+  // Dessiner le contour de la parcelle et centrer dessus
+  if (window._parcelLayer && pickerMap) pickerMap.removeLayer(window._parcelLayer);
+  window._parcelLayer = L.geoJSON(feat.geometry, {
+    style: { color: '#e67e22', weight: 3, fillColor: '#e67e22', fillOpacity: 0.15 }
+  }).addTo(pickerMap);
+
+  pickerMap.fitBounds(window._parcelLayer.getBounds(), { padding: [40, 40], maxZoom: 19 });
+  if (pickerMarker) pickerMarker.setLatLng([cLat, cLng]);
+  else pickerMarker = L.marker([cLat, cLng]).addTo(pickerMap);
+
+  // Remplir les champs commune / section / numéro (normal + plein écran)
+  document.getElementById('parcel-commune').value = commune.nom;
+  document.getElementById('parcel-section').value = section;
+  document.getElementById('parcel-numero').value = numero;
+  const fsC = document.getElementById('fs-parcel-commune');
+  const fsS = document.getElementById('fs-parcel-section');
+  const fsN = document.getElementById('fs-parcel-numero');
+  if (fsC) fsC.value = commune.nom;
+  if (fsS) fsS.value = section;
+  if (fsN) fsN.value = numero;
+
+  const props = feat.properties || {};
+  coordsEl.innerHTML = `<span style="color:var(--accent-teal);">🔍 Parcelle <strong>${section} ${numero}</strong> — ${commune.nom} (${commune.code}) — ${props.contenance || '?'} m²</span>`;
 }
 
 async function autocompleteAddress(q) {
@@ -1864,6 +2099,14 @@ function selectAddressSuggestion(index) {
 
 // Init picker map when DOM ready
 document.addEventListener('DOMContentLoaded', initPickerMap);
+
+// Desktop: placeholder plus détaillé pour le champ adresse
+if (window.matchMedia('(min-width: 1024px)').matches) {
+  document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('address-search');
+    if (el) el.placeholder = 'Rechercher par l\u2019adresse complète';
+  });
+}
 
 // Pre-fill EDS form from URL params (sent by GéoTer)
 document.addEventListener('DOMContentLoaded', function(){
@@ -2027,9 +2270,12 @@ async function fetchRisques(lat, lng) {
       ? `https://georisques.gouv.fr/api/v1/gaspar/risques?code_insee=${currentInsee}&page=1&page_size=50`
       : `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
-    const risks = data.data || [];
+    const entries = data.data || [];
+    // Extraire les risques détaillés et le nom de commune
+    const commune = entries[0]?.libelle_commune || '';
+    const risks = entries.flatMap(e => (e.risques_detail || []).map(rd => ({ ...rd, commune: e.libelle_commune || '' })));
     _lastRisques = risks;
-    renderRisques(risks);
+    renderRisques(risks, commune);
     document.getElementById('stat-risques').textContent = risks.length;
     return risks;
   } catch (e) {
@@ -2041,25 +2287,28 @@ async function fetchRisques(lat, lng) {
   }
 }
 
-function renderRisques(risks) {
+function renderRisques(risks, commune) {
   const container = document.getElementById('risk-grid');
   if (!risks || risks.length === 0) {
     container.innerHTML = '<div class="empty-state">Aucun risque répertorié pour cette commune.</div>';
     return;
   }
 
-  container.innerHTML = risks.map(r => {
+  const header = commune
+    ? `<div style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Risques sur la commune de <strong>${commune}</strong></div>`
+    : '';
+
+  container.innerHTML = header + risks.map(r => {
     const level = getRiskLevel(r);
     return `
       <div class="risk-card">
         <div class="risk-indicator ${level}"></div>
         <div class="risk-header">
-          <span class="risk-name">${r.libelle_risque_long || r.libelle_risque_jo || 'Risque inconnu'}</span>
+          <span class="risk-name">${r.libelle_risque_long || 'Risque inconnu'}</span>
           <span class="risk-badge ${level}">${level === 'high' ? 'Élevé' : level === 'medium' ? 'Moyen' : level === 'low' ? 'Faible' : 'Info'}</span>
         </div>
         <div class="risk-detail">
-          ${r.num_risque_gaspar ? `<strong>Code GASPAR:</strong> ${r.num_risque_gaspar}<br>` : ''}
-          ${r.libelle_risque_jo ? `<strong>JO:</strong> ${r.libelle_risque_jo}<br>` : ''}
+          ${r.num_risque ? `<strong>Code :</strong> ${r.num_risque}<br>` : ''}
         </div>
       </div>
     `;
@@ -2151,12 +2400,17 @@ async function fetchSismique(lat, lng) {
     const url = `https://georisques.gouv.fr/api/v1/zonage_sismique?latlon=${lng},${lat}&rayon=100`;
     const data = await fetchJSON(url, 10000);
     const zones = data.data || [];
+    const el = document.getElementById('stat-sismique');
     if (zones.length > 0) {
       const zone = zones[0];
       const code = String(zone.code_zone || '');
-      document.getElementById('stat-sismique').textContent = code || '—';
+      el.textContent = code || '—';
+      // Couleurs légende officielle sismique (texte uniquement)
+      const sismColors = { '1':'#999', '2':'#f6e749', '3':'#f6a723', '4':'#eb4a27', '5':'#a9325a' };
+      if (sismColors[code]) el.style.color = sismColors[code];
     } else {
-      document.getElementById('stat-sismique').textContent = '—';
+      el.textContent = '—';
+      el.style.color = '';
     }
     return zones;
   } catch (e) {
@@ -2348,12 +2602,12 @@ function renderMvtTerrain(items) {
 
   container.innerHTML = items.map(item => `
     <div class="icpe-item">
-      <div class="icpe-name">${item.type_mvt || 'Mouvement inconnu'}</div>
+      <div class="icpe-name">${item.type || item.type_mvt || 'Mouvement inconnu'}</div>
       <div class="icpe-detail">
         ${item.date_debut ? `Date : ${formatDate(item.date_debut)}` : ''}
-        ${item.commune ? ` · ${item.commune}` : ''}
-        ${item.lieu_dit ? ` · ${item.lieu_dit}` : ''}
-        ${item.precision ? ` · Précision : ${item.precision}` : ''}
+        ${item.departement?.nom ? ` · ${item.departement.nom}` : (item.commune ? ` · ${item.commune}` : '')}
+        ${item.commentaire_lieu || item.lieu_dit ? ` · ${item.commentaire_lieu || item.lieu_dit}` : ''}
+        ${item.fiabilite ? ` · Fiabilité : ${item.fiabilite}` : (item.precision ? ` · Précision : ${item.precision}` : '')}
       </div>
     </div>
   `).join('');
@@ -2364,15 +2618,15 @@ let bssData = []; // Store globally for map markers
 
 async function fetchBSS(lat, lng) {
   try {
-    const dLat = 0.009; // ~1km
-    const dLng = 0.013;
+    const dLat = 0.045; // ~5km
+    const dLng = 0.065;
     const bboxStr = `${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
 
     // Deux requêtes en parallèle : BSS_EAU_POINT (forages/puits) + BSS_TOTAL (tous types dont sondages)
     const urlEau = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
-      `&TYPENAMES=ms:BSS_EAU_POINT&COUNT=100&BBOX=${bboxStr}`;
+      `&TYPENAMES=ms:BSS_EAU_POINT&COUNT=200&BBOX=${bboxStr}`;
     const urlTotal = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
-      `&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=80&BBOX=${bboxStr}`;
+      `&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=200&BBOX=${bboxStr}`;
 
     // Requêtes en parallèle
     const safeFetch = async (url) => {
@@ -2405,8 +2659,8 @@ async function fetchBSS(lat, lng) {
       }
     }
 
-    // Filtrer à 1km du point investigué
-    const maxDist = 1.0;
+    // Filtrer à 5km du point investigué
+    const maxDist = 5.0;
     const filtered = merged.filter(f => {
       if (!f.geometry?.coordinates) return false;
       const [fLng, fLat] = f.geometry.coordinates;
@@ -2499,7 +2753,7 @@ function renderBSS(features) {
   if (!features || features.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        Aucun sondage BSS trouvé dans un rayon de 1 km.
+        Aucun sondage BSS trouvé dans un rayon de 5 km.
       </div>`;
     return;
   }
@@ -5184,7 +5438,13 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         const target = clonedEl?.id === mapContainerId
           ? clonedEl
           : _clonedDoc.getElementById(mapContainerId);
-        if (target) _fixTransformsInClone(target);
+        if (target) {
+          _fixTransformsInClone(target);
+          // Masquer les contrôles (zoom +/-, outil mesure) dans la capture
+          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => {
+            el.style.display = 'none';
+          });
+        }
       },
     });
     downloadCanvas(canvas, rawName ? `${label}.jpg` : screenshotFilename(label));
@@ -5288,10 +5548,10 @@ function exportRisquesExcel() {
 
   // 1. Risques naturels & technologiques
   const risquesRows = _lastRisques.map(r => ({
-    'Risque': r.libelle_risque_long || r.libelle_risque_jo || '',
+    'Risque': r.libelle_risque_long || '',
     'Niveau': (() => { const l = getRiskLevel(r); return l === 'high' ? 'Élevé' : l === 'medium' ? 'Moyen' : l === 'low' ? 'Faible' : 'Info'; })(),
-    'Code GASPAR': r.num_risque_gaspar || '',
-    'Libellé JO': r.libelle_risque_jo || ''
+    'Code': r.num_risque || '',
+    'Commune': r.commune || ''
   }));
   const wsRisques = XLSX.utils.json_to_sheet(risquesRows.length ? risquesRows : [{ 'Info': 'Aucun risque répertorié' }]);
   XLSX.utils.book_append_sheet(wb, wsRisques, 'Risques');
@@ -5328,11 +5588,11 @@ function exportRisquesExcel() {
 
   // 5. Mouvements de terrain
   const mvtRows = _lastMvt.map(m => ({
-    'Type': m.type_mvt || '',
+    'Type': m.type || m.type_mvt || '',
     'Date': formatDate(m.date_debut),
-    'Commune': m.commune || '',
-    'Lieu-dit': m.lieu_dit || '',
-    'Précision': m.precision || ''
+    'Commune': m.departement?.nom || m.commune || '',
+    'Lieu-dit': m.commentaire_lieu || m.lieu_dit || '',
+    'Fiabilité': m.fiabilite || m.precision || ''
   }));
   const wsMvt = XLSX.utils.json_to_sheet(mvtRows.length ? mvtRows : [{ 'Info': 'Aucun mouvement de terrain' }]);
   XLSX.utils.book_append_sheet(wb, wsMvt, 'Mouvements terrain');

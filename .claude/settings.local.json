@@ -48,7 +48,14 @@
       "Bash(curl -s \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_EAU_POINT&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} - Size: %{size_download} bytes - Time: %{time_total}s\" \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=150&BBOX=48.846,2.332,48.864,2.358,urn:ogc:def:crs:EPSG::4326\")",
       "Bash(curl -s -D - -o /dev/null \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
-      "Bash(curl -s -D - -o /dev/null \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_EAU_POINT&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")"
+      "Bash(curl -s -D - -o /dev/null \"https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ms:BSS_EAU_POINT&COUNT=1&BBOX=48.855,2.345,48.865,2.355,urn:ogc:def:crs:EPSG::4326\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/risques?code_insee=75056&page=1&page_size=5\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=2.3522,48.8566&page=1&page_size=50\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/gaspar/risques?code_insee=75056&page=1&page_size=50\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/mvt?latlon=2.3522,48.8566&rayon=2000&page=1&page_size=2\")",
+      "Bash(curl -s \"https://georisques.gouv.fr/api/v1/mvt?latlon=6.8,43.5&rayon=5000&page=1&page_size=2\")",
+      "Bash(curl -s \"https://apicarto.ign.fr/api/cadastre/parcelle?code_insee=75056&section=AB&numero=0001\")",
+      "Bash(curl -s \"https://apicarto.ign.fr/api/cadastre/parcelle?code_insee=34172&numero=0012\")"
     ]
   }
 }
