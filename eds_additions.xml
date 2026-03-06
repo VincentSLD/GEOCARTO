@@ -216,4 +216,16 @@
     <Latitude>46.843521</Latitude>
     <Longitude>-1.876602</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>GFDFG</Reference>
+    <Nom>FSDGD</Nom>
+    <Adresse>Boulevard guérin 85300 Challans</Adresse>
+    <Code_Postal>85300</Code_Postal>
+    <Ville>Challans</Ville>
+    <Categorie></Categorie>
+    <Notes>TEST</Notes>
+    <Latitude>46.846897227</Latitude>
+    <Longitude>-1.8720638752</Longitude>
+  </point>
 </eds_additions>
