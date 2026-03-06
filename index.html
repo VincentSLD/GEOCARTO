@@ -573,48 +573,99 @@
     z-index: 10000;
     background: var(--bg-primary, #fff);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     border-radius: 0 !important;
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
   }
-  .picker-fullscreen .picker-fs-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    align-items: center;
-    padding: 10px 14px;
-    background: var(--bg-card, #fff);
-    border-bottom: 1px solid var(--border, #e0e0e0);
-    z-index: 1;
-  }
   .picker-fullscreen #picker-map {
     flex: 1;
-    height: auto !important;
+    height: 100% !important;
     border-radius: 0 !important;
     border: none !important;
   }
-  .picker-fullscreen .picker-fs-bottom {
+  .picker-fullscreen .picker-fs-panel {
+    width: 320px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 10px 14px;
+    flex-direction: column;
+    gap: 0;
     background: var(--bg-card, #fff);
-    border-top: 1px solid var(--border, #e0e0e0);
+    border-right: 1px solid var(--border, #e0e0e0);
     z-index: 1;
+    overflow-y: auto;
   }
-  .picker-fullscreen .picker-fs-bottom label {
+  .picker-fs-panel .fs-panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+  }
+  .picker-fs-panel .fs-panel-section:last-child {
+    border-bottom: none;
+  }
+  .picker-fs-panel .fs-panel-title {
     font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-secondary);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .picker-fs-panel input[type="text"] {
+    width: 100%;
+    font-size: 0.8rem;
+    height: 34px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    margin-bottom: 6px;
+  }
+  .picker-fs-panel input[type="text"]:focus {
+    border-color: var(--gph-green);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(26,26,26,0.1);
+  }
+  .picker-fs-panel .fs-panel-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .picker-fs-panel .fs-panel-row input[type="text"] {
     margin-bottom: 0;
   }
-  .picker-fullscreen .picker-fs-bottom input[type="text"] {
-    width: 130px;
-    font-size: 0.78rem;
-    padding: 5px 8px;
+  .picker-fs-panel label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    display: block;
+  }
+  .picker-fs-panel .fs-panel-btn {
+    width: 100%;
+    height: 34px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    transition: all 0.2s;
+    border: 1px solid rgba(26,26,26,0.15);
+    background: var(--gph-green-light);
+    color: var(--text-secondary);
+  }
+  .picker-fs-panel .fs-panel-btn:hover {
+    background: rgba(26,26,26,0.15);
+    border-color: rgba(26,26,26,0.3);
+  }
+  @media (max-width: 700px) {
+    .picker-fullscreen { flex-direction: column; }
+    .picker-fullscreen .picker-fs-panel {
+      width: 100%;
+      max-height: 45vh;
+      border-left: none;
+      border-top: 1px solid var(--border, #e0e0e0);
+    }
   }
 
   /* CatNat list */
@@ -968,29 +1019,29 @@
       <div class="input-group" style="margin-bottom:0.75rem;">
         <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
           <input type="text" id="address-search" placeholder="Adresse…"
-            style="flex:1;min-width:0;font-size:0.82rem;"
+            style="flex:1;min-width:0;font-size:0.8rem;height:38px;box-sizing:border-box;"
             oninput="document.getElementById('altitude').value='';"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
-          <button class="preset-btn" onclick="searchAddress()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">
+          <button class="preset-btn" onclick="searchAddress()" style="flex-shrink:0;height:38px;box-sizing:border-box;padding:0 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.8rem;color:var(--accent-blue);border-color:var(--accent-blue);">
             🔍
           </button>
-          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="flex-shrink:0;padding:7px 10px;font-size:1rem;">🎯</button>
+          <button class="btn-locate" id="btn-locate" onclick="locateMe()" title="Me localiser" style="flex-shrink:0;height:38px;box-sizing:border-box;padding:0 10px;font-size:1rem;">🎯</button>
         </div>
         <div id="address-suggestions" style="display:none;position:relative;z-index:1000;">
           <div id="address-suggestions-list" style="position:absolute;top:0;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
         </div>
         <div id="parcel-search-row" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;flex-wrap:nowrap;">
-          <input type="text" id="parcel-commune" placeholder="Commune…"
-            style="flex:1;min-width:0;font-size:0.78rem;"
+          <input type="text" id="parcel-commune" placeholder="Recherche à la parcelle, saisir la commune…"
+            style="flex:1;min-width:0;font-size:0.8rem;height:38px;box-sizing:border-box;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
           <input type="text" id="parcel-section" placeholder="Section (ex: AB)"
-            style="width:80px;font-size:0.78rem;text-transform:uppercase;"
+            style="width:80px;font-size:0.8rem;height:38px;box-sizing:border-box;text-transform:uppercase;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
           <input type="text" id="parcel-numero" placeholder="N° (ex: 0012)"
-            style="width:80px;font-size:0.78rem;"
+            style="width:80px;font-size:0.8rem;height:38px;box-sizing:border-box;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();searchParcel();}">
-          <button class="preset-btn" onclick="searchParcel()" style="flex-shrink:0;padding:7px 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.78rem;color:#795548;border-color:#795548;" title="Rechercher une parcelle cadastrale">
-            🔍 Parcelle
+          <button class="preset-btn" onclick="searchParcel()" style="flex-shrink:0;height:38px;box-sizing:border-box;padding:0 12px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.8rem;color:#795548;border-color:#795548;" title="Rechercher une parcelle cadastrale">
+            🔎 Parcelle
           </button>
         </div>
         <div id="picker-map-wrapper" style="position:relative;">
@@ -1075,8 +1126,8 @@
         <div class="value" id="addr-dept">—</div>
       </div>
       <div class="address-item">
-        <label>Coordonnées</label>
-        <div class="value mono" id="addr-coords">—</div>
+        <label>Surface terrain</label>
+        <div class="value" id="addr-surface">—</div>
       </div>
     </div>
     </div><!-- /capture-address -->
@@ -1184,26 +1235,26 @@
         <!-- Formulaire ajout point -->
         <div id="eds-add-form-container" style="margin-top:0.6rem;">
           <div id="eds-add-form" style="display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
-              <div style="grid-column:1/-1;">
-                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Nom *</label>
-                <input type="text" id="eds-new-nom" placeholder="Ex: LOTISSEMENT LES PINS" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
-              </div>
+            <div style="display:grid;grid-template-columns:2fr 3fr;gap:8px 12px;">
               <div>
-                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Référence dossier</label>
+                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Numéro de dossier</label>
                 <input type="text" id="eds-new-ref" placeholder="Ex: 2402217" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
               <div>
-                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Ville</label>
-                <input type="text" id="eds-new-ville" placeholder="Ex: LA ROCHE SUR YON" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
+                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Nom *</label>
+                <input type="text" id="eds-new-nom" placeholder="Ex: LOTISSEMENT LES PINS" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Adresse</label>
+                <input type="text" id="eds-new-adresse" placeholder="Ex: 12 rue des Acacias" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
               <div>
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Code Postal</label>
                 <input type="text" id="eds-new-cp" placeholder="85000" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
-              <div style="grid-column:1/-1;">
-                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Adresse</label>
-                <input type="text" id="eds-new-adresse" placeholder="Ex: 12 rue des Acacias" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
+              <div>
+                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Ville</label>
+                <input type="text" id="eds-new-ville" placeholder="Ex: LA ROCHE SUR YON" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
               <div style="grid-column:1/-1;">
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Notes</label>
@@ -1608,6 +1659,7 @@ function initPickerMap() {
     document.getElementById('lng').value = lng.toFixed(10);
     updatePickerMarker(lat, lng, false);
     reverseCadastre(lat, lng);
+    reverseGeocode(lat, lng);
   });
 
   // Debounced address search
@@ -1732,60 +1784,71 @@ function togglePickerFullscreen() {
     fs.id = 'picker-fs-overlay';
     fs.className = 'picker-fullscreen';
 
-    // Top controls bar
-    const top = document.createElement('div');
-    top.className = 'picker-fs-controls';
-    top.innerHTML = `
-      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;width:100%;">
-        <input type="text" id="fs-address-search" placeholder="Adresse…"
-          style="flex:1;min-width:150px;font-size:0.82rem;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
-          oninput="document.getElementById('address-search').value=this.value;document.getElementById('altitude').value='';"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();this.blur();}">
-        <button class="preset-btn" onclick="document.getElementById('address-search').value=document.getElementById('fs-address-search').value;searchAddress();" style="padding:7px 12px;font-size:0.78rem;color:var(--accent-blue);border-color:var(--accent-blue);">🔍</button>
-        <button class="btn-locate" onclick="locateMe()" title="Me localiser" style="padding:7px 10px;font-size:1rem;">🎯</button>
-        <span style="width:1px;height:24px;background:var(--border);margin:0 2px;"></span>
+    // Left panel
+    const panel = document.createElement('div');
+    panel.className = 'picker-fs-panel';
+    panel.innerHTML = `
+      <div class="fs-panel-section">
+        <div class="fs-panel-title">🔍 Recherche par adresse</div>
+        <textarea id="fs-address-search" placeholder="Adresse…" rows="2" style="width:100%;height:68px;resize:none;margin-bottom:6px;font-size:0.8rem;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;line-height:1.4;"
+            oninput="document.getElementById('address-search').value=this.value;document.getElementById('altitude').value='';"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();this.blur();}"></textarea>
+        <div class="fs-panel-row" style="margin-bottom:6px;">
+          <button class="fs-panel-btn" onclick="document.getElementById('address-search').value=document.getElementById('fs-address-search').value;searchAddress();" style="flex:1;color:var(--accent-blue);border-color:var(--accent-blue);">🔍 Rechercher</button>
+          <button class="fs-panel-btn" onclick="locateMe()" title="Me localiser" style="width:40px;flex-shrink:0;background:var(--gph-yellow-light);border-color:rgba(245,197,24,0.4);">🎯</button>
+        </div>
+      </div>
+      <div class="fs-panel-section">
+        <div class="fs-panel-title">🔎 Recherche par parcelle</div>
         <input type="text" id="fs-parcel-commune" placeholder="Commune…"
-          style="width:120px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
           onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
-        <input type="text" id="fs-parcel-section" placeholder="Section"
-          style="width:65px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;text-transform:uppercase;font-family:'Bricolage Grotesque',sans-serif;"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
-        <input type="text" id="fs-parcel-numero" placeholder="N°"
-          style="width:55px;font-size:0.78rem;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
-        <button class="preset-btn" onclick="syncFsParcelFields();searchParcel();" style="padding:7px 10px;font-size:0.78rem;color:#795548;border-color:#795548;">🔍 Parcelle</button>
-        <span style="width:1px;height:24px;background:var(--border);margin:0 2px;"></span>
-        <button class="preset-btn" onclick="togglePickerLayer()" style="padding:7px 10px;font-size:0.72rem;">🛰 Satellite</button>
-        <button class="preset-btn" onclick="togglePickerCadastre()" style="padding:7px 10px;font-size:0.72rem;">📐 Cadastre</button>
-        <button class="preset-btn" onclick="togglePickerFullscreen()" style="padding:7px 10px;font-size:0.72rem;margin-left:auto;">✕ Fermer</button>
+        <div class="fs-panel-row">
+          <input type="text" id="fs-parcel-section" placeholder="Section" style="flex:1;text-transform:uppercase;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
+          <input type="text" id="fs-parcel-numero" placeholder="N°" style="flex:1;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
+        </div>
+        <button class="fs-panel-btn" onclick="syncFsParcelFields();searchParcel();" style="margin-top:6px;color:#795548;border-color:#795548;">🔎 Rechercher la parcelle</button>
+      </div>
+      <div class="fs-panel-section">
+        <div class="fs-panel-title">📍 Coordonnées GPS</div>
+        <div class="fs-panel-row" style="margin-bottom:6px;">
+          <div style="flex:1;">
+            <label>Latitude</label>
+            <input type="text" id="fs-lat" placeholder="46.867747" style="margin-bottom:0;"
+              value="${document.getElementById('lat').value}"
+              onchange="document.getElementById('lat').value=this.value;updatePickerFromInputs();"
+              onkeyup="document.getElementById('lat').value=this.value;updatePickerFromInputs();">
+          </div>
+          <div style="flex:1;">
+            <label>Longitude</label>
+            <input type="text" id="fs-lng" placeholder="-1.769058" style="margin-bottom:0;"
+              value="${document.getElementById('lng').value}"
+              onchange="document.getElementById('lng').value=this.value;updatePickerFromInputs();"
+              onkeyup="document.getElementById('lng').value=this.value;updatePickerFromInputs();">
+          </div>
+        </div>
+      </div>
+      <div class="fs-panel-section">
+        <div class="fs-panel-title">🗺️ Fond de carte</div>
+        <div class="fs-panel-row">
+          <button class="fs-panel-btn" onclick="togglePickerLayer()" style="flex:1;">🛰 Satellite</button>
+          <button class="fs-panel-btn" onclick="togglePickerCadastre()" style="flex:1;">📐 Cadastre</button>
+        </div>
+      </div>
+      <div class="fs-panel-section" style="margin-top:auto;">
+        <button class="btn-investigate" onclick="togglePickerFullscreen();investigate();" style="width:100%;padding:10px 18px;font-size:0.85rem;">
+          Investiguer ➜
+        </button>
+        <button class="fs-panel-btn" onclick="togglePickerFullscreen()" style="margin-top:8px;color:var(--text-muted);">✕ Fermer</button>
       </div>
     `;
-    fs.appendChild(top);
+    fs.appendChild(panel);
 
-    // Move the map into fullscreen
+    // Move the map into fullscreen (after panel so map is on the right)
     mapDiv._fsOrigParent = mapDiv.parentNode;
     mapDiv._fsOrigNext = mapDiv.nextSibling;
     fs.appendChild(mapDiv);
-
-    // Bottom bar: GPS fields
-    const bottom = document.createElement('div');
-    bottom.className = 'picker-fs-bottom';
-    bottom.innerHTML = `
-      <label>Lat</label>
-      <input type="text" id="fs-lat" placeholder="46.867747"
-        value="${document.getElementById('lat').value}"
-        onchange="document.getElementById('lat').value=this.value;updatePickerFromInputs();"
-        onkeyup="document.getElementById('lat').value=this.value;updatePickerFromInputs();">
-      <label>Lng</label>
-      <input type="text" id="fs-lng" placeholder="-1.769058"
-        value="${document.getElementById('lng').value}"
-        onchange="document.getElementById('lng').value=this.value;updatePickerFromInputs();"
-        onkeyup="document.getElementById('lng').value=this.value;updatePickerFromInputs();">
-      <button class="btn-investigate" onclick="togglePickerFullscreen();investigate();" style="padding:7px 18px;font-size:0.82rem;">
-        Investiguer ➜
-      </button>
-    `;
-    fs.appendChild(bottom);
 
     document.body.appendChild(fs);
     pickerFullscreen = true;
@@ -1996,8 +2059,9 @@ async function reverseCadastre(lat, lng) {
     if (fsS) fsS.value = section;
     if (fsN) fsN.value = numero;
 
-    document.getElementById('picker-coords').innerHTML =
-      `<span style="color:var(--accent-teal);">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)} — Parcelle <strong>${section} ${numero}</strong> · ${commune} · ${p.contenance || '?'} m²</span>`;
+    document.getElementById('picker-coords').innerHTML = '';
+    const surfaceEl = document.getElementById('addr-surface');
+    if (surfaceEl) surfaceEl.textContent = p.contenance ? `${Number(p.contenance).toLocaleString('fr-FR')} m²` : '—';
   } catch (e) {
     // Silencieux si erreur réseau
   }
@@ -2045,7 +2109,9 @@ function selectParcel(feat, commune, section, numero) {
   if (fsN) fsN.value = numero;
 
   const props = feat.properties || {};
-  coordsEl.innerHTML = `<span style="color:var(--accent-teal);">🔍 Parcelle <strong>${section} ${numero}</strong> — ${commune.nom} (${commune.code}) — ${props.contenance || '?'} m²</span>`;
+  coordsEl.innerHTML = '';
+  const surfaceEl = document.getElementById('addr-surface');
+  if (surfaceEl) surfaceEl.textContent = props.contenance ? `${Number(props.contenance).toLocaleString('fr-FR')} m²` : '—';
 }
 
 async function autocompleteAddress(q) {
@@ -2129,6 +2195,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const la=parseFloat(lat),lo=parseFloat(lng);
     if(!isNaN(la)&&!isNaN(lo)){
       setTimeout(function(){updatePickerMarker(la,lo,true);},500);
+      // Auto-investigation quand ouvert depuis GéoSolia
+      setTimeout(investigate,800);
     }
   }
 });
@@ -2252,6 +2320,11 @@ async function reverseGeocode(lat, lng) {
       document.getElementById('addr-insee').textContent = props.citycode || '—';
       document.getElementById('addr-dept').textContent = props.context || '—';
       currentInsee = props.citycode;
+      // Remplir le champ de recherche adresse
+      const addrLabel = props.label || '';
+      document.getElementById('address-search').value = addrLabel;
+      const fsAddr = document.getElementById('fs-address-search');
+      if (fsAddr) fsAddr.value = addrLabel;
       // Auto-fill DT-DICT form
       const dtLieuAddr = document.getElementById('dtdict-lieu-adresse');
       if (dtLieuAddr) dtLieuAddr.value = props.label || props.name || '';
@@ -2263,7 +2336,7 @@ async function reverseGeocode(lat, lng) {
   } catch (e) {
     document.getElementById('addr-label').textContent = 'Non disponible';
   }
-  document.getElementById('addr-coords').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  // addr-coords remplacé par addr-surface (rempli par reverseCadastre)
 }
 
 // Georisques - Risques (GASPAR)
@@ -4215,7 +4288,13 @@ function edsPrefillFromInvestigation() {
   const cp = document.getElementById('addr-postcode')?.textContent;
   if (cp && cp !== '—') document.getElementById('eds-new-cp').value = cp;
   const addr = document.getElementById('addr-label')?.textContent;
-  if (addr && addr !== '—') document.getElementById('eds-new-adresse').value = addr;
+  if (addr && addr !== '—') {
+    let addrClean = addr;
+    if (cp && cp !== '—') addrClean = addrClean.replace(cp, '').trim();
+    if (city && city !== '—') addrClean = addrClean.replace(city, '').trim();
+    addrClean = addrClean.replace(/,\s*$/, '').trim();
+    document.getElementById('eds-new-adresse').value = addrClean;
+  }
 }
 
 function _edsDossierNow() {
