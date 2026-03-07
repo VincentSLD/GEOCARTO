@@ -1514,12 +1514,12 @@
 
       <!-- ===== EN COURS DE DÉVELOPPEMENT ===== -->
       <div style="margin-top:2rem;">
-        <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:12px 16px;user-select:none;transition:background 0.2s;">
-          <div style="display:flex;align-items:center;gap:0.6rem;">
-            <span style="font-size:1.1rem;">ℹ️</span>
-            <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">Informations complémentaires sur les Risques</span>
-          </div>
-          <span id="dev-section-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▼</span>
+        <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.6rem;background:linear-gradient(135deg,#1a1a1a,#333333);border:none;border-radius:10px;padding:14px 16px;user-select:none;transition:all 0.2s;box-shadow:0 4px 16px rgba(26,26,26,0.2);"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(26,26,26,0.3)'"
+          onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(26,26,26,0.2)'">
+          <span style="font-size:1.1rem;">ℹ️</span>
+          <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:#f5c518;">Informations complémentaires sur les Risques</span>
+          <span id="dev-section-arrow" style="color:#f5c518;font-size:0.8rem;transition:transform 0.3s;">▼</span>
         </div>
         <div id="dev-section-content" style="display:none;padding-top:0.5rem;">
 
@@ -1582,9 +1582,11 @@
       </div><!-- fin Informations complémentaires sur les Risques -->
 
       <!-- Bouton export Excel -->
-      <div style="margin-top:1rem;text-align:center;">
-        <button onclick="exportRisquesExcel()" style="padding:10px 24px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s;">
-          📊 Télécharger tous les risques en tableur
+      <div style="margin-top:1rem;">
+        <button onclick="exportRisquesExcel()" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(27,94,32,0.3);"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(27,94,32,0.4)'"
+          onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(27,94,32,0.3)'">
+          📊 Télécharger tous les risques et autres informations au format Excel
         </button>
       </div>
 
