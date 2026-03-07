@@ -819,6 +819,7 @@
   /* Responsive */
   @media (max-width: 1023px) {
     #parcel-search-row { display: none !important; }
+    #fs-parcel-search-section { display: none !important; }
     #dl-ign-geol-bar { display: none !important; }
   }
   @media (max-width: 768px) {
@@ -1181,7 +1182,7 @@
       <div style="margin-bottom:0.5rem;padding:16px 20px;background:linear-gradient(135deg,#1a1a1a,#333333);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(26,26,26,0.25);">
         <div style="color:#f5c518;">
           <div style="font-weight:700;font-size:0.95rem;">📄 Rapport officiel Géorisques</div>
-          <div style="font-size:0.75rem;opacity:0.85;margin-top:2px;color:#fff;">Téléchargez le rapport PDF complet des risques pour ce point</div>
+          <div style="font-size:0.75rem;opacity:0.85;margin-top:2px;color:#fff;">Téléchargez le rapport PDF complet des risques</div>
         </div>
         <a class="report-link" id="report-pdf-top" href="javascript:void(0)" target="_blank"
           style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:#fff;border-radius:8px;color:#1a1a1a;text-decoration:none;font-size:0.85rem;font-weight:700;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.15);"
@@ -1199,7 +1200,7 @@
         onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(249,168,37,0.35)'">
         <div style="color:#1a1a1a;">
           <div style="font-weight:700;font-size:0.95rem;" id="btn-dl-ign-geol">💾 Téléchargement des images IGN + GEOL</div>
-          <div style="font-size:0.75rem;opacity:0.75;margin-top:2px;color:#1a1a1a;">Enregistrez les captures des cartes IGN et Géologique</div>
+          <div style="font-size:0.75rem;opacity:0.75;margin-top:2px;color:#1a1a1a;">Enregistrez les captures des cartes IGN et Géologique BRGM</div>
         </div>
       </div>
 
@@ -1596,6 +1597,7 @@
 // Globals
 let currentLat = null, currentLng = null, currentInsee = null;
 let _lastRisques = [], _lastCatNat = [], _lastICPE = [], _lastCavites = [], _lastMvt = [], _lastBSS = [];
+let _lastGeolFormations = [];
 
 
 function setCoords(lat, lng) {
@@ -1828,7 +1830,7 @@ function togglePickerFullscreen() {
           <button class="fs-panel-btn" onclick="locateMe()" title="Me localiser" style="width:40px;flex-shrink:0;background:var(--gph-yellow-light);border-color:rgba(245,197,24,0.4);">🎯</button>
         </div>
       </div>
-      <div class="fs-panel-section">
+      <div class="fs-panel-section" id="fs-parcel-search-section">
         <div class="fs-panel-title">🔎 Recherche par parcelle</div>
         <input type="text" id="fs-parcel-commune" placeholder="Commune…"
           onkeydown="if(event.key==='Enter'){event.preventDefault();syncFsParcelFields();searchParcel();}">
@@ -5252,6 +5254,8 @@ async function fetchGeolArea() {
   btn.disabled = false;
   btn.innerHTML = '🔬 Formations géologiques dans un rayon de 1 km';
 
+  _lastGeolFormations = [...formations.values()].sort((a, b) => a.notation.localeCompare(b.notation));
+
   if (formations.size === 0) {
     const p = L.popup()
       .setLatLng([currentLat, currentLng])
@@ -5914,19 +5918,31 @@ function exportRisquesExcel() {
     edsNearby.sort((a, b) => a.dist - b.dist);
   }
   const edsRows = edsNearby.map(({ r, dist }) => ({
-    'Nom': r.Nom || '',
+    'Dossier': r.Dossier || '',
     'Référence': r['Référence'] || r.Référence || '',
+    'Nom': r.Nom || '',
     'Adresse': r.Adresse || '',
     'Code Postal': r['Code Postal'] || '',
     'Ville': r.Ville || '',
     'Catégorie': r['Catégorie'] || r.Catégorie || '',
     'Notes': r.Notes || '',
+    'Description brute': r['Description brute'] || '',
     'Distance (km)': dist.toFixed(2),
     'Latitude': r.Latitude || '',
     'Longitude': r.Longitude || ''
   }));
   const wsEds = XLSX.utils.json_to_sheet(edsRows.length ? edsRows : [{ 'Info': 'Aucune étude répertoriée dans un rayon de 1 km' }]);
   XLSX.utils.book_append_sheet(wb, wsEds, 'Études répertoriées');
+
+  // 8. Formations géologiques dans un rayon de 1 km
+  const geolRows = _lastGeolFormations.map(f => ({
+    'N° Carte': f.carte || '',
+    'Nom': f.nom || '',
+    'Notation': f.notation || '',
+    'Description': f.description || ''
+  }));
+  const wsGeol = XLSX.utils.json_to_sheet(geolRows.length ? geolRows : [{ 'Info': 'Aucune formation géologique (cliquez d\'abord sur le bouton « Formations géologiques dans un rayon de 1 km »)' }]);
+  XLSX.utils.book_append_sheet(wb, wsGeol, 'Formations géologiques');
 
   const ts = new Date().toISOString().slice(0, 10);
   const filename = `${ts}_RISQUES.xlsx`;
