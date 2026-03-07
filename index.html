@@ -5829,8 +5829,13 @@ document.addEventListener('webkitfullscreenchange', function() {
 // ====== INFORMATIONS COMPLÉMENTAIRES — ACCORDION ======
 
 // Export Excel de tous les risques
-function exportRisquesExcel() {
+async function exportRisquesExcel() {
   if (!currentLat || !currentLng) { alert('Veuillez d\'abord lancer une recherche.'); return; }
+
+  // Forcer la recherche des formations géologiques si pas encore faite
+  if (!_lastGeolFormations.length && window.geologieMap) {
+    await fetchGeolArea();
+  }
 
   const wb = XLSX.utils.book_new();
   const addr = document.getElementById('addr-label')?.textContent || '';
