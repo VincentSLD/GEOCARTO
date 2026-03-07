@@ -662,10 +662,13 @@
     .picker-fullscreen { flex-direction: column; }
     .picker-fullscreen .picker-fs-panel {
       width: 100%;
-      max-height: 45vh;
+      max-height: 35vh;
       border-left: none;
       border-top: 1px solid var(--border, #e0e0e0);
+      order: 1;
     }
+    .picker-fullscreen #picker-map { order: 0; }
+    #fs-gps-section { display: none !important; }
   }
 
   /* CatNat list */
@@ -1842,7 +1845,7 @@ function togglePickerFullscreen() {
         </div>
         <button class="fs-panel-btn" onclick="syncFsParcelFields();searchParcel();" style="margin-top:6px;color:#795548;border-color:#795548;">🔎 Rechercher la parcelle</button>
       </div>
-      <div class="fs-panel-section">
+      <div class="fs-panel-section" id="fs-gps-section">
         <div class="fs-panel-title">📍 Coordonnées GPS</div>
         <div class="fs-panel-row" style="margin-bottom:6px;">
           <div style="flex:1;">
@@ -1862,17 +1865,18 @@ function togglePickerFullscreen() {
         </div>
       </div>
       <div class="fs-panel-section">
-        <div class="fs-panel-title">🗺️ Fond de carte</div>
         <div class="fs-panel-row">
-          <button class="fs-panel-btn" onclick="togglePickerLayer()" style="flex:1;">🛰 Satellite</button>
-          <button class="fs-panel-btn" onclick="togglePickerCadastre()" style="flex:1;">📐 Cadastre</button>
+          <button class="fs-panel-btn" onclick="togglePickerLayer()" style="flex:1;height:28px;font-size:0.72rem;">🛰 Satellite</button>
+          <button class="fs-panel-btn" onclick="togglePickerCadastre()" style="flex:1;height:28px;font-size:0.72rem;">📐 Cadastre</button>
         </div>
       </div>
-      <div class="fs-panel-section" style="margin-top:auto;">
-        <button class="btn-investigate" onclick="togglePickerFullscreen();investigate();" style="width:100%;padding:10px 18px;font-size:0.85rem;">
-          Investiguer ➜
-        </button>
-        <button class="fs-panel-btn" onclick="togglePickerFullscreen()" style="margin-top:8px;color:var(--text-muted);">✕ Fermer</button>
+      <div class="fs-panel-section" style="margin-top:auto;padding:10px 16px;">
+        <div class="fs-panel-row">
+          <button class="btn-investigate" onclick="togglePickerFullscreen();investigate();" style="flex:1;padding:10px 18px;font-size:0.85rem;">
+            Investiguer ➜
+          </button>
+          <button class="fs-panel-btn" onclick="togglePickerFullscreen()" style="width:36px;height:36px;flex-shrink:0;font-size:1rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+        </div>
       </div>
     `;
     fs.appendChild(panel);
