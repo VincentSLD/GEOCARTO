@@ -819,6 +819,7 @@
   /* Responsive */
   @media (max-width: 1023px) {
     #parcel-search-row { display: none !important; }
+    #dl-ign-geol-bar { display: none !important; }
   }
   @media (max-width: 768px) {
     .header h1 { font-size: 1.8rem; }
@@ -826,6 +827,7 @@
     .maps-grid { grid-template-columns: 1fr; }
     .risk-grid { grid-template-columns: 1fr; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
+    #eds-add-form .eds-form-grid { grid-template-columns: 1fr !important; }
   }
 
   /* API status dots */
@@ -1008,7 +1010,7 @@
 <div class="app">
   <!-- Header -->
   <header class="header">
-    <h1>Géo<span class="highlight">Carto'</span><span style="font-size:0.25em;font-weight:400;color:#1a1a1a;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em;margin-left:0.6em;vertical-align:baseline;">by GPH</span></h1>
+    <h1 onclick="location.reload()" style="cursor:pointer;">Géo<span class="highlight">Carto'</span><span style="font-size:0.25em;font-weight:400;color:#1a1a1a;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em;margin-left:0.6em;vertical-align:baseline;">by GPH</span></h1>
   </header>
 
   <!-- Search -->
@@ -1176,7 +1178,7 @@
       </div><!-- /capture-stats -->
 
       <!-- Bouton Rapport PDF Géorisques - bien visible -->
-      <div style="margin-bottom:1.5rem;padding:16px 20px;background:linear-gradient(135deg,#1a1a1a,#333333);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(26,26,26,0.25);">
+      <div style="margin-bottom:0.5rem;padding:16px 20px;background:linear-gradient(135deg,#1a1a1a,#333333);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(26,26,26,0.25);">
         <div style="color:#f5c518;">
           <div style="font-weight:700;font-size:0.95rem;">📄 Rapport officiel Géorisques</div>
           <div style="font-size:0.75rem;opacity:0.85;margin-top:2px;color:#fff;">Téléchargez le rapport PDF complet des risques pour ce point</div>
@@ -1188,6 +1190,17 @@
           onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'">
           📥 Télécharger le rapport PDF
         </a>
+      </div>
+
+      <!-- Bouton téléchargement IGN + GEOL -->
+      <div id="dl-ign-geol-bar" style="margin-bottom:1.5rem;padding:16px 20px;background:linear-gradient(135deg,#f9a825,#f5c518);transition:all 0.2s;border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(249,168,37,0.35);cursor:pointer;"
+        onclick="downloadIgnGeol(document.getElementById('btn-dl-ign-geol'))"
+        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(249,168,37,0.45)'"
+        onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(249,168,37,0.35)'">
+        <div style="color:#1a1a1a;">
+          <div style="font-weight:700;font-size:0.95rem;" id="btn-dl-ign-geol">💾 Téléchargement des images IGN + GEOL</div>
+          <div style="font-size:0.75rem;opacity:0.75;margin-top:2px;color:#1a1a1a;">Enregistrez les captures des cartes IGN et Géologique</div>
+        </div>
       </div>
 
       <!-- Vues satellite & Street View -->
@@ -1232,10 +1245,26 @@
 
         </div>
 
+        <!-- Accordéon : Liste des études répertoriées à moins d'1km -->
+        <div style="margin-top:0.6rem;">
+          <div onclick="toggleEdsNearbyAccordion()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;user-select:none;transition:background 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="font-size:0.95rem;">📌</span>
+              <span style="font-weight:700;font-size:0.82rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">Liste des études répertoriées à moins de 1km</span>
+            </div>
+            <span id="eds-nearby-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▼</span>
+          </div>
+          <div id="eds-nearby-content" style="display:none;padding-top:0.5rem;">
+            <div id="eds-nearby-list">
+              <div class="empty-state">En attente du chargement des données EDS…</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Formulaire ajout point -->
         <div id="eds-add-form-container" style="margin-top:0.6rem;">
           <div id="eds-add-form" style="display:none;margin-top:0.6rem;padding:13px 15px;background:var(--bg-secondary);border-radius:8px;border:1px solid rgba(56,142,60,0.2);">
-            <div style="display:grid;grid-template-columns:2fr 3fr;gap:8px 12px;">
+            <div class="eds-form-grid" style="display:grid;grid-template-columns:2fr 3fr;gap:8px 12px;">
               <div>
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Numéro de dossier</label>
                 <input type="text" id="eds-new-ref" placeholder="Ex: 2402217" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
@@ -1319,7 +1348,7 @@
           style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 14px;font-size:0.78rem;font-weight:600;border:1px solid rgba(121,85,72,0.35);border-radius:7px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;text-align:center;"
           onmouseover="this.style.background='rgba(121,85,72,0.08)'"
           onmouseout="this.style.background='#fff'">
-          Formations géologiques dans un rayon de 500m <span style="font-size:1rem;font-weight:700;">?</span>
+          🔬 Formations géologiques dans un rayon de 1 km
         </button>
       </div>
       </div><!-- /capture-geologie -->
@@ -1545,6 +1574,7 @@
       <div id="bss-list">
         <div class="empty-state">Chargement des sondages BSS…</div>
       </div>
+
 
 
         </div><!-- fin dev-section-content -->
@@ -2268,7 +2298,7 @@ async function investigate() {
 
     // Auto-charger la carte EDS et positionner le marqueur rouge
     edsUpdateInvMarker(lat, lng);
-    initEdsMap().then(() => edsUpdateInvMarker(lat, lng));
+    initEdsMap().then(() => { edsUpdateInvMarker(lat, lng); edsUpdateNearbyList(); });
 
     // Setup external links
     try { setupExternalLinks(lat, lng); } catch(e) { console.warn('setupExternalLinks error:', e); }
@@ -3007,6 +3037,14 @@ async function onBssMapClick(e) {
 // Maps setup
 let argilesMap = null;
 
+const _invIcon = L.divIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+    <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.3 21.7 0 14 0z" fill="#e64a19"/>
+    <circle cx="14" cy="14" r="6" fill="#fff" opacity="0.85"/>
+  </svg>`,
+  className: '', iconSize: [28, 40], iconAnchor: [14, 40], popupAnchor: [0, -40]
+});
+
 function setupMaps(lat, lng) {
   // ====== Carte Argiles ======
   if (argilesMap) {
@@ -3079,8 +3117,7 @@ function setupMaps(lat, lng) {
   });
 
   // Marqueur du point (above WMS on default pane)
-  window.argilesMarker = L.marker([lat, lng]).addTo(argilesMap);
-  window.argilesMarker.bindPopup(`<strong>Projet étudié</strong><br><em style="color:#888;">Chargement exposition argiles…</em>`).openPopup();
+  window.argilesMarker = L.marker([lat, lng], { icon: _invIcon }).addTo(argilesMap);
 
   // Add measure distance tool
   addMeasureTool(argilesMap);
@@ -3135,8 +3172,7 @@ function setupMaps(lat, lng) {
   });
 
   // Marqueur projet étudié
-  L.marker([lat, lng]).addTo(window.geologieMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.geologieMap);
 
   addMeasureTool(window.geologieMap);
   setTimeout(() => { window.geologieMap.invalidateSize(); }, 300);
@@ -3183,8 +3219,7 @@ function setupMaps(lat, lng) {
   }).addTo(window.cavitesMap);
 
   // Marqueur principal
-  L.marker([lat, lng]).addTo(window.cavitesMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.cavitesMap);
 
   // Cercle rayon 5km
   L.circle([lat, lng], {
@@ -3241,8 +3276,7 @@ function setupMaps(lat, lng) {
     } catch (e) { }
   });
 
-  L.marker([lat, lng]).addTo(window.sismiqueMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.sismiqueMap);
 
   addMeasureTool(window.sismiqueMap);
   setTimeout(() => { window.sismiqueMap.invalidateSize(); }, 300);
@@ -3289,8 +3323,7 @@ function setupMaps(lat, lng) {
     } catch (e) { }
   });
 
-  L.marker([lat, lng]).addTo(window.bssMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.bssMap);
 
   addMeasureTool(window.bssMap);
   setTimeout(() => { window.bssMap.invalidateSize(); }, 300);
@@ -3334,8 +3367,7 @@ function setupMaps(lat, lng) {
     }).addTo(window.nappesMap);
   } catch (e) { }
 
-  L.marker([lat, lng]).addTo(window.nappesMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.nappesMap);
 
   addMeasureTool(window.nappesMap);
   setTimeout(() => { window.nappesMap.invalidateSize(); }, 300);
@@ -3366,8 +3398,7 @@ function setupMaps(lat, lng) {
   }).addTo(window.reliefMap);
 
   // Marqueur principal avec altitude (sera mis à jour quand l'altitude sera disponible)
-  window.reliefMarker = L.marker([lat, lng]).addTo(window.reliefMap)
-    .bindPopup(`<strong>Projet étudié</strong><br>🏔 Altitude : <em>chargement…</em>`).openPopup();
+  window.reliefMarker = L.marker([lat, lng], { icon: _invIcon }).addTo(window.reliefMap);
 
   // Outil de mesure de distances
   addMeasureTool(window.reliefMap);
@@ -3400,8 +3431,7 @@ function setupMaps(lat, lng) {
   }).addTo(window.ignMap);
 
   // Marqueur
-  L.marker([lat, lng]).addTo(window.ignMap)
-    .bindPopup(`<strong>Projet étudié</strong>`).openPopup();
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.ignMap);
 
   // Outil de mesure
   addMeasureTool(window.ignMap);
@@ -3423,8 +3453,7 @@ function setupMaps(lat, lng) {
     { attribution: '© IGN Géoplateforme', maxZoom: 19, maxNativeZoom: 19 }
   );
   window.photoLayer.addTo(window.photoMap);
-  window.photoMarker = L.marker([lat, lng]).addTo(window.photoMap)
-    .bindPopup('<strong>Projet étudié</strong>').openPopup();
+  window.photoMarker = L.marker([lat, lng], { icon: _invIcon }).addTo(window.photoMap);
   addMeasureTool(window.photoMap);
   setTimeout(() => { window.photoMap.invalidateSize(); }, 300);
 
@@ -3451,13 +3480,8 @@ async function fetchArgilesAndDraw(lat, lng) {
     return colorMap.default;
   }
 
-  // Helper: update marker popup with level
-  function updateMarkerPopup(level, color) {
-    if (!window.argilesMarker) return;
-    window.argilesMarker.setPopupContent(
-      `<strong>Projet étudié</strong><br>`
-    ).openPopup();
-  }
+  // Helper: update marker popup with level (désactivé)
+  function updateMarkerPopup(level, color) { }
 
   let mainLevel = null;
   let mainColor = null;
@@ -3804,6 +3828,7 @@ let _edsXmlSha      = null; // SHA du fichier sur GitHub
 let _edsMapReady    = false;
 let _edsMarkerGroup = null;
 let _edsInvMarker   = null;
+let _edsInvCircle   = null;
 let _edsPendingInv  = null;
 let _edsEditableRefs = [];  // refs vers points éditables pour popup edit/delete
 window.edsMap       = null;
@@ -3894,6 +3919,7 @@ async function _edsLoadAdditions() {
     if (_edsSavedPts.length > 0) {
       _edsNewEntries.push(..._edsSavedPts);
       _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+      edsUpdateNearbyList();
     }
   } catch(e) { console.warn('EDS additions load error:', e); }
 }
@@ -4043,8 +4069,19 @@ function _edsPlaceInvMarker() {
     _edsInvMarker.setLatLng([lat, lng]);
   } else {
     _edsInvMarker = L.marker([lat, lng], { icon: redIcon, zIndexOffset: 2000 })
-      .bindTooltip('📍 Point d\'investigation en cours', { opacity: 0.9 })
       .addTo(window.edsMap);
+  }
+  if (_edsInvCircle) {
+    _edsInvCircle.setLatLng([lat, lng]);
+  } else {
+    _edsInvCircle = L.circle([lat, lng], {
+      radius: 1000,
+      color: '#e53935',
+      weight: 2,
+      dashArray: '8 6',
+      fillColor: '#e53935',
+      fillOpacity: 0.06,
+    }).addTo(window.edsMap);
   }
   window.edsMap.setView([lat, lng], 13);
 }
@@ -4139,6 +4176,7 @@ function _edsProcessCsv(text) {
   const loader = document.getElementById('eds-loader');
   if (loader) loader.style.display = 'none';
   _edsRenderMarkers(_edsData);
+  edsUpdateNearbyList();
   setTimeout(() => window.edsMap?.invalidateSize(), 200);
   // Charger les points ajoutés manuellement (eds_additions.xml sur GitHub)
   _edsLoadAdditions();
@@ -4213,6 +4251,70 @@ function _edsRenderMarkers(data) {
   _edsMarkerGroup.addLayers(markers);
   window.edsMap.addLayer(_edsMarkerGroup);
 
+}
+
+function toggleEdsNearbyAccordion() {
+  const content = document.getElementById('eds-nearby-content');
+  const arrow = document.getElementById('eds-nearby-arrow');
+  if (!content) return;
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    if (arrow) arrow.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    if (arrow) arrow.textContent = '▼';
+  }
+}
+
+function edsUpdateNearbyList() {
+  const container = document.getElementById('eds-nearby-list');
+  if (!container) return;
+  if (typeof currentLat !== 'number' || typeof currentLng !== 'number') {
+    container.innerHTML = '<div class="empty-state">Lancez une investigation pour voir les points EDS à proximité.</div>';
+    return;
+  }
+  const all = [..._edsData, ..._edsNewEntries];
+  if (!all.length) {
+    container.innerHTML = '<div class="empty-state">Données EDS non chargées. Ouvrez la carte EDS pour charger les points.</div>';
+    return;
+  }
+  const nearby = [];
+  all.forEach(r => {
+    const lat = parseFloat((r.Latitude  || '').toString().replace(',', '.'));
+    const lng = parseFloat((r.Longitude || '').toString().replace(',', '.'));
+    if (isNaN(lat) || isNaN(lng)) return;
+    const dist = haversineKm(currentLat, currentLng, lat, lng);
+    if (dist <= 1) nearby.push({ ...r, _dist: dist, _lat: lat, _lng: lng });
+  });
+  nearby.sort((a, b) => a._dist - b._dist);
+  if (!nearby.length) {
+    container.innerHTML = '<div class="empty-state">Aucun point EDS trouvé dans un rayon de 1 km.</div>';
+    return;
+  }
+  let html = `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">${nearby.length} point${nearby.length > 1 ? 's' : ''} trouvé${nearby.length > 1 ? 's' : ''} dans un rayon de 1 km</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+  nearby.forEach(p => {
+    const nom = p.Nom || 'Sans nom';
+    const ref = p['Référence'] || p.Référence || '';
+    const ville = p.Ville || '';
+    const cp = p['Code Postal'] || '';
+    const adresse = p.Adresse || '';
+    const notes = p.Notes || '';
+    const cat = p['Catégorie'] || p.Catégorie || '';
+    const distStr = p._dist < 0.1 ? (p._dist * 1000).toFixed(0) + ' m' : p._dist.toFixed(2) + ' km';
+    html += `<div style="padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:0.78rem;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        <span style="font-weight:700;color:var(--text-primary);overflow-wrap:break-word;min-width:0;">${nom}</span>
+        <span style="font-size:0.68rem;color:#f9a825;font-weight:600;white-space:nowrap;">📍 ${distStr}</span>
+      </div>
+      ${ref ? `<div style="font-size:0.7rem;color:var(--text-muted);">Réf : ${ref}</div>` : ''}
+      ${adresse || ville ? `<div style="font-size:0.7rem;color:var(--text-secondary);overflow-wrap:break-word;">📍 ${[adresse, cp, ville].filter(Boolean).join(', ')}</div>` : ''}
+      ${cat ? `<div style="font-size:0.68rem;color:var(--text-muted);font-style:italic;">${cat}</div>` : ''}
+      ${notes ? `<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:4px;padding-top:4px;border-top:1px solid var(--border);white-space:pre-wrap;">${notes}</div>` : ''}
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function edsFilterMarkers() {
@@ -5075,7 +5177,7 @@ async function onGeolMapQuery(e) {
   }
 }
 
-// ====== Formations géologiques dans un rayon de 500m ======
+// ====== Formations géologiques dans un rayon de 1 km ======
 async function fetchGeolArea() {
   if (!currentLat || !currentLng) { alert("Lancez d'abord une investigation !"); return; }
   if (!window.geologieMap) { alert("La carte géologique n'est pas encore chargée."); return; }
@@ -5084,14 +5186,14 @@ async function fetchGeolArea() {
   btn.disabled = true;
   btn.innerHTML = '⏳ Recherche des formations géologiques en cours…';
 
-  // Afficher le cercle de recherche 500m (au-dessus de la couche WMS)
+  // Afficher le cercle de recherche 1km (au-dessus de la couche WMS)
   if (window._geolAreaCircle) window.geologieMap.removeLayer(window._geolAreaCircle);
   if (!window.geologieMap.getPane('geolCirclePane')) {
     window.geologieMap.createPane('geolCirclePane');
     window.geologieMap.getPane('geolCirclePane').style.zIndex = 500;
   }
   window._geolAreaCircle = L.circle([currentLat, currentLng], {
-    radius: 500,
+    radius: 1000,
     pane: 'geolCirclePane',
     color: '#d32f2f',
     weight: 3,
@@ -5100,9 +5202,9 @@ async function fetchGeolArea() {
     fillOpacity: 0.10,
   }).addTo(window.geologieMap);
 
-  // Grille de points dans un rayon de 500m (limité à 35 points)
+  // Grille de points dans un rayon de 1km (limité à 35 points)
   const { x: cx, y: cy } = wgs84ToLambert93(currentLat, currentLng);
-  const radius = 500;
+  const radius = 1000;
   const steps = 8;
   const step = (radius * 2) / (steps - 1);
   const points = [];
@@ -5148,12 +5250,12 @@ async function fetchGeolArea() {
   }
 
   btn.disabled = false;
-  btn.innerHTML = 'Formations géologiques dans un rayon de 500m <span style="font-size:1rem;font-weight:700;">?</span>';
+  btn.innerHTML = '🔬 Formations géologiques dans un rayon de 1 km';
 
   if (formations.size === 0) {
     const p = L.popup()
       .setLatLng([currentLat, currentLng])
-      .setContent('<div style="font-size:0.8rem;color:#999;padding:4px;">⚠️ Aucune formation géologique trouvée dans un rayon de 500m.</div>')
+      .setContent('<div style="font-size:0.8rem;color:#999;padding:4px;">⚠️ Aucune formation géologique trouvée dans un rayon de 1 km.</div>')
       .openOn(window.geologieMap);
     p.on('remove', function() {
       if (window._geolAreaCircle) { window.geologieMap.removeLayer(window._geolAreaCircle); window._geolAreaCircle = null; }
@@ -5173,7 +5275,7 @@ async function fetchGeolArea() {
   ).join('');
 
   const html = `<div style="font-size:0.75rem;max-width:520px;max-height:350px;overflow:auto;">
-    <div style="font-weight:700;color:#795548;margin-bottom:8px;font-size:0.85rem;">🔬 Formations géologiques — rayon 500m <span style="font-weight:400;font-size:0.72rem;color:var(--text-muted);">(${sorted.length} formation${sorted.length > 1 ? 's' : ''})</span></div>
+    <div style="font-weight:700;color:#795548;margin-bottom:8px;font-size:0.85rem;">🔬 Formations géologiques — rayon 1 km <span style="font-weight:400;font-size:0.72rem;color:var(--text-muted);">(${sorted.length} formation${sorted.length > 1 ? 's' : ''})</span></div>
     <table style="width:100%;border-collapse:collapse;">
       <tr style="background:rgba(121,85,72,0.08);">
         <th style="padding:5px 8px;text-align:left;font-weight:700;color:#795548;font-size:0.72rem;">N° Carte</th>
@@ -5198,14 +5300,7 @@ async function fetchAltitude(lat, lng) {
   const el = document.getElementById('altitude');
   el.value = '…';
 
-  function updateReliefPopup(altText) {
-    if (window.reliefMarker) {
-      window.reliefMarker.setPopupContent(
-        `<strong>Projet étudié</strong><br>` +
-        `<span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:5px;font-weight:700;font-size:12px;color:#fff;background:#5d8a48;">🏔 Altitude : ${altText}</span>`
-      );
-    }
-  }
+  function updateReliefPopup(altText) { }
 
   let altitude = null;
 
@@ -5331,7 +5426,22 @@ function screenshotFilename(label) {
   return `geocarto_${label}_${lat}_${lng}_${ts}.jpg`;
 }
 
-function downloadCanvas(canvas, filename) {
+async function downloadCanvas(canvas, filename) {
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'Image JPEG', accept: { 'image/jpeg': ['.jpg'] } }],
+      });
+      const writable = await handle.createWritable();
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
   const link = document.createElement('a');
   link.download = filename;
   link.href = canvas.toDataURL('image/jpeg', 0.92);
@@ -5427,13 +5537,46 @@ async function captureElement(elementId, label) {
     });
 
     document.body.removeChild(clone);
-    downloadCanvas(canvas, screenshotFilename(label));
+    await downloadCanvas(canvas, screenshotFilename(label));
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Screenshot error:', e);
     btnFeedback(btn, false, '❌', origHTML);
   }
   btn.classList.remove('busy');
+}
+
+// Fix transforms in cloned DOM for html2canvas rendering
+function _fixTransformsInClone(root) {
+  root.querySelectorAll('*').forEach(node => {
+    const t = node.style.transform;
+    if (!t || t === 'none') return;
+
+    let tx = 0, ty = 0, matched = false;
+
+    const m3 = t.match(/translate3d\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px/);
+    if (m3) { tx = parseFloat(m3[1]); ty = parseFloat(m3[2]); matched = true; }
+
+    if (!matched) {
+      const m2 = t.match(/^translate\(\s*(-?[\d.]+)px(?:,\s*(-?[\d.]+)px)?/);
+      if (m2) { tx = parseFloat(m2[1]); ty = parseFloat(m2[2] || '0'); matched = true; }
+    }
+
+    if (!matched) {
+      const mm = t.match(/matrix\(\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*(-?[\d.]+),\s*(-?[\d.]+)\s*\)/);
+      if (mm) { tx = parseFloat(mm[1]); ty = parseFloat(mm[2]); matched = true; }
+    }
+
+    if (!matched) return;
+
+    const baseLeft = parseFloat(node.style.left) || 0;
+    const baseTop  = parseFloat(node.style.top)  || 0;
+    node.style.willChange = 'auto';
+    node.style.transform  = 'none';
+    node.style.position   = node.style.position || 'absolute';
+    node.style.left = (baseLeft + tx) + 'px';
+    node.style.top  = (baseTop  + ty) + 'px';
+  });
 }
 
 // 2) Capture a Leaflet map — use Leaflet's own canvas tiles
@@ -5464,49 +5607,6 @@ async function captureLeaflet(mapContainerId, label, rawName) {
     await new Promise(r => setTimeout(r, 250));
   }
 
-  // ---------------------------------------------------------------
-  // Stratégie onclone :
-  // html2canvas clone le DOM avant de le rasteriser. Le callback
-  // onclone permet de corriger le clone (pas le DOM live) AVANT le
-  // rendu. On y convertit tous les translate3d/matrix en left/top
-  // (layout statique) — html2canvas positionne alors chaque élément
-  // correctement sans interpréter de transform.
-  // ---------------------------------------------------------------
-  function _fixTransformsInClone(root) {
-    root.querySelectorAll('*').forEach(node => {
-      const t = node.style.transform;
-      if (!t || t === 'none') return;
-
-      let tx = 0, ty = 0, matched = false;
-
-      // translate3d(x, y, z)
-      const m3 = t.match(/translate3d\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px/);
-      if (m3) { tx = parseFloat(m3[1]); ty = parseFloat(m3[2]); matched = true; }
-
-      // translate(x, y) ou translate(x)
-      if (!matched) {
-        const m2 = t.match(/^translate\(\s*(-?[\d.]+)px(?:,\s*(-?[\d.]+)px)?/);
-        if (m2) { tx = parseFloat(m2[1]); ty = parseFloat(m2[2] || '0'); matched = true; }
-      }
-
-      // matrix(a,b,c,d,tx,ty)
-      if (!matched) {
-        const mm = t.match(/matrix\(\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*[-\d.]+,\s*(-?[\d.]+),\s*(-?[\d.]+)\s*\)/);
-        if (mm) { tx = parseFloat(mm[1]); ty = parseFloat(mm[2]); matched = true; }
-      }
-
-      if (!matched) return;
-
-      const baseLeft = parseFloat(node.style.left) || 0;
-      const baseTop  = parseFloat(node.style.top)  || 0;
-      node.style.willChange = 'auto';
-      node.style.transform  = 'none';
-      node.style.position   = node.style.position || 'absolute';
-      node.style.left = (baseLeft + tx) + 'px';
-      node.style.top  = (baseTop  + ty) + 'px';
-    });
-  }
-
   try {
     const canvas = await html2canvas(el, {
       backgroundColor: '#f5f6f8',
@@ -5529,7 +5629,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         }
       },
     });
-    downloadCanvas(canvas, rawName ? `${label}.jpg` : screenshotFilename(label));
+    await downloadCanvas(canvas, rawName ? `${label}.jpg` : screenshotFilename(label));
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);
@@ -5537,6 +5637,110 @@ async function captureLeaflet(mapContainerId, label, rawName) {
   }
 
   btn.classList.remove('busy');
+}
+
+// Download IGN + GEOL captures to a user-chosen folder
+let _dlIgnGeolBusy = false;
+async function downloadIgnGeol(btn) {
+  if (_dlIgnGeolBusy) return;
+  if (!currentLat || !currentLng) { alert('Veuillez d\'abord lancer une recherche.'); return; }
+
+  // Demander le dossier IMMÉDIATEMENT (dans le geste utilisateur, avant tout await asynchrone)
+  let dirHandle = null;
+  if (window.showDirectoryPicker) {
+    try {
+      dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      // Si refusé, on tombe dans le fallback classique
+    }
+  }
+
+  _dlIgnGeolBusy = true;
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '⏳ Capture en cours…';
+
+  // Helper: capture a Leaflet map and return a Blob
+  async function _captureMapBlob(mapContainerId) {
+    const el = document.getElementById(mapContainerId);
+    if (!el) throw new Error(`Container ${mapContainerId} introuvable`);
+
+    const _allMaps = [
+      window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
+      window.bssMap, window.nappesMap, window.reliefMap, window.ignMap,
+      window.photoMap, window.histoMap, window.sitadelDepMap
+    ];
+    const lmap = _allMaps.find(m => {
+      try { return m?.getContainer?.().id === mapContainerId; } catch { return false; }
+    });
+
+    if (lmap) {
+      lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise(r => setTimeout(r, 250));
+    }
+
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#f5f6f8',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      foreignObjectRendering: false,
+      imageTimeout: 0,
+      onclone: (_clonedDoc, clonedEl) => {
+        const target = clonedEl?.id === mapContainerId ? clonedEl : _clonedDoc.getElementById(mapContainerId);
+        if (target) {
+          _fixTransformsInClone(target);
+          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => { el.style.display = 'none'; });
+        }
+      },
+    });
+
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+  }
+
+  try {
+    // Capture both maps in parallel
+    const [ignBlob, geolBlob] = await Promise.all([
+      _captureMapBlob('map-ign-leaflet'),
+      _captureMapBlob('map-geologie')
+    ]);
+
+    if (dirHandle) {
+      // Écrire directement dans le dossier choisi
+      const ignFile = await dirHandle.getFileHandle('IGN.jpg', { create: true });
+      const ignW = await ignFile.createWritable();
+      await ignW.write(ignBlob);
+      await ignW.close();
+
+      const geolFile = await dirHandle.getFileHandle('GEOL.jpg', { create: true });
+      const geolW = await geolFile.createWritable();
+      await geolW.write(geolBlob);
+      await geolW.close();
+    } else {
+      // Fallback: classic download links
+      const dlLink = document.createElement('a');
+      dlLink.download = 'IGN.jpg';
+      dlLink.href = URL.createObjectURL(ignBlob);
+      document.body.appendChild(dlLink); dlLink.click(); document.body.removeChild(dlLink);
+      URL.revokeObjectURL(dlLink.href);
+      await new Promise(r => setTimeout(r, 500));
+      const dlLink2 = document.createElement('a');
+      dlLink2.download = 'GEOL.jpg';
+      dlLink2.href = URL.createObjectURL(geolBlob);
+      document.body.appendChild(dlLink2); dlLink2.click(); document.body.removeChild(dlLink2);
+      URL.revokeObjectURL(dlLink2.href);
+    }
+
+    btn.innerHTML = '✅ Enregistré !';
+    setTimeout(() => { btn.innerHTML = origHTML; _dlIgnGeolBusy = false; }, 2500);
+  } catch (e) {
+    console.error('IGN+GEOL download error:', e);
+    alert('Erreur lors de la capture : ' + e.message);
+    btn.innerHTML = origHTML;
+    _dlIgnGeolBusy = false;
+  }
 }
 
 // 3) Capture an iframe — open in new tab since cross-origin prevents capture
@@ -5695,6 +5899,34 @@ function exportRisquesExcel() {
   });
   const wsBSS = XLSX.utils.json_to_sheet(bssRows.length ? bssRows : [{ 'Info': 'Aucun sondage BSS' }]);
   XLSX.utils.book_append_sheet(wb, wsBSS, 'Sondages BSS');
+
+  // 7. Études répertoriées (EDS) dans un rayon de 1 km
+  const allEds = [..._edsData, ..._edsNewEntries];
+  const edsNearby = [];
+  if (allEds.length) {
+    allEds.forEach(r => {
+      const lat = parseFloat((r.Latitude || '').toString().replace(',', '.'));
+      const lng = parseFloat((r.Longitude || '').toString().replace(',', '.'));
+      if (isNaN(lat) || isNaN(lng)) return;
+      const dist = haversineKm(currentLat, currentLng, lat, lng);
+      if (dist <= 1) edsNearby.push({ r, dist });
+    });
+    edsNearby.sort((a, b) => a.dist - b.dist);
+  }
+  const edsRows = edsNearby.map(({ r, dist }) => ({
+    'Nom': r.Nom || '',
+    'Référence': r['Référence'] || r.Référence || '',
+    'Adresse': r.Adresse || '',
+    'Code Postal': r['Code Postal'] || '',
+    'Ville': r.Ville || '',
+    'Catégorie': r['Catégorie'] || r.Catégorie || '',
+    'Notes': r.Notes || '',
+    'Distance (km)': dist.toFixed(2),
+    'Latitude': r.Latitude || '',
+    'Longitude': r.Longitude || ''
+  }));
+  const wsEds = XLSX.utils.json_to_sheet(edsRows.length ? edsRows : [{ 'Info': 'Aucune étude répertoriée dans un rayon de 1 km' }]);
+  XLSX.utils.book_append_sheet(wb, wsEds, 'Études répertoriées');
 
   const ts = new Date().toISOString().slice(0, 10);
   const filename = `${ts}_RISQUES.xlsx`;
