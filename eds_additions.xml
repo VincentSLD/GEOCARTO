@@ -252,4 +252,16 @@
     <Latitude>46.64048</Latitude>
     <Longitude>-1.054688</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>1111</Reference>
+    <Nom>DVSFV</Nom>
+    <Adresse>5270 Route de Bouin</Adresse>
+    <Code_Postal>85230</Code_Postal>
+    <Ville>Saint-Gervais</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.951908</Latitude>
+    <Longitude>-1.97486</Longitude>
+  </point>
 </eds_additions>
