@@ -2971,9 +2971,15 @@ function addBSSMarkersToMap(features) {
     const subtitle = (codeBss && bssId && codeBss !== bssId)
       ? `<span style="color:#888;font-size:10px;"> — ${bssId}</span>` : '';
 
+    const bssBase = codeBss ? `http://ficheinfoterre.brgm.fr/InfoterreFiche` : '';
+    const bssEnc = encodeURIComponent(codeBss);
+    const distKm2 = p._dist_km;
+    const distTag = typeof distKm2 === 'number' ? `<span style="color:#e0976e;font-size:10px;font-weight:600;">📍 ${distKm2 < 0.1 ? (distKm2*1000).toFixed(0)+' m' : distKm2.toFixed(2)+' km'}</span><br>` : '';
+
     const popup = `
-      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:260px;line-height:1.6;">
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;">
         <strong style="color:#e0976e;">🔩 ${label}</strong>${subtitle}<br>
+        ${distTag}
         ${nature   ? `Type : <b>${nature}</b><br>` : ''}
         ${prof     ? `Profondeur : ${prof} m<br>` : ''}
         ${altitude ? `Altitude : ${altitude} m NGF<br>` : ''}
@@ -2981,7 +2987,13 @@ function addBSSMarkersToMap(features) {
         ${adresse  ? `${adresse}<br>` : ''}
         ${commune  ? `${commune}<br>` : ''}
         ${dateMaj  ? `<span style="color:#888;font-size:10px;">Màj : ${dateMaj}</span><br>` : ''}
-        <a href="${lien}" target="_blank" style="color:#4a8eff;text-decoration:none;">Voir fiche InfoTerre →</a>
+        ${bssBase ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;display:flex;flex-direction:column;gap:3px;">
+          <a href="${bssBase}/ficheBss.action?id=${bssEnc}" target="_blank" style="color:#e0976e;text-decoration:none;font-size:11px;font-weight:600;">📍 Localisation</a>
+          <a href="${bssBase}/ficheDescTech.action?id=${bssEnc}" target="_blank" style="color:#4a8eff;text-decoration:none;font-size:11px;">📋 Description technique</a>
+          <a href="${bssBase}/ficheDocument.action?id=${bssEnc}" target="_blank" style="color:#4a8eff;text-decoration:none;font-size:11px;">📄 Document(s) numérisé(s)</a>
+          <a href="${bssBase}/ficheLogGeol.action?id=${bssEnc}" target="_blank" style="color:#4a8eff;text-decoration:none;font-size:11px;">🪨 Log géologique numérisé</a>
+          <a href="${bssBase}/ficheBssEau.action?id=${bssEnc}" target="_blank" style="color:#4a8eff;text-decoration:none;font-size:11px;">💧 Fiche BSS Eau</a>
+        </div>` : ''}
       </div>`;
 
     maps.forEach(map => {
