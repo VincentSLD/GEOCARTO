@@ -1531,7 +1531,7 @@
         <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.6rem;background:linear-gradient(135deg,#1a1a1a,#333333);border:none;border-radius:10px;padding:14px 16px;user-select:none;transition:all 0.2s;box-shadow:0 4px 16px rgba(26,26,26,0.2);"
           onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(26,26,26,0.3)'"
           onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(26,26,26,0.2)'">
-          <span style="font-size:1.1rem;color:#fff;">▼</span>
+          <span id="dev-section-arrow-left" style="font-size:1.1rem;color:#fff;transition:transform 0.3s;">▼</span>
           <span style="font-weight:700;font-size:0.85rem;font-family:'Space Grotesk',sans-serif;color:#fff;">Informations complémentaires sur les Risques</span>
           <span id="dev-section-arrow" style="color:#fff;font-size:1.1rem;transition:transform 0.3s;">▼</span>
         </div>
@@ -2894,8 +2894,8 @@ function renderBSS(features) {
     const nbPiezo   = p.nb_mesures_piezo || '';
     const dateMaj   = p.date_maj  || '';
     const lien      = p.lien_infoterre ||
-      (codeBss ? `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(codeBss)}` :
-                 `https://infoterre.brgm.fr/viewer/MainTileForward.do?`);
+      (codeBss ? `http://ficheinfoterre.brgm.fr/InfoterreFiche/ficheBss.action?id=${encodeURIComponent(codeBss)}` :
+                 `http://ficheinfoterre.brgm.fr/InfoterreFiche/ficheBss.action`);
 
     const label = codeBss || bssId || 'Ouvrage BSS';
     const details = [
@@ -2951,7 +2951,7 @@ function addBSSMarkersToMap(features) {
     const nbPiezo  = p.nb_mesures_piezo || '';
     const dateMaj  = p.date_maj  || '';
     const lien     = p.lien_infoterre ||
-      (codeBss ? `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(codeBss)}` : '#');
+      (codeBss ? `http://ficheinfoterre.brgm.fr/InfoterreFiche/ficheBss.action?id=${encodeURIComponent(codeBss)}` : '#');
 
     const label = codeBss || bssId || 'Ouvrage BSS';
     const subtitle = (codeBss && bssId && codeBss !== bssId)
@@ -3032,7 +3032,7 @@ async function onBssMapClick(e) {
       return;
     }
 
-    const lien = `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(best.reference)}`;
+    const lien = `http://ficheinfoterre.brgm.fr/InfoterreFiche/ficheBss.action?id=${encodeURIComponent(best.reference)}`;
     const html = `<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;">
       <strong style="color:#e0976e;">🔩 ${best.reference}</strong>
       ${best.bssId ? `<span style="color:#888;font-size:10px;"> — ${best.bssId}</span>` : ''}<br>
@@ -4622,7 +4622,7 @@ function buildKmlContent() {
       const code = p.denomination_bss || p.code_bss || p.BSS_CODE || p.identifiant || p.LABEL || 'BSS '+(i+1);
       const prof = p.profondeur_atteinte || p.prof_max || p.PROF || p.profondeur || '';
       const nature = p.nature_ouvrage || p.NATURE || p.type || '';
-      const link = code ? 'https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField='+encodeURIComponent(code) : '';
+      const link = code ? 'http://ficheinfoterre.brgm.fr/InfoterreFiche/ficheBss.action?id='+encodeURIComponent(code) : '';
       bssItems += '\n    <Placemark><name>'+esc(code)+'</name><description><![CDATA[<b>BSS</b>'+(nature?'<br>'+esc(nature):'')+(prof?'<br>Prof: '+esc(prof)+' m':'')+(link?'<br><a href="'+link+'">InfoTerre</a>':'')+']]></description><styleUrl>#bssStyle</styleUrl><Point><coordinates>'+bLng+','+bLat+',0</coordinates></Point></Placemark>';
     });
     bssFolder = '\n  <Folder><name>🔩 Sondages BSS ('+bssData.length+')</name><open>0</open>'+bssItems+'\n  </Folder>';
@@ -5973,13 +5973,16 @@ async function exportRisquesExcel() {
 function toggleDevSection() {
   const content = document.getElementById('dev-section-content');
   const arrow = document.getElementById('dev-section-arrow');
+  const arrowLeft = document.getElementById('dev-section-arrow-left');
 
   if (content.style.display === 'none') {
     content.style.display = 'block';
     arrow.textContent = '▲';
+    arrowLeft.textContent = '▲';
   } else {
     content.style.display = 'none';
     arrow.textContent = '▼';
+    arrowLeft.textContent = '▼';
   }
 }
 
