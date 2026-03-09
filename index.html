@@ -1604,7 +1604,7 @@
 
       <!-- Bouton rapport complet -->
       <div style="margin-top:0.5rem;">
-        <button onclick="generateReport()" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(21,101,192,0.3);"
+        <button onclick="generateReport(this)" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(21,101,192,0.3);"
           onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(21,101,192,0.4)'"
           onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(21,101,192,0.3)'">
           🖨️ Générer le rapport complet (impression / PDF)
@@ -5998,13 +5998,12 @@ async function exportRisquesExcel() {
 
 
 // ====== RAPPORT COMPLET ======
-async function generateReport() {
+async function generateReport(btn) {
   if (!currentLat || !currentLng) { alert("Veuillez d'abord lancer une recherche."); return; }
 
-  const btn = event.currentTarget;
-  const origHTML = btn.innerHTML;
-  btn.innerHTML = '⏳ Génération du rapport en cours…';
-  btn.disabled = true;
+  if (!btn) btn = event?.currentTarget;
+  const origHTML = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '⏳ Génération du rapport en cours…'; btn.disabled = true; }
 
   try {
     // --- Forcer les formations géologiques si pas encore chargées ---
@@ -6090,7 +6089,9 @@ async function generateReport() {
     }
 
     // EDS nearby
-    const allEds = [...(_edsData || []), ...(_edsNewEntries || [])];
+    const edsDataSafe = (typeof _edsData !== 'undefined' ? _edsData : []);
+    const edsNewSafe = (typeof _edsNewEntries !== 'undefined' ? _edsNewEntries : []);
+    const allEds = [...edsDataSafe, ...edsNewSafe];
     const nearbyEds = [];
     allEds.forEach(r => {
       const lat = parseFloat((r.Latitude||'').toString().replace(',','.'));
@@ -6293,17 +6294,19 @@ async function generateReport() {
 
     // --- Ouvrir dans une nouvelle fenêtre et déclencher l'impression ---
     const w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 600);
+    if (!w) { alert('Le navigateur a bloqué l\'ouverture du rapport. Autorisez les popups pour ce site.'); }
+    else {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch(e2) { console.warn('Print error', e2); } }, 800);
+    }
 
   } catch(e) {
     console.error('Report generation error:', e);
     alert('Erreur lors de la génération du rapport : ' + e.message);
   }
 
-  btn.innerHTML = origHTML;
-  btn.disabled = false;
+  if (btn) { btn.innerHTML = origHTML; btn.disabled = false; }
 }
 
 function toggleDevSection() {
