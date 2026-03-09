@@ -2894,7 +2894,7 @@ function renderBSS(features) {
     const nbPiezo   = p.nb_mesures_piezo || '';
     const dateMaj   = p.date_maj  || '';
     const lien      = p.lien_infoterre ||
-      (codeBss ? `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(codeBss)}` :
+      (codeBss ? `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(codeBss)}` :
                  `https://infoterre.brgm.fr/viewer/MainTileForward.do?`);
 
     const label = codeBss || bssId || 'Ouvrage BSS';
@@ -2951,7 +2951,7 @@ function addBSSMarkersToMap(features) {
     const nbPiezo  = p.nb_mesures_piezo || '';
     const dateMaj  = p.date_maj  || '';
     const lien     = p.lien_infoterre ||
-      (codeBss ? `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(codeBss)}` : '#');
+      (codeBss ? `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(codeBss)}` : '#');
 
     const label = codeBss || bssId || 'Ouvrage BSS';
     const subtitle = (codeBss && bssId && codeBss !== bssId)
@@ -3032,7 +3032,7 @@ async function onBssMapClick(e) {
       return;
     }
 
-    const lien = `https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code=${encodeURIComponent(best.reference)}`;
+    const lien = `https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField=${encodeURIComponent(best.reference)}`;
     const html = `<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;">
       <strong style="color:#e0976e;">🔩 ${best.reference}</strong>
       ${best.bssId ? `<span style="color:#888;font-size:10px;"> — ${best.bssId}</span>` : ''}<br>
@@ -4622,7 +4622,7 @@ function buildKmlContent() {
       const code = p.denomination_bss || p.code_bss || p.BSS_CODE || p.identifiant || p.LABEL || 'BSS '+(i+1);
       const prof = p.profondeur_atteinte || p.prof_max || p.PROF || p.profondeur || '';
       const nature = p.nature_ouvrage || p.NATURE || p.type || '';
-      const link = code ? 'https://infoterre.brgm.fr/ficheBss/jsp/displayBss.jsp?code='+encodeURIComponent(code) : '';
+      const link = code ? 'https://infoterre.brgm.fr/viewer/MainTileForward.do?action=DO_SEARCH_BSS&searchField='+encodeURIComponent(code) : '';
       bssItems += '\n    <Placemark><name>'+esc(code)+'</name><description><![CDATA[<b>BSS</b>'+(nature?'<br>'+esc(nature):'')+(prof?'<br>Prof: '+esc(prof)+' m':'')+(link?'<br><a href="'+link+'">InfoTerre</a>':'')+']]></description><styleUrl>#bssStyle</styleUrl><Point><coordinates>'+bLng+','+bLat+',0</coordinates></Point></Placemark>';
     });
     bssFolder = '\n  <Folder><name>🔩 Sondages BSS ('+bssData.length+')</name><open>0</open>'+bssItems+'\n  </Folder>';
