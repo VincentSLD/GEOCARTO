@@ -2987,10 +2987,7 @@ function addBSSMarkersToMap(features) {
         ${adresse  ? `${adresse}<br>` : ''}
         ${commune  ? `${commune}<br>` : ''}
         ${dateMaj  ? `<span style="color:#888;font-size:10px;">Màj : ${dateMaj}</span><br>` : ''}
-        ${bssBase ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;display:flex;flex-direction:column;gap:3px;">
-          <a href="${bssBase}/ficheBss.action?id=${bssEnc}" target="_blank" style="color:#e0976e;text-decoration:none;font-size:11px;font-weight:600;">📄 Fiche BSS complète</a>
-          <a href="${bssBase}/logBss.action?id=${bssEnc}" target="_blank" style="color:#4a8eff;text-decoration:none;font-size:11px;">🪨 Log géologique numérisé</a>
-        </div>` : ''}
+        <a href="${lien}" target="_blank" style="color:#4a8eff;text-decoration:none;">Voir fiche InfoTerre →</a>
       </div>`;
 
     maps.forEach(map => {
