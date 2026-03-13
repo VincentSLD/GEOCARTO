@@ -276,4 +276,16 @@
     <Latitude>46.755345</Latitude>
     <Longitude>-1.957562</Longitude>
   </point>
+  <point>
+    <Dossier>Mes lieux préférés/2026/Mars 2026</Dossier>
+    <Reference>232</Reference>
+    <Nom>DGFDGB</Nom>
+    <Adresse>4 la Richerie</Adresse>
+    <Code_Postal>85500</Code_Postal>
+    <Ville>Beaurepaire</Ville>
+    <Categorie></Categorie>
+    <Notes></Notes>
+    <Latitude>46.717269</Latitude>
+    <Longitude>-1.494141</Longitude>
+  </point>
 </eds_additions>
