@@ -4209,9 +4209,27 @@ window.edsMap       = null;
 // --- Charger tous les points EDS depuis Supabase ---
 async function _edsLoadFromSupabase() {
   try {
-    const { data, error } = await sbAuth.from('geocarto_eds').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('Erreur chargement EDS:', error); return; }
-    _edsData = (data || []).map(r => ({
+    // Supabase limite a 1000 lignes par defaut — charger par pages
+    const PAGE = 1000;
+    let allRows = [];
+    let from = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await sbAuth.from('geocarto_eds')
+        .select('*')
+        .range(from, from + PAGE - 1)
+        .order('created_at', { ascending: false });
+      if (error) { console.error('Erreur chargement EDS:', error); break; }
+      if (data && data.length > 0) {
+        allRows = allRows.concat(data);
+        from += data.length;
+        hasMore = data.length === PAGE;
+      } else {
+        hasMore = false;
+      }
+    }
+    console.log('EDS: ' + allRows.length + ' points charges depuis Supabase');
+    _edsData = allRows.map(r => ({
       _id: r.id,
       _created_by: r.created_by,
       Dossier: r.dossier || '',
