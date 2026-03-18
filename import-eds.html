@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Import EDS vers Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; background: #f5f5f0; }
+  h1 { font-size: 1.3rem; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
+  label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px; }
+  input[type=password] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; font-size: 0.8rem; box-sizing: border-box; margin-bottom: 12px; }
+  button { padding: 10px 24px; border: none; border-radius: 8px; background: #1a1a1a; color: #f5c518; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #log { background: #1a1a1a; color: #e0e0e0; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.75rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Import EDS &rarr; Supabase</h1>
+
+<div class="card">
+  <label>Supabase Service Role Key</label>
+  <input type="password" id="service-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
+
+  <label>Fichier CSV (Carte_EDS_V1.csv)</label>
+  <input type="file" id="csv-file" accept=".csv">
+
+  <br><br>
+  <button id="btn-import" onclick="startImport()">Lancer l'import</button>
+</div>
+
+<div id="log"></div>
+
+<script>
+const SUPABASE_URL = 'https://asuccniyofzvwgooxjah.supabase.co';
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function startImport() {
+  const serviceKey = document.getElementById('service-key').value.trim();
+  const fileInput = document.getElementById('csv-file');
+  const btn = document.getElementById('btn-import');
+
+  if (!serviceKey) { alert('Service Role Key requise'); return; }
+  if (!fileInput.files.length) { alert('Selectionnez le fichier CSV'); return; }
+
+  btn.disabled = true;
+  document.getElementById('log').textContent = '';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, serviceKey);
+
+  // Lire le CSV
+  log('Lecture du fichier CSV...');
+  const file = fileInput.files[0];
+  const text = await file.text();
+
+  log('Parsing CSV avec PapaParse...');
+  const result = Papa.parse(text, { delimiter: ';', header: true, skipEmptyLines: true });
+  log('  ' + result.data.length + ' lignes parsees.');
+
+  // Filtrer les points valides
+  const valid = result.data.filter(r => {
+    const lat = parseFloat((r.Latitude || '').replace(',', '.'));
+    const lng = parseFloat((r.Longitude || '').replace(',', '.'));
+    return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+  });
+  log('  ' + valid.length + ' points avec coordonnees valides.');
+
+  // Preparer les rows
+  const rows = valid.map(r => ({
+    dossier: r.Dossier || null,
+    reference: r['Référence'] || r['Reference'] || null,
+    nom: (r.Nom || '').trim() || 'Sans nom',
+    adresse: r.Adresse || null,
+    code_postal: r['Code Postal'] || null,
+    ville: r.Ville || null,
+    categorie: r['Catégorie'] || r['Categorie'] || null,
+    notes: r.Notes || r['Description brute'] || null,
+    latitude: parseFloat((r.Latitude || '').replace(',', '.')),
+    longitude: parseFloat((r.Longitude || '').replace(',', '.')),
+    created_by: null
+  }));
+
+  // Inserer par lots de 500
+  const BATCH = 500;
+  let inserted = 0;
+  let errors = 0;
+
+  log('\nInsertion par lots de ' + BATCH + '...');
+
+  for (let start = 0; start < rows.length; start += BATCH) {
+    const batch = rows.slice(start, start + BATCH);
+    const { error } = await sb.from('geocarto_eds').insert(batch);
+    if (error) {
+      log('  ERREUR lot ' + start + '-' + (start + batch.length) + ': ' + error.message);
+      errors++;
+    } else {
+      inserted += batch.length;
+      log('  ' + inserted + ' / ' + rows.length + ' inseres...');
+    }
+  }
+
+  log('\n============================');
+  log('Import termine !');
+  log('  ' + inserted + ' points inseres');
+  if (errors) log('  ' + errors + ' lots en erreur');
+  log('============================');
+
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
