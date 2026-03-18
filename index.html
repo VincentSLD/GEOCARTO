@@ -1730,6 +1730,11 @@ function showApp(user) {
   currentAuthUser = user;
   document.getElementById('login-screen').classList.add('hidden');
   document.querySelector('.app').style.display = '';
+  // Rafraichir les cartes Leaflet (initialisees pendant display:none)
+  setTimeout(() => {
+    if (typeof pickerMap !== 'undefined' && pickerMap) pickerMap.invalidateSize();
+    if (typeof edsMap !== 'undefined' && edsMap) edsMap.invalidateSize();
+  }, 100);
   // Avatar initiales
   const email = user.email || '';
   const meta = user.user_metadata || {};
