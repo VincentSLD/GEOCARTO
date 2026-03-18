@@ -5957,6 +5957,14 @@ async function captureLeaflet(mapContainerId, label, rawName) {
           target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => {
             el.style.display = 'none';
           });
+          // Pictos marqueurs : supprimer contour, ombre et fond pour ne garder que le picto
+          target.querySelectorAll('.leaflet-marker-icon').forEach(mk => {
+            mk.style.background = 'transparent';
+            mk.style.border = 'none';
+            mk.style.boxShadow = 'none';
+            mk.querySelectorAll('svg').forEach(svg => { svg.style.filter = 'none'; });
+            mk.querySelectorAll('div').forEach(d => { d.style.boxShadow = 'none'; d.style.border = 'none'; });
+          });
         }
       },
     });
@@ -6039,6 +6047,14 @@ async function downloadIgnGeol(btn) {
         if (target) {
           _fixTransformsInClone(target);
           target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => { el.style.display = 'none'; });
+          // Pictos marqueurs : supprimer contour, ombre et fond pour ne garder que le picto
+          target.querySelectorAll('.leaflet-marker-icon').forEach(mk => {
+            mk.style.background = 'transparent';
+            mk.style.border = 'none';
+            mk.style.boxShadow = 'none';
+            mk.querySelectorAll('svg').forEach(svg => { svg.style.filter = 'none'; });
+            mk.querySelectorAll('div').forEach(d => { d.style.boxShadow = 'none'; d.style.border = 'none'; });
+          });
         }
       },
     });
