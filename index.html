@@ -1314,7 +1314,7 @@
         onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(249,168,37,0.35)'">
         <div style="color:#1a1a1a;">
           <div style="font-weight:700;font-size:0.95rem;" id="btn-dl-ign-geol">💾 Téléchargement des images IGN + GEOL</div>
-          <div style="font-size:0.75rem;opacity:0.75;margin-top:2px;color:#1a1a1a;">Enregistrez les captures des cartes IGN et Géologique BRGM</div>
+          <div style="font-size:0.75rem;opacity:0.75;margin-top:2px;color:#1a1a1a;">Enregistrez les captures des cartes IGN et Géologiques BRGM</div>
         </div>
       </div>
 
@@ -6050,7 +6050,7 @@ async function downloadIgnGeol(btn) {
 
   _dlIgnGeolBusy = true;
   const origHTML = btn.innerHTML;
-  btn.innerHTML = '⏳ Capture en cours…';
+  btn.innerHTML = '⏳ Captures en cours…';
 
   // Helper: capture a Leaflet map and return a Blob
   async function _captureMapBlob(mapContainerId, pictoSrc) {
