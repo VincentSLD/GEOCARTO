@@ -4197,14 +4197,7 @@ function loadStylesheet(href) {
 }
 
 // ===== CARTE EDS =====
-const _EDS_REPO   = 'vincentsld/GEOCARTO';
-const _EDS_FILE   = 'eds_additions.xml';
-const _EDS_BRANCH = 'main';
-
-let _edsData        = [];
-let _edsNewEntries  = [];
-let _edsSavedPts    = [];   // points déjà dans eds_additions.xml
-let _edsXmlSha      = null; // SHA du fichier sur GitHub
+let _edsData        = [];   // tous les points (depuis Supabase)
 let _edsMapReady    = false;
 let _edsMarkerGroup = null;
 let _edsInvMarker   = null;
@@ -4213,140 +4206,85 @@ let _edsPendingInv  = null;
 let _edsEditableRefs = [];  // refs vers points éditables pour popup edit/delete
 window.edsMap       = null;
 
-// --- Token GitHub ---
-function _edsGetToken() { return localStorage.getItem('eds_github_token') || ''; }
-
-function edsConfigToken() {
-  document.getElementById('eds-token-overlay')?.remove();
-  const cur = _edsGetToken();
-  const ov = document.createElement('div');
-  ov.id = 'eds-token-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
-  ov.innerHTML = `
-    <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:430px;width:93%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;">
-      <div style="font-weight:700;font-size:0.92rem;color:#1a1a1a;margin-bottom:6px;">🔑 Token GitHub — Sauvegarde EDS</div>
-      <div style="font-size:0.72rem;color:#6b7280;margin-bottom:12px;line-height:1.6;">
-        Créez un <strong>Fine-grained token</strong> sur <a href="https://github.com/settings/tokens" target="_blank" style="color:#388e3c;">github.com/settings/tokens</a><br>
-        Permissions requises : <code>Contents → Read &amp; Write</code> sur <code>vincentsld/GEOCARTO</code>.
-      </div>
-      <input id="eds-token-input" type="password" value="${cur}" placeholder="github_pat_…"
-        style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #ccc;font-size:0.78rem;font-family:'DM Mono',monospace;box-sizing:border-box;margin-bottom:14px;">
-      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-        <button id="eds-tok-del" style="padding:7px 14px;border-radius:7px;border:1px solid #fca5a5;background:transparent;color:#e53935;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">🗑 Effacer</button>
-        <button id="eds-tok-cancel" style="padding:7px 14px;border-radius:7px;border:1px solid #e5e7eb;background:transparent;color:#6b7280;font-size:0.78rem;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
-        <button id="eds-tok-save" style="padding:7px 18px;border-radius:7px;border:none;background:#1a1a1a;color:#fff;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Enregistrer</button>
-      </div>
-    </div>`;
-  _edsOverlayParent().appendChild(ov);
-  const close = () => ov.remove();
-  document.getElementById('eds-tok-cancel').onclick = close;
-  ov.addEventListener('click', e => { if (e.target === ov) close(); });
-  document.getElementById('eds-tok-del').onclick = () => { localStorage.removeItem('eds_github_token'); close(); };
-  document.getElementById('eds-tok-save').onclick = () => {
-    const val = document.getElementById('eds-token-input').value.trim();
-    if (val) localStorage.setItem('eds_github_token', val); else localStorage.removeItem('eds_github_token');
-    close();
-  };
-}
-
-// --- XML builder / parser ---
-function _edsBuildXml(points) {
-  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const rows = points.map(p => `  <point>
-    <Dossier>${esc(p.Dossier)}</Dossier>
-    <Reference>${esc(p.Référence)}</Reference>
-    <Nom>${esc(p.Nom)}</Nom>
-    <Adresse>${esc(p.Adresse)}</Adresse>
-    <Code_Postal>${esc(p['Code Postal'])}</Code_Postal>
-    <Ville>${esc(p.Ville)}</Ville>
-    <Categorie>${esc(p.Catégorie)}</Categorie>
-    <Notes>${esc(p.Notes)}</Notes>
-    <Latitude>${esc(p.Latitude)}</Latitude>
-    <Longitude>${esc(p.Longitude)}</Longitude>
-  </point>`).join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<eds_additions>\n${rows}\n</eds_additions>`;
-}
-
-function _edsParseXml(text) {
-  const doc = new DOMParser().parseFromString(text, 'text/xml');
-  const pts = [];
-  doc.querySelectorAll('point').forEach(el => {
-    const g = tag => el.querySelector(tag)?.textContent?.trim() || '';
-    const lat = g('Latitude'), lng = g('Longitude');
-    if (!lat || !lng) return;
-    pts.push({ Dossier: g('Dossier'), Référence: g('Reference'), Nom: g('Nom'),
-      Adresse: g('Adresse'), 'Code Postal': g('Code_Postal'), Ville: g('Ville'),
-      Catégorie: g('Categorie'), Notes: g('Notes'), 'Description brute': g('Notes'),
-      Latitude: lat, Longitude: lng });
-  });
-  return pts;
-}
-
-// --- Charger eds_additions.xml depuis GitHub ---
-async function _edsLoadAdditions() {
+// --- Charger tous les points EDS depuis Supabase ---
+async function _edsLoadFromSupabase() {
   try {
-    const headers = { 'Accept': 'application/vnd.github+json' };
-    const tok = _edsGetToken();
-    if (tok) headers['Authorization'] = `Bearer ${tok}`;
-    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}`, { headers });
-    if (resp.status === 404) { _edsXmlSha = null; _edsSavedPts = []; return; }
-    if (!resp.ok) return;
-    const json = await resp.json();
-    _edsXmlSha  = json.sha;
-    const xml   = decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))));
-    _edsSavedPts = _edsParseXml(xml);
-    _edsSavedPts.forEach(p => p._editable = true);
-    if (_edsSavedPts.length > 0) {
-      _edsNewEntries.push(..._edsSavedPts);
-      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
-      edsUpdateNearbyList();
-    }
-  } catch(e) { console.warn('EDS additions load error:', e); }
+    const { data, error } = await sbAuth.from('geocarto_eds').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Erreur chargement EDS:', error); return; }
+    _edsData = (data || []).map(r => ({
+      _id: r.id,
+      _created_by: r.created_by,
+      Dossier: r.dossier || '',
+      Référence: r.reference || '',
+      Nom: r.nom || '',
+      Adresse: r.adresse || '',
+      'Code Postal': r.code_postal || '',
+      Ville: r.ville || '',
+      Catégorie: r.categorie || '',
+      Notes: r.notes || '',
+      'Description brute': r.notes || '',
+      Latitude: String(r.latitude),
+      Longitude: String(r.longitude),
+      _editable: true
+    }));
+    _edsRenderMarkers(_edsData);
+    edsUpdateNearbyList();
+  } catch(e) { console.error('EDS Supabase load error:', e); }
 }
 
-// --- Récupérer le SHA actuel du fichier sur GitHub ---
-async function _edsFetchSha(tok) {
+// --- Sauvegarder un nouveau point dans Supabase ---
+async function _edsSaveToSupabase(entry) {
   try {
-    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}?ref=${_EDS_BRANCH}`, {
-      headers: { 'Authorization': `Bearer ${tok}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if (resp.status === 404) return null;
-    if (!resp.ok) return _edsXmlSha;
-    const json = await resp.json();
-    _edsXmlSha = json.sha;
-    return json.sha;
-  } catch(e) { return _edsXmlSha; }
-}
-
-// --- Synchroniser _edsSavedPts vers GitHub ---
-async function _edsSyncGitHub(commitMsg) {
-  const tok = _edsGetToken();
-  if (!tok) { edsConfigToken(); return 'notoken'; }
-  // Toujours récupérer le SHA le plus récent avant d'écrire
-  await _edsFetchSha(tok);
-  const xml = _edsBuildXml(_edsSavedPts);
-  const b64 = btoa(unescape(encodeURIComponent(xml)));
-  const body = { message: commitMsg, content: b64, branch: _EDS_BRANCH };
-  if (_edsXmlSha) body.sha = _edsXmlSha;
-  try {
-    const resp = await fetch(`https://api.github.com/repos/${_EDS_REPO}/contents/${_EDS_FILE}`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${tok}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) { const e = await resp.json(); console.error('GitHub API error:', resp.status, e); return 'error'; }
-    const json = await resp.json();
-    _edsXmlSha = json.content.sha;
+    const row = {
+      dossier: entry.Dossier || null,
+      reference: entry.Référence || null,
+      nom: entry.Nom,
+      adresse: entry.Adresse || null,
+      code_postal: entry['Code Postal'] || null,
+      ville: entry.Ville || null,
+      categorie: entry.Catégorie || null,
+      notes: entry.Notes || null,
+      latitude: parseFloat(String(entry.Latitude).replace(',', '.')),
+      longitude: parseFloat(String(entry.Longitude).replace(',', '.')),
+      created_by: currentAuthUser?.id || null
+    };
+    const { data, error } = await sbAuth.from('geocarto_eds').insert(row).select().single();
+    if (error) { console.error('Erreur ajout EDS:', error); return 'error'; }
+    entry._id = data.id;
+    entry._created_by = data.created_by;
     return 'saved';
-  } catch(e) { console.error('GitHub save:', e); return 'error'; }
+  } catch(e) { console.error('EDS save error:', e); return 'error'; }
 }
 
-// --- Ajouter un point et sauvegarder ---
-async function edsSaveToGitHub(newEntry) {
-  _edsSavedPts.push(newEntry);
-  const result = await _edsSyncGitHub(`Ajout EDS : ${newEntry.Nom}`);
-  if (result !== 'saved') _edsSavedPts.pop();
-  return result;
+// --- Mettre a jour un point dans Supabase ---
+async function _edsUpdateSupabase(entry) {
+  if (!entry._id) return 'error';
+  try {
+    const { error } = await sbAuth.from('geocarto_eds').update({
+      dossier: entry.Dossier || null,
+      reference: entry.Référence || null,
+      nom: entry.Nom,
+      adresse: entry.Adresse || null,
+      code_postal: entry['Code Postal'] || null,
+      ville: entry.Ville || null,
+      categorie: entry.Catégorie || null,
+      notes: entry.Notes || null,
+      latitude: parseFloat(String(entry.Latitude).replace(',', '.')),
+      longitude: parseFloat(String(entry.Longitude).replace(',', '.'))
+    }).eq('id', entry._id);
+    if (error) { console.error('Erreur update EDS:', error); return 'error'; }
+    return 'saved';
+  } catch(e) { console.error('EDS update error:', e); return 'error'; }
+}
+
+// --- Supprimer un point dans Supabase ---
+async function _edsDeleteSupabase(entry) {
+  if (!entry._id) return 'error';
+  try {
+    const { error } = await sbAuth.from('geocarto_eds').delete().eq('id', entry._id);
+    if (error) { console.error('Erreur delete EDS:', error); return 'error'; }
+    return 'saved';
+  } catch(e) { console.error('EDS delete error:', e); return 'error'; }
 }
 
 // --- Modifier un point (popup formulaire) ---
@@ -4404,14 +4342,13 @@ function edsEditPoint(eIdx) {
       pt['Description brute'] = pt.Notes;
       pt.Latitude       = (document.getElementById('eds-edit-lat')?.value || '').trim();
       pt.Longitude      = (document.getElementById('eds-edit-lng')?.value || '').trim();
-      const result = await _edsSyncGitHub(`Modif EDS : ${pt.Nom}`);
+      const result = await _edsUpdateSupabase(pt);
       if (result !== 'saved') {
-        // Rollback
         Object.assign(pt, backup);
-        alert(result === 'notoken' ? 'Token GitHub requis — configurez-le dans la section En Cours de Développement.' : 'Erreur GitHub — ouvrez la console (F12) pour le détail.');
+        alert('Erreur lors de la sauvegarde — ouvrez la console (F12) pour le détail.');
       }
       ov.remove();
-      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+      _edsRenderMarkers(_edsData);
     });
   };
 }
@@ -4422,19 +4359,14 @@ function edsDeletePoint(eIdx) {
   if (!pt) return;
   window.edsMap?.closePopup();
   edsShowConfirm(`Voulez-vous supprimer le point « ${pt.Nom || '—'} » ?`, async () => {
-    // Retirer temporairement
-    const si = _edsSavedPts.indexOf(pt);
-    if (si >= 0) _edsSavedPts.splice(si, 1);
-    const ni = _edsNewEntries.indexOf(pt);
-    if (ni >= 0) _edsNewEntries.splice(ni, 1);
-    const result = await _edsSyncGitHub(`Suppression EDS : ${pt.Nom || '—'}`);
-    if (result !== 'saved') {
-      // Rollback : remettre le point dans les tableaux
-      if (si >= 0) _edsSavedPts.splice(si, 0, pt);
-      if (ni >= 0) _edsNewEntries.splice(ni, 0, pt);
-      alert(result === 'notoken' ? 'Token GitHub requis — configurez-le dans la section En Cours de Développement.' : 'Erreur GitHub — ouvrez la console (F12) pour le détail.');
+    const result = await _edsDeleteSupabase(pt);
+    if (result === 'saved') {
+      const idx = _edsData.indexOf(pt);
+      if (idx >= 0) _edsData.splice(idx, 1);
+    } else {
+      alert('Erreur lors de la suppression — ouvrez la console (F12) pour le détail.');
     }
-    _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
+    _edsRenderMarkers(_edsData);
   });
 }
 
@@ -4487,7 +4419,6 @@ async function initEdsMap() {
       loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js'),
       loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css'),
       loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js')
     ]);
   } catch(e) {
     _edsMapReady = false;
@@ -4508,58 +4439,13 @@ async function initEdsMap() {
   // Placer le marqueur rouge si une investigation est déjà en cours
   _edsPlaceInvMarker();
 
-  // Tentative fetch (fonctionne si page servie via HTTP)
-  // En cas d'échec (file://, CORS…) → sélecteur de fichier natif
-  let csvText = null;
-  try {
-    _setLoader('<span style="font-size:1.5rem;">⏳</span><div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">Lecture du fichier CSV…</div>');
-    const resp = await fetch('./Carte_EDS_V1.csv');
-    if (resp.ok) csvText = await resp.text();
-  } catch(_) { /* fetch bloqué en file:// → on passe au sélecteur */ }
+  // Charger les points depuis Supabase
+  _setLoader('<span style="font-size:1.5rem;">⏳</span><div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">Chargement des points EDS…</div>');
+  await _edsLoadFromSupabase();
+  const loader2 = document.getElementById('eds-loader');
+  if (loader2) loader2.style.display = 'none';
 
-  if (csvText) {
-    _edsProcessCsv(csvText);
-  } else {
-    // Fallback : sélecteur de fichier (fonctionne toujours, y compris en file://)
-    _setLoader(`
-      <span style="font-size:1.8rem;">📂</span>
-      <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;line-height:1.5;">
-        Sélectionnez le fichier <strong>Carte_EDS_V1.csv</strong><br>
-        <span style="font-size:0.68rem;color:var(--text-muted);">(dossier 01_GEOCARTO)</span>
-      </div>
-      <label style="padding:8px 22px;background:#388e3c;color:#fff;border-radius:7px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:opacity 0.15s;"
-        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-        📂 Choisir le fichier
-        <input type="file" accept=".csv" style="display:none;" onchange="edsLoadFromFile(this.files[0])">
-      </label>`);
-  }
   setTimeout(() => window.edsMap?.invalidateSize(), 350);
-}
-
-function edsLoadFromFile(file) {
-  if (!file) return;
-  const loader = document.getElementById('eds-loader');
-  if (loader) loader.innerHTML = '<span style="font-size:1.5rem;">⏳</span><div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">Lecture en cours…</div>';
-  const reader = new FileReader();
-  reader.onload  = e => _edsProcessCsv(e.target.result);
-  reader.onerror = () => { if (loader) loader.innerHTML = '<span style="font-size:1.5rem;">⚠️</span><div style="font-size:0.78rem;color:#e53935;margin-top:4px;">Impossible de lire le fichier.</div>'; };
-  reader.readAsText(file, 'UTF-8');
-}
-
-function _edsProcessCsv(text) {
-  const result = Papa.parse(text, { delimiter: ';', header: true, skipEmptyLines: true });
-  _edsData = result.data.filter(r => {
-    const lat = parseFloat((r.Latitude  || '').replace(',', '.'));
-    const lng = parseFloat((r.Longitude || '').replace(',', '.'));
-    return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
-  });
-  const loader = document.getElementById('eds-loader');
-  if (loader) loader.style.display = 'none';
-  _edsRenderMarkers(_edsData);
-  edsUpdateNearbyList();
-  setTimeout(() => window.edsMap?.invalidateSize(), 200);
-  // Charger les points ajoutés manuellement (eds_additions.xml sur GitHub)
-  _edsLoadAdditions();
 }
 
 function _edsRenderMarkers(data) {
@@ -4653,7 +4539,7 @@ function edsUpdateNearbyList() {
     container.innerHTML = '<div class="empty-state">Lancez une investigation pour voir les points EDS à proximité.</div>';
     return;
   }
-  const all = [..._edsData, ..._edsNewEntries];
+  const all = _edsData;
   if (!all.length) {
     container.innerHTML = '<div class="empty-state">Données EDS non chargées. Ouvrez la carte EDS pour charger les points.</div>';
     return;
@@ -4700,7 +4586,7 @@ function edsUpdateNearbyList() {
 function edsFilterMarkers() {
   if (!_edsMapReady) return;
   const q = (document.getElementById('eds-search')?.value || '').trim().toLowerCase();
-  const all = [..._edsData, ..._edsNewEntries];
+  const all = _edsData;
   if (!q) { _edsRenderMarkers(all); return; }
   const filtered = all.filter(r =>
     (r.Nom        || '').toLowerCase().includes(q) ||
@@ -4788,7 +4674,7 @@ function _edsDossierNow() {
 // --- Helpers sauvegarde CSV ---
 
 function _edsBuildCsvText() {
-  const all = [..._edsData, ..._edsNewEntries];
+  const all = _edsData;
   const headers = ['Dossier','Référence','Nom','Adresse','Code Postal','Ville','Catégorie','Notes','Description brute','Latitude','Longitude'];
   const esc = v => {
     if (v === null || v === undefined) return '';
@@ -4886,17 +4772,15 @@ function edsAddPoint() {
   };
 
   edsShowConfirm('Voulez-vous enregistrer ce point dans la base de données ?', async () => {
-    _edsNewEntries.push(entry);
-    if (window.edsMap && _edsMarkerGroup) {
-      _edsRenderMarkers([..._edsData, ..._edsNewEntries]);
-      window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
-    }
-    const result = await edsSaveToGitHub(entry);
+    const result = await _edsSaveToSupabase(entry);
     const ok = result === 'saved';
-    const label  = result === 'saved'    ? '✅ Enregistré dans eds_additions.xml (GitHub)'
-                 : result === 'notoken' ? '⚠️ Token GitHub requis — configurez-le via ⚙️'
-                 : result === 'error'   ? '⚠️ Erreur GitHub — vérifiez le token et la connexion'
-                 :                       '⚠️ Enregistrement annulé';
+    if (ok) {
+      _edsData.unshift(entry);
+      _edsRenderMarkers(_edsData);
+      if (window.edsMap) window.edsMap.flyTo([lat, lng], 14, { duration: 0.8 });
+    }
+    const label = ok ? '✅ Enregistré dans la base de données'
+                     : '⚠️ Erreur lors de l\'enregistrement';
     if (msg) { msg.textContent = `"${nom}" ajouté. ${label}`; msg.style.color = ok ? '#388e3c' : '#e65100'; }
     ['eds-new-nom','eds-new-ref','eds-new-adresse','eds-new-cp','eds-new-ville','eds-new-notes','eds-new-lat','eds-new-lng']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -6351,7 +6235,7 @@ async function exportRisquesExcel() {
   XLSX.utils.book_append_sheet(wb, wsBSS, 'Sondages BSS');
 
   // 7. Études répertoriées (EDS) dans un rayon de 1 km
-  const allEds = [..._edsData, ..._edsNewEntries];
+  const allEds = _edsData;
   const edsNearby = [];
   if (allEds.length) {
     allEds.forEach(r => {
