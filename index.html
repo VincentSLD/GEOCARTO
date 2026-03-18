@@ -5826,6 +5826,25 @@ async function downloadCanvas(canvas, filename, fileHandle) {
   URL.revokeObjectURL(link.href);
 }
 
+// Charge une image et la dessine en bas a droite d'un canvas
+async function _drawPictoOnCanvas(canvas, pictoSrc, margin, height) {
+  margin = margin || 10;
+  height = height || 60;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const w = height * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, canvas.width - w - margin, canvas.height - height - margin, w, height);
+      resolve();
+    };
+    img.onerror = () => { console.warn('Picto introuvable:', pictoSrc); resolve(); };
+    img.src = pictoSrc;
+  });
+}
+
 // Demande le chemin d'enregistrement AVANT tout travail async (conserve le geste utilisateur)
 async function promptSaveLocation(filename) {
   if (!window.showSaveFilePicker) return null;
@@ -6031,7 +6050,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         }
       },
     });
-    // Redimensionner a 1317x884 pour IGN et GEOL
+    // Redimensionner a 1317x884 pour IGN et GEOL + picto
     const isIgnGeol = ['IGN', 'GEOL'].includes(label);
     let finalCanvas = canvas;
     if (isIgnGeol) {
@@ -6039,6 +6058,8 @@ async function captureLeaflet(mapContainerId, label, rawName) {
       finalCanvas = document.createElement('canvas');
       finalCanvas.width = outW; finalCanvas.height = outH;
       finalCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+      const pictoSrc = label === 'GEOL' ? 'assets/picto_brgm.jpg' : 'assets/picto_ign.jpg';
+      await _drawPictoOnCanvas(finalCanvas, pictoSrc, 10, 60);
     }
     await downloadCanvas(finalCanvas, fname, fileHandle);
     btnFeedback(btn, true, null, origHTML);
@@ -6072,7 +6093,7 @@ async function downloadIgnGeol(btn) {
   btn.innerHTML = '⏳ Capture en cours…';
 
   // Helper: capture a Leaflet map and return a Blob
-  async function _captureMapBlob(mapContainerId) {
+  async function _captureMapBlob(mapContainerId, pictoSrc) {
     const el = document.getElementById(mapContainerId);
     if (!el) throw new Error(`Container ${mapContainerId} introuvable`);
 
@@ -6108,19 +6129,20 @@ async function downloadIgnGeol(btn) {
       },
     });
 
-    // Redimensionner a 1317x884 pour IGN et GEOL
+    // Redimensionner a 1317x884 pour IGN et GEOL + picto
     const outW = 1317, outH = 884;
     const resized = document.createElement('canvas');
     resized.width = outW; resized.height = outH;
     resized.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+    if (pictoSrc) await _drawPictoOnCanvas(resized, pictoSrc, 10, 60);
     return new Promise(resolve => resized.toBlob(resolve, 'image/jpeg', 0.92));
   }
 
   try {
     // Capture both maps in parallel
     const [ignBlob, geolBlob] = await Promise.all([
-      _captureMapBlob('map-ign-leaflet'),
-      _captureMapBlob('map-geologie')
+      _captureMapBlob('map-ign-leaflet', 'assets/picto_ign.jpg'),
+      _captureMapBlob('map-geologie', 'assets/picto_brgm.jpg')
     ]);
 
     if (dirHandle) {
