@@ -5956,7 +5956,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
     const isIgnGeol = ['IGN', 'GEOL'].includes(label);
     let finalCanvas = canvas;
     if (isIgnGeol) {
-      const outW = 1317, outH = 884;
+      const outW = 1510, outH = 884;
       finalCanvas = document.createElement('canvas');
       finalCanvas.width = outW; finalCanvas.height = outH;
       const scale = outW / canvas.width;
@@ -6035,7 +6035,7 @@ async function downloadIgnGeol(btn) {
     });
 
     // Redimensionner a 1317x884 pour IGN et GEOL + picto (sans deformation, crop centre)
-    const outW = 1317, outH = 884;
+    const outW = 1510, outH = 884;
     const resized = document.createElement('canvas');
     resized.width = outW; resized.height = outH;
     const scale = outW / canvas.width;
