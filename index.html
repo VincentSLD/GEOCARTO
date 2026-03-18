@@ -3732,20 +3732,27 @@ function setupMaps(lat, lng) {
   // Couche WMS REMNAPPE_FIAB — zones sensibles avec niveau de fiabilité (BRGM/Géorisques)
   window.nappesMap.createPane('nappesPane');
   window.nappesMap.getPane('nappesPane').style.zIndex = 450;
-  try {
-    L.tileLayer.wms('https://mapsref.brgm.fr/wxs/georisques/risques', {
-      layers: 'REMNAPPE_FIAB',
-      format: 'image/png',
-      transparent: true,
-      opacity: 0.85,
-      version: '1.1.1',
-      attribution: '© BRGM — Remontées de nappes',
-      pane: 'nappesPane',
-      keepBuffer: 4,
-      updateWhenIdle: false,
-      updateWhenZooming: false,
-    }).addTo(window.nappesMap);
-  } catch (e) { }
+  const nappesWmsSources = [
+    { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'REMNAPPE_FIAB' },
+    { url: 'http://mapsref.brgm.fr/wxs/georisques/risques', layers: 'REMNAPPE_FIAB' },
+    { url: 'https://georisques.gouv.fr/services', layers: 'REMNAPPE_FIAB' },
+  ];
+  nappesWmsSources.forEach(src => {
+    try {
+      L.tileLayer.wms(src.url, {
+        layers: src.layers,
+        format: 'image/png',
+        transparent: true,
+        opacity: 0.85,
+        version: '1.1.1',
+        attribution: '© BRGM — Remontées de nappes',
+        pane: 'nappesPane',
+        keepBuffer: 4,
+        updateWhenIdle: false,
+        updateWhenZooming: false,
+      }).addTo(window.nappesMap);
+    } catch (e) { }
+  });
 
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.nappesMap);
 
@@ -5925,9 +5932,10 @@ async function captureLeaflet(mapContainerId, label, rawName) {
   // Reset view : ramène le map-pane à (0,0) pour minimiser les offsets résiduels
   if (lmap) {
     lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
-    // Attendre 2 frames + 250 ms pour que Leaflet finisse de repositionner tuiles et SVG
+    lmap.invalidateSize();
+    // Attendre que les tuiles WMS soient chargées (plus long que les tuiles raster)
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 1500));
   }
 
   try {
@@ -6013,8 +6021,9 @@ async function downloadIgnGeol(btn) {
 
     if (lmap) {
       lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
+      lmap.invalidateSize();
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 1500));
     }
 
     const canvas = await html2canvas(el, {
