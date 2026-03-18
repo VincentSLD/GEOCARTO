@@ -2662,6 +2662,9 @@ async function investigate() {
     // Setup maps immediately
     try { setupMaps(lat, lng); } catch(e) { console.warn('setupMaps error:', e); }
 
+    // Forcer le recalcul des dimensions de toutes les cartes apres affichage
+    [200, 500, 1000, 2000].forEach(d => setTimeout(_invalidateAllMaps, d));
+
     // Auto-charger la carte EDS et positionner le marqueur rouge
     edsUpdateInvMarker(lat, lng);
     initEdsMap().then(() => { edsUpdateInvMarker(lat, lng); edsUpdateNearbyList(); });
@@ -6143,9 +6146,9 @@ function captureIframe(iframeId, label) {
 // ====== PLEIN ÉCRAN CARTES ======
 
 function _invalidateAllMaps() {
-  [window.argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
+  [pickerMap, argilesMap, window.geologieMap, window.cavitesMap, window.sismiqueMap,
    window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap,
-   window.histoMap, window.edsMap]
+   window.histoMap, window.edsMap, window.sitadelDepMap]
     .forEach(function(m) { if (m) m.invalidateSize(); });
 }
 
