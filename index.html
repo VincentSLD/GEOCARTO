@@ -6031,7 +6031,16 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         }
       },
     });
-    await downloadCanvas(canvas, fname, fileHandle);
+    // Redimensionner a 1317x884 pour IGN et GEOL
+    const isIgnGeol = ['IGN', 'GEOL'].includes(label);
+    let finalCanvas = canvas;
+    if (isIgnGeol) {
+      const outW = 1317, outH = 884;
+      finalCanvas = document.createElement('canvas');
+      finalCanvas.width = outW; finalCanvas.height = outH;
+      finalCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+    }
+    await downloadCanvas(finalCanvas, fname, fileHandle);
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);
@@ -6099,7 +6108,12 @@ async function downloadIgnGeol(btn) {
       },
     });
 
-    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    // Redimensionner a 1317x884 pour IGN et GEOL
+    const outW = 1317, outH = 884;
+    const resized = document.createElement('canvas');
+    resized.width = outW; resized.height = outH;
+    resized.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+    return new Promise(resolve => resized.toBlob(resolve, 'image/jpeg', 0.92));
   }
 
   try {
