@@ -3623,7 +3623,7 @@ function setupMaps(lat, lng) {
   if (window.sismiqueMap) { window.sismiqueMap.remove(); window.sismiqueMap = null; }
   window.sismiqueMap = L.map('map-sismique', {
     center: [lat, lng],
-    zoom: 9,
+    zoom: 11,
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.sismiqueMap);
@@ -3648,7 +3648,7 @@ function setupMaps(lat, lng) {
         layers: src.layers,
         format: 'image/png',
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.8,
         version: '1.1.1',
         attribution: '© Géorisques / BRGM',
         pane: 'sismPane',
