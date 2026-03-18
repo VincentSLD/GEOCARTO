@@ -5808,28 +5808,36 @@ function screenshotFilename(label) {
   return `geocarto_${label}_${lat}_${lng}_${ts}.jpg`;
 }
 
-async function downloadCanvas(canvas, filename) {
-  if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: filename,
-        types: [{ description: 'Image JPEG', accept: { 'image/jpeg': ['.jpg'] } }],
-      });
-      const writable = await handle.createWritable();
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-      await writable.write(blob);
-      await writable.close();
-      return;
-    } catch (e) {
-      if (e.name === 'AbortError') return;
-    }
+async function downloadCanvas(canvas, filename, fileHandle) {
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+  if (fileHandle) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return;
   }
+  // Fallback: telechargement classique
   const link = document.createElement('a');
   link.download = filename;
-  link.href = canvas.toDataURL('image/jpeg', 0.92);
+  link.href = URL.createObjectURL(blob);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
+// Demande le chemin d'enregistrement AVANT tout travail async (conserve le geste utilisateur)
+async function promptSaveLocation(filename) {
+  if (!window.showSaveFilePicker) return null;
+  try {
+    return await window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{ description: 'Image JPEG', accept: { 'image/jpeg': ['.jpg'] } }],
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') return 'abort';
+    return null;
+  }
 }
 
 function btnFeedback(btn, success, msg, origHTML) {
@@ -5886,6 +5894,12 @@ async function captureElement(elementId, label) {
   if (!el) return;
 
   const origHTML = btn.innerHTML;
+
+  // Demander le chemin IMMEDIATEMENT (dans le geste utilisateur)
+  const fname = screenshotFilename(label);
+  const fileHandle = await promptSaveLocation(fname);
+  if (fileHandle === 'abort') return;
+
   btn.classList.add('busy');
   btn.innerHTML = '⏳';
 
@@ -5919,7 +5933,7 @@ async function captureElement(elementId, label) {
     });
 
     document.body.removeChild(clone);
-    await downloadCanvas(canvas, screenshotFilename(label));
+    await downloadCanvas(canvas, fname, fileHandle);
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Screenshot error:', e);
@@ -5968,6 +5982,12 @@ async function captureLeaflet(mapContainerId, label, rawName) {
   if (!el) return;
 
   const origHTML = btn.innerHTML;
+
+  // Demander le chemin IMMEDIATEMENT (dans le geste utilisateur)
+  const fname = rawName ? `${label}.jpg` : screenshotFilename(label);
+  const fileHandle = await promptSaveLocation(fname);
+  if (fileHandle === 'abort') return;
+
   btn.classList.add('busy');
   btn.innerHTML = '⏳';
 
@@ -6011,7 +6031,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         }
       },
     });
-    await downloadCanvas(canvas, rawName ? `${label}.jpg` : screenshotFilename(label));
+    await downloadCanvas(canvas, fname, fileHandle);
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Leaflet screenshot error:', e);
