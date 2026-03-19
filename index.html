@@ -1474,6 +1474,12 @@
         <button class="btn-screenshot" onclick="captureLeaflet('map-argiles','ARGILES', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
       </div>
 
+      <!-- Boutons bascule ancienne / nouvelle carte -->
+      <div id="argiles-version-bar" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+        <button class="argiles-version-btn" data-version="current" onclick="switchArgilesVersion('current')" style="padding:5px 12px;background:#e65100;border:1.5px solid #e65100;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Avant le 01/07/26</button>
+        <button class="argiles-version-btn" data-version="2026" onclick="switchArgilesVersion('2026')" style="padding:5px 12px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">À partir du 01/07/26</button>
+      </div>
+
       <!-- Carte Leaflet avec WMS Argiles BRGM + niveau d'exposition -->
       <div class="map-embed full-map" style="margin-bottom:0.5rem;">
         <div id="map-argiles" style="width:100%;height:100%;"></div>
@@ -3416,6 +3422,9 @@ async function onBssMapClick(e) {
 
 // Maps setup
 let argilesMap = null;
+let _argilesWmsCurrent = [];
+let _argilesWms2026 = [];
+let _argilesVersion = 'current';
 
 const _invIcon = L.divIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
@@ -3448,53 +3457,53 @@ function setupMaps(lat, lng) {
   // *** WMS Argiles - multiple URLs and layer names to maximize chances ***
   // Leaflet WMS uses <img> tags internally = no CORS blocking
   // Key: use EPSG:3857 (Leaflet default), not EPSG:4326
-  const wmsSources = [
-    // Source 1: geoservices.brgm.fr (official OGC endpoint) — HTTP
+  const wmsSourcesCurrent = [
     { url: 'http://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques' },
-    // Source 2: same but HTTPS (may or may not work)
     { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques HTTPS' },
-    // Source 3: mapsref.brgm.fr (georisques mirror)
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG', label: 'mapsref ALEARG' },
-    // Source 4: mapsref with double-G variant name
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEAARG', label: 'mapsref ALEAARG' },
-    // Source 5: georisques direct
     { url: 'https://georisques.gouv.fr/services', layers: 'ARGILES_EXPO', label: 'georisques ARGILES_EXPO' },
+  ];
+
+  // Sources pour la carte 2026 (même layer — le BRGM mettra à jour les données le 01/07/26)
+  // Quand un nouveau layer sera publié, modifier ici le nom du layer
+  const wmsSources2026 = [
+    { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG_REALISE', label: 'BRGM ALEARG_REALISE' },
+    { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG_REALISE', label: 'mapsref ALEARG_REALISE' },
+    { url: 'http://geoservices.brgm.fr/risques', layers: 'ALEARG_REALISE', label: 'BRGM ALEARG_REALISE HTTP' },
   ];
 
   // Create a pane above tiles but below markers
   argilesMap.createPane('wmsPane');
   argilesMap.getPane('wmsPane').style.zIndex = 450;
 
-  // Add ALL WMS layers — only those that respond will show tiles
-  let wmsLoadCount = 0;
-  let wmsErrorCount = 0;
-  wmsSources.forEach((src, i) => {
-    try {
-      const wmsLayer = L.tileLayer.wms(src.url, {
-        layers: src.layers,
-        format: 'image/png',
-        transparent: true,
-        opacity: 0.70,
-        version: '1.1.1', // 1.1.1 uses SRS param (more compatible)
-        attribution: '© BRGM / Géorisques',
-        pane: 'wmsPane',
-      });
-      wmsLayer.addTo(argilesMap);
-      wmsLayer.on('tileerror', function() {
-        wmsErrorCount++;
-        // If all sources failed, show debug message
-        if (wmsErrorCount >= wmsSources.length * 2) {
-          const dbg = document.getElementById('wms-debug');
-          if (dbg) dbg.style.display = 'block';
-        }
-      });
-      wmsLayer.on('tileload', function() {
-        wmsLoadCount++;
-      });
-    } catch (e) {
-      console.warn(`WMS ${src.label}: init error`, e);
-    }
-  });
+  function _addArgilesWmsLayers(sources) {
+    const layers = [];
+    sources.forEach(src => {
+      try {
+        const wmsLayer = L.tileLayer.wms(src.url, {
+          layers: src.layers,
+          format: 'image/png',
+          transparent: true,
+          opacity: 0.70,
+          version: '1.1.1',
+          attribution: '© BRGM / Géorisques',
+          pane: 'wmsPane',
+        });
+        wmsLayer.addTo(argilesMap);
+        layers.push(wmsLayer);
+      } catch (e) {
+        console.warn(`WMS ${src.label}: init error`, e);
+      }
+    });
+    return layers;
+  }
+
+  _argilesWmsCurrent = _addArgilesWmsLayers(wmsSourcesCurrent);
+  _argilesWms2026 = _addArgilesWmsLayers(wmsSources2026);
+  // Masquer les layers 2026 par défaut
+  _argilesWms2026.forEach(l => argilesMap.removeLayer(l));
+  _argilesVersion = 'current';
 
   // Marqueur du point (above WMS on default pane)
   window.argilesMarker = L.marker([lat, lng], { icon: _invIcon }).addTo(argilesMap);
@@ -3938,6 +3947,33 @@ async function fetchArgilesAndDraw(lat, lng) {
     if (el) el.textContent = '—';
     if (statArgiles) { statArgiles.textContent = '—'; statArgiles.style.color = '#78909c'; }
   }
+}
+
+// Bascule carte argiles ancienne / nouvelle version
+function switchArgilesVersion(version) {
+  if (!argilesMap) return;
+  if (version === '2026') {
+    _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
+    _argilesWms2026.forEach(l => l.addTo(argilesMap));
+  } else {
+    _argilesWms2026.forEach(l => argilesMap.removeLayer(l));
+    _argilesWmsCurrent.forEach(l => l.addTo(argilesMap));
+  }
+  _argilesVersion = version;
+  // Mise à jour des boutons
+  document.querySelectorAll('.argiles-version-btn').forEach(btn => {
+    if (btn.dataset.version === version) {
+      btn.style.background = '#e65100';
+      btn.style.borderColor = '#e65100';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '700';
+    } else {
+      btn.style.background = 'var(--bg-secondary)';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text-primary)';
+      btn.style.fontWeight = '600';
+    }
+  });
 }
 
 
