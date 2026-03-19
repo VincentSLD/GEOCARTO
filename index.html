@@ -437,7 +437,7 @@
   .map-embed:fullscreen #eds-fs-bar,
   .map-embed:-webkit-full-screen #eds-fs-bar,
   .map-embed.fs-manual #eds-fs-bar { display: flex; }
-  @media (hover: none) and (pointer: coarse) {
+  @media (pointer: coarse) and (any-hover: none) {
     #eds-form-toggle, #eds-fs-form-toggle { display: none !important; }
   }
   .map-embed:fullscreen #photo-period-overlay { display: flex !important; }
@@ -4504,7 +4504,7 @@ function _edsBuildPopup(r) {
   const dossier = (r.Dossier || '').trim();
 
   let actions = '';
-  const _isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const _isMobile = window.matchMedia('(pointer: coarse) and (any-hover: none)').matches;
   if (r._editable && !_isMobile) {
     const eIdx = _edsEditableRefs.length;
     _edsEditableRefs.push(r);
