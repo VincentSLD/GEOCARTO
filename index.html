@@ -5888,12 +5888,13 @@ async function captureElement(elementId, label, rawName) {
     // Remove any screenshot buttons from clone
     clone.querySelectorAll('.btn-screenshot, .screenshot-bar').forEach(b => b.remove());
 
-    // Remove max-height/overflow constraints so capture fits content
+    // Remove height/max-height/overflow constraints so capture fits content exactly
     clone.querySelectorAll('*').forEach(n => {
-      if (n.style.maxHeight) n.style.maxHeight = 'none';
-      if (n.style.overflowY === 'auto' || n.style.overflowY === 'scroll') n.style.overflowY = 'visible';
+      n.style.maxHeight = 'none';
+      n.style.height = 'auto';
+      n.style.overflow = 'visible';
+      n.style.overflowY = 'visible';
     });
-    clone.querySelectorAll('.catnat-list').forEach(n => { n.style.maxHeight = 'none'; n.style.overflow = 'visible'; });
     
     document.body.appendChild(clone);
 
