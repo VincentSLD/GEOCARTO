@@ -2859,7 +2859,7 @@ function renderCatNat(items) {
     return db.localeCompare(da);
   });
 
-  container.innerHTML = `<div class="catnat-header"><span>Catastrophe naturelle</span><span>Début le</span><span>Journal Officiel</span></div>` +
+  container.innerHTML = `<div class="catnat-header"><span>Catastrophes naturelles</span><span>Début le</span><span>Journal Officiel</span></div>` +
     items.map(item => `
     <div class="catnat-item">
       <span class="catnat-type">${item.libelle_risque_jo || 'Type inconnu'}</span>
@@ -5853,7 +5853,7 @@ async function captureCatNat() {
     // En-têtes
     ctx.font = headerFont;
     ctx.fillStyle = '#666666';
-    ctx.fillText('CATASTROPHE NATURELLE', col1, padY + 12);
+    ctx.fillText('CATASTROPHES NATURELLES', col1, padY + 12);
     ctx.fillText('DÉBUT LE', col2, padY + 12);
     ctx.fillText('JOURNAL OFFICIEL', col3, padY + 12);
 
