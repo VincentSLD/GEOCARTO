@@ -2825,23 +2825,30 @@ function getRiskLevel(risk) {
 }
 
 // CatNat
-async function fetchCatNat(lat, lng) {
-  try {
-    const url = currentInsee
-      ? `https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${currentInsee}&page=1&page_size=100`
-      : `https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=${lng},${lat}&rayon=1000&page=1&page_size=100`;
-    const data = await fetchJSON(url, 10000);
-    const catnat = data.data || [];
-    _lastCatNat = catnat;
-    renderCatNat(catnat);
-    document.getElementById('stat-catnat').textContent = catnat.length;
-    return catnat;
-  } catch (e) {
-    _lastCatNat = [];
-    console.error('CatNat error:', e);
-    document.getElementById('stat-catnat').textContent = '?';
-    document.getElementById('catnat-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données CatNat. ${e.message}</div>`;
-    throw e;
+async function fetchCatNat(lat, lng, retries = 3) {
+  const url = currentInsee
+    ? `https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${currentInsee}&page=1&page_size=100`
+    : `https://georisques.gouv.fr/api/v1/gaspar/catnat?latlon=${lng},${lat}&rayon=1000&page=1&page_size=100`;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const data = await fetchJSON(url, 10000);
+      const catnat = data.data || [];
+      _lastCatNat = catnat;
+      renderCatNat(catnat);
+      document.getElementById('stat-catnat').textContent = catnat.length;
+      return catnat;
+    } catch (e) {
+      console.warn(`CatNat attempt ${attempt}/${retries} failed:`, e.message);
+      if (attempt < retries) {
+        document.getElementById('catnat-list').innerHTML = `<div class="empty-state">⏳ Serveur Georisques indisponible, nouvelle tentative (${attempt}/${retries})…</div>`;
+        await new Promise(r => setTimeout(r, 2000 * attempt));
+      } else {
+        _lastCatNat = [];
+        document.getElementById('stat-catnat').textContent = '?';
+        document.getElementById('catnat-list').innerHTML = `<div class="empty-state">Erreur lors du chargement des données CatNat (${retries} tentatives). ${e.message}</div>`;
+        throw e;
+      }
+    }
   }
 }
 
