@@ -721,8 +721,12 @@
     align-items: center;
   }
 
-  .catnat-item:hover {
+  .catnat-item:nth-child(even) {
     background: var(--bg-card);
+  }
+
+  .catnat-item:hover {
+    background: var(--bg-card-hover);
     border-color: var(--border-accent);
   }
 
@@ -5863,7 +5867,13 @@ async function captureCatNat() {
 
     // Lignes de données
     items.forEach((item, i) => {
-      const y = padY + headerH + i * lineH + 15;
+      const rowY = padY + headerH + i * lineH;
+      // Fond grisé une ligne sur deux
+      if (i % 2 === 1) {
+        ctx.fillStyle = '#f3f3f3';
+        ctx.fillRect(0, rowY, canvasW, lineH);
+      }
+      const y = rowY + 15;
       // Libellé
       ctx.font = font;
       ctx.fillStyle = '#1a1a1a';
