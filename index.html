@@ -1675,6 +1675,7 @@
       <div class="section-title" style="margin-top:1rem;">
         <div class="icon amber">🕳</div>
         Cavités souterraines
+        <button class="btn-screenshot" onclick="captureCavites()" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
       </div>
       <div id="cavites-list">
         <div class="empty-state">Chargement des données cavités…</div>
@@ -5981,6 +5982,87 @@ async function captureMvt() {
     btnFeedback(btn, true, null, origHTML);
   } catch (e) {
     console.error('Mvt capture error:', e);
+    btnFeedback(btn, false, '❌', origHTML);
+  }
+  btn.classList.remove('busy');
+}
+
+// Capture Cavités souterraines — dessin direct sur canvas
+async function captureCavites() {
+  const btn = event.currentTarget;
+  const origHTML = btn.innerHTML;
+  const fname = 'CAVITES.jpg';
+  const fileHandle = await promptSaveLocation(fname);
+  if (fileHandle === 'abort') return;
+
+  btn.classList.add('busy');
+  btn.innerHTML = '⏳';
+
+  try {
+    const items = _lastCavites || [];
+    const lineH = 22, padX = 16, padY = 12, headerH = 28;
+    const font = '12px "Bricolage Grotesque", "Segoe UI", sans-serif';
+    const smallFont = '11px "Bricolage Grotesque", "Segoe UI", sans-serif';
+    const headerFont = 'bold 10px "Segoe UI", sans-serif';
+    const typeW = 120, origineW = 100, colGap = 24;
+
+    const measure = document.createElement('canvas').getContext('2d');
+    measure.font = font;
+    let maxNomW = 150;
+    items.forEach(it => {
+      const w = measure.measureText(it.nom || 'Cavité sans nom').width;
+      if (w > maxNomW) maxNomW = w;
+    });
+
+    const canvasW = padX * 2 + Math.ceil(maxNomW) + colGap + typeW + colGap + origineW;
+    const canvasH = padY * 2 + headerH + items.length * lineH;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW * 2;
+    canvas.height = canvasH * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    const col1 = padX;
+    const col2 = padX + Math.ceil(maxNomW) + colGap;
+    const col3 = col2 + typeW + colGap;
+
+    ctx.font = headerFont;
+    ctx.fillStyle = '#666666';
+    ctx.fillText('NOM', col1, padY + 12);
+    ctx.fillText('TYPE', col2, padY + 12);
+    ctx.fillText('ORIGINE', col3, padY + 12);
+
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padX, padY + headerH - 4);
+    ctx.lineTo(canvasW - padX, padY + headerH - 4);
+    ctx.stroke();
+
+    items.forEach((item, i) => {
+      const rowY = padY + headerH + i * lineH;
+      if (i % 2 === 1) {
+        ctx.fillStyle = '#f3f3f3';
+        ctx.fillRect(0, rowY, canvasW, lineH);
+      }
+      const y = rowY + 15;
+      ctx.font = font;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(item.nom || 'Cavité sans nom', col1, y);
+      ctx.font = smallFont;
+      ctx.fillStyle = '#546e7a';
+      ctx.fillText(item.type_cavite || '—', col2, y);
+      ctx.fillText(item.origine || '—', col3, y);
+    });
+
+    await downloadCanvas(canvas, fname, fileHandle);
+    btnFeedback(btn, true, null, origHTML);
+  } catch (e) {
+    console.error('Cavites capture error:', e);
     btnFeedback(btn, false, '❌', origHTML);
   }
   btn.classList.remove('busy');
