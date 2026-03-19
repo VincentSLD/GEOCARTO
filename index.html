@@ -691,15 +691,34 @@
   .catnat-list::-webkit-scrollbar-track { background: transparent; }
   .catnat-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  .catnat-header {
+    display: grid;
+    grid-template-columns: 1fr 85px 85px;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 0.15rem;
+  }
+
+  .catnat-header span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
   .catnat-item {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr 85px 85px;
     gap: 0.5rem;
     padding: 0.4rem 0.75rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: all 0.2s;
+    align-items: center;
   }
 
   .catnat-item:hover {
@@ -712,13 +731,11 @@
     font-size: 0.72rem;
     color: #8B5E3C;
     white-space: nowrap;
-    min-width: 85px;
   }
 
   .catnat-type {
     font-size: 0.75rem;
     color: var(--text-primary);
-    flex: 1;
   }
 
   /* Stats row */
@@ -2838,10 +2855,12 @@ function renderCatNat(items) {
     return db.localeCompare(da);
   });
 
-  container.innerHTML = items.map(item => `
+  container.innerHTML = `<div class="catnat-header"><span>Libellé</span><span>Début le</span><span>Journal Officiel</span></div>` +
+    items.map(item => `
     <div class="catnat-item">
-      <span class="catnat-date">${formatDate(item.date_debut_evt)}</span>
       <span class="catnat-type">${item.libelle_risque_jo || 'Type inconnu'}</span>
+      <span class="catnat-date">${formatDate(item.date_debut_evt)}</span>
+      <span class="catnat-date">${formatDate(item.date_publication_jo)}</span>
     </div>
   `).join('');
 }
@@ -5795,11 +5814,13 @@ async function captureCatNat() {
 
   try {
     const items = _lastCatNat || [];
-    const lineH = 22, padX = 16, padY = 12, dateW = 95;
+    const lineH = 22, padX = 16, padY = 12, headerH = 28;
     const font = '12px "Bricolage Grotesque", "Segoe UI", sans-serif';
     const dateFont = '11px "DM Mono", monospace';
+    const headerFont = 'bold 10px "Segoe UI", sans-serif';
+    const dateW = 85, joW = 85, colGap = 14;
 
-    // Measure max text width
+    // Measure max libellé width
     const measure = document.createElement('canvas').getContext('2d');
     measure.font = font;
     let maxTypeW = 200;
@@ -5808,8 +5829,8 @@ async function captureCatNat() {
       if (w > maxTypeW) maxTypeW = w;
     });
 
-    const canvasW = padX * 2 + dateW + 12 + Math.ceil(maxTypeW) + 10;
-    const canvasH = padY * 2 + items.length * lineH;
+    const canvasW = padX * 2 + Math.ceil(maxTypeW) + colGap + dateW + colGap + joW;
+    const canvasH = padY * 2 + headerH + items.length * lineH;
 
     const canvas = document.createElement('canvas');
     canvas.width = canvasW * 2;
@@ -5821,17 +5842,38 @@ async function captureCatNat() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // Lignes
+    const col1 = padX;
+    const col2 = padX + Math.ceil(maxTypeW) + colGap;
+    const col3 = col2 + dateW + colGap;
+
+    // En-têtes
+    ctx.font = headerFont;
+    ctx.fillStyle = '#666666';
+    ctx.fillText('LIBELLÉ', col1, padY + 12);
+    ctx.fillText('DÉBUT LE', col2, padY + 12);
+    ctx.fillText('JOURNAL OFFICIEL', col3, padY + 12);
+
+    // Ligne séparatrice
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padX, padY + headerH - 4);
+    ctx.lineTo(canvasW - padX, padY + headerH - 4);
+    ctx.stroke();
+
+    // Lignes de données
     items.forEach((item, i) => {
-      const y = padY + i * lineH + 15;
-      // Date en marron
-      ctx.font = dateFont;
-      ctx.fillStyle = '#8B5E3C';
-      ctx.fillText(formatDate(item.date_debut_evt), padX, y);
-      // Type
+      const y = padY + headerH + i * lineH + 15;
+      // Libellé
       ctx.font = font;
       ctx.fillStyle = '#1a1a1a';
-      ctx.fillText(item.libelle_risque_jo || 'Type inconnu', padX + dateW + 12, y);
+      ctx.fillText(item.libelle_risque_jo || 'Type inconnu', col1, y);
+      // Date début en marron
+      ctx.font = dateFont;
+      ctx.fillStyle = '#8B5E3C';
+      ctx.fillText(formatDate(item.date_debut_evt), col2, y);
+      // Date JO en marron
+      ctx.fillText(formatDate(item.date_publication_jo), col3, y);
     });
 
     await downloadCanvas(canvas, fname, fileHandle);
