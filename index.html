@@ -5911,6 +5911,9 @@ async function captureElement(elementId, label, rawName) {
     const clone = el.cloneNode(true);
     inlineComputedStyles(el, clone);
     
+    // Measure original element dimensions BEFORE cloning styles
+    const elRect = el.getBoundingClientRect();
+
     // Set explicit background on the clone wrapper
     clone.style.backgroundColor = '#f5f6f8';
     clone.style.padding = '16px';
@@ -5924,19 +5927,13 @@ async function captureElement(elementId, label, rawName) {
     // Remove any screenshot buttons from clone
     clone.querySelectorAll('.btn-screenshot, .screenshot-bar').forEach(b => b.remove());
 
-    // Remove height/max-height/overflow constraints so capture fits content exactly
-    clone.querySelectorAll('*').forEach(n => {
-      n.style.maxHeight = 'none';
-      n.style.height = 'auto';
-      n.style.overflow = 'visible';
-      n.style.overflowY = 'visible';
-    });
-    
     document.body.appendChild(clone);
 
     const canvas = await html2canvas(clone, {
       backgroundColor: '#f5f6f8',
       scale: 2,
+      width: el.offsetWidth + 32,
+      height: Math.min(clone.scrollHeight, elRect.height + 32),
       useCORS: true,
       allowTaint: true,
       logging: false,
