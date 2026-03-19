@@ -1477,7 +1477,7 @@
       <!-- Boutons bascule ancienne / nouvelle carte -->
       <div id="argiles-version-bar" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;">
         <button class="argiles-version-btn" data-version="current" onclick="switchArgilesVersion('current')" style="padding:5px 12px;background:#e65100;border:1.5px solid #e65100;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Avant le 01/07/26</button>
-        <button class="argiles-version-btn" data-version="2026" onclick="switchArgilesVersion('2026')" style="padding:5px 12px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">À partir du 01/07/26</button>
+        <button class="argiles-version-btn" data-version="2026" onclick="switchArgilesVersion('2026')" style="padding:5px 12px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.6;" title="Carte non encore disponible via le BRGM">À partir du 01/07/26 — bientôt disponible</button>
       </div>
 
       <!-- Carte Leaflet avec WMS Argiles BRGM + niveau d'exposition -->
@@ -3465,13 +3465,9 @@ function setupMaps(lat, lng) {
     { url: 'https://georisques.gouv.fr/services', layers: 'ARGILES_EXPO', label: 'georisques ARGILES_EXPO' },
   ];
 
-  // Sources pour la carte 2026 (même layer — le BRGM mettra à jour les données le 01/07/26)
-  // Quand un nouveau layer sera publié, modifier ici le nom du layer
-  const wmsSources2026 = [
-    { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG_REALISE', label: 'BRGM ALEARG_REALISE' },
-    { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG_REALISE', label: 'mapsref ALEARG_REALISE' },
-    { url: 'http://geoservices.brgm.fr/risques', layers: 'ALEARG_REALISE', label: 'BRGM ALEARG_REALISE HTTP' },
-  ];
+  // Sources pour la carte 2026 — pas encore disponible via WMS
+  // Quand le BRGM publiera le nouveau layer, ajouter les sources ici
+  const wmsSources2026 = [];
 
   // Create a pane above tiles but below markers
   argilesMap.createPane('wmsPane');
@@ -3952,6 +3948,11 @@ async function fetchArgilesAndDraw(lat, lng) {
 // Bascule carte argiles ancienne / nouvelle version
 function switchArgilesVersion(version) {
   if (!argilesMap) return;
+  // Layer 2026 pas encore disponible via le BRGM
+  if (version === '2026' && _argilesWms2026.length === 0) {
+    alert('La nouvelle carte RGA 2026 n\u2019est pas encore disponible via le service WMS du BRGM.\nElle sera mise en ligne prochainement.');
+    return;
+  }
   if (version === '2026') {
     _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
     _argilesWms2026.forEach(l => l.addTo(argilesMap));
