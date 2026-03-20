@@ -1135,6 +1135,13 @@
 <div id="admin-panel">
   <div class="admin-title">Gestion des utilisateurs</div>
   <div id="admin-list"></div>
+  <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+  <div class="admin-title" style="font-size:13px;">Mot de passe suppression EDS</div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <input type="password" id="admin-delete-pwd" placeholder="Définir le mot de passe" style="flex:1;padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;" value="">
+    <button onclick="saveDeletePwd()" style="padding:8px 16px;background:#1a1a1a;color:#f5c518;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Enregistrer</button>
+  </div>
+  <div id="admin-pwd-status" style="font-size:11px;color:#888;margin-top:6px;"></div>
 </div>
 
 <div class="app" style="display:none;">
@@ -1816,6 +1823,8 @@ async function openAdminPanel() {
   document.getElementById('admin-overlay').style.display = 'block';
   document.getElementById('admin-panel').style.display = 'block';
   document.getElementById('admin-list').innerHTML = '<div class="admin-empty">Chargement...</div>';
+  const pwdField = document.getElementById('admin-delete-pwd');
+  if (pwdField) pwdField.value = localStorage.getItem('geocarto_delete_pwd') || '';
   try {
     const token = await getAuthToken();
     if (!token) throw new Error('Session expiree, reconnectez-vous');
@@ -1841,6 +1850,50 @@ async function openAdminPanel() {
   } catch (e) {
     document.getElementById('admin-list').innerHTML = '<div class="admin-empty">Erreur: ' + e.message + '</div>';
   }
+}
+
+// --- Mot de passe suppression EDS ---
+function saveDeletePwd() {
+  const pwd = document.getElementById('admin-delete-pwd').value.trim();
+  if (!pwd) { document.getElementById('admin-pwd-status').textContent = 'Veuillez saisir un mot de passe.'; return; }
+  localStorage.setItem('geocarto_delete_pwd', pwd);
+  document.getElementById('admin-pwd-status').textContent = 'Mot de passe enregistré.';
+  setTimeout(() => { document.getElementById('admin-pwd-status').textContent = ''; }, 2000);
+}
+
+function edsAskDeletePwd() {
+  return new Promise((resolve) => {
+    document.getElementById('eds-confirm-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'eds-confirm-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:10px;">🔒</div>
+        <div style="font-size:0.9rem;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:16px;">Mot de passe requis pour supprimer</div>
+        <input type="password" id="eds-delete-pwd-input" placeholder="Mot de passe" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:10px;font-size:0.9rem;font-family:inherit;margin-bottom:16px;box-sizing:border-box;" autofocus>
+        <div id="eds-delete-pwd-error" style="color:#d32f2f;font-size:0.8rem;margin-bottom:10px;display:none;">Mot de passe incorrect</div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button id="eds-pwd-ok" style="padding:10px 28px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Valider</button>
+          <button id="eds-pwd-cancel" style="padding:10px 28px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.85rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
+        </div>
+      </div>`;
+    _edsOverlayParent().appendChild(overlay);
+    const close = (ok) => { overlay.remove(); resolve(ok); };
+    document.getElementById('eds-pwd-cancel').onclick = () => close(false);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+    document.getElementById('eds-pwd-ok').onclick = () => {
+      const input = document.getElementById('eds-delete-pwd-input').value;
+      const stored = localStorage.getItem('geocarto_delete_pwd');
+      if (!stored) { alert('Aucun mot de passe défini. Configurez-le dans le panneau Admin.'); close(false); return; }
+      if (input === stored) { close(true); }
+      else { document.getElementById('eds-delete-pwd-error').style.display = 'block'; }
+    };
+    document.getElementById('eds-delete-pwd-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('eds-pwd-ok').click();
+    });
+    setTimeout(() => document.getElementById('eds-delete-pwd-input')?.focus(), 100);
+  });
 }
 
 function closeAdminPanel() {
@@ -4476,10 +4529,12 @@ function edsEditPoint(eIdx) {
 }
 
 // --- Supprimer un point ---
-function edsDeletePoint(eIdx) {
+async function edsDeletePoint(eIdx) {
   const pt = _edsEditableRefs[eIdx];
   if (!pt) return;
   window.edsMap?.closePopup();
+  const pwdOk = await edsAskDeletePwd();
+  if (!pwdOk) return;
   edsShowConfirm(`Voulez-vous supprimer le point « ${pt.Nom || '—'} » ?`, async () => {
     const result = await _edsDeleteSupabase(pt);
     if (result === 'saved') {
