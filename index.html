@@ -1458,6 +1458,19 @@
                 <input type="text" id="eds-new-ville" placeholder="Ex: LA ROCHE SUR YON" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
               <div style="grid-column:1/-1;">
+                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Couleur du point</label>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-primary);">
+                    <input type="radio" name="eds-new-color" value="jaune" checked style="accent-color:#ffd600;">
+                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#ffd600;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span> Jaune
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-primary);">
+                    <input type="radio" name="eds-new-color" value="rouge" style="accent-color:#e53935;">
+                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#e53935;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span> Rouge
+                  </label>
+                </div>
+              </div>
+              <div style="grid-column:1/-1;">
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Notes</label>
                 <textarea id="eds-new-notes" rows="2" placeholder="Prescripteur ou autres informations" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;resize:vertical;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;"></textarea>
               </div>
@@ -4661,14 +4674,21 @@ function _edsBuildPopup(r) {
   </div>`;
 }
 
-const _edsDotIcon = L.divIcon({
-  html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
-    <circle cx="11" cy="10" r="9" fill="#ffd600" stroke="#fff" stroke-width="2.5"/>
-    <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.6"/>
-    <line x1="11" y1="19" x2="11" y2="29" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
-  </svg>`,
-  className: '', iconSize: [22, 30], iconAnchor: [11, 29]
-});
+function _edsColorIcon(color) {
+  const isRouge = (color || '').toLowerCase() === 'rouge';
+  const fill = isRouge ? '#e53935' : '#ffd600';
+  const stem = isRouge ? '#c62828' : '#f9a825';
+  return L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+      <circle cx="11" cy="10" r="9" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.6"/>
+      <line x1="11" y1="19" x2="11" y2="29" stroke="${stem}" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`,
+    className: '', iconSize: [22, 30], iconAnchor: [11, 29]
+  });
+}
+const _edsDotIcon = _edsColorIcon('jaune');
+const _edsDotIconRouge = _edsColorIcon('rouge');
 
 function _edsRenderMarkers(data) {
   if (!window.edsMap) return;
@@ -4698,7 +4718,8 @@ function _edsRenderMarkers(data) {
     if (isNaN(lat) || isNaN(lng)) return;
 
     const nom = (r.Nom || '—').trim();
-    const m = L.marker([lat, lng], { icon: _edsDotIcon });
+    const icon = (r.Catégorie || '').toLowerCase() === 'rouge' ? _edsDotIconRouge : _edsDotIcon;
+    const m = L.marker([lat, lng], { icon });
     m.bindTooltip(nom, { sticky: false, opacity: 0.95 });
     // Popup lazy : construit uniquement au clic
     m._edsRow = r;
@@ -4957,6 +4978,7 @@ function edsAddPoint() {
   if (!nom)                     { warn('⚠️ Le nom est requis.'); return; }
   if (isNaN(lat) || isNaN(lng)) { warn('⚠️ Coordonnées invalides.'); return; }
 
+  const couleur = document.querySelector('input[name="eds-new-color"]:checked')?.value || 'jaune';
   const entry = {
     Dossier:             _edsDossierNow(),
     Référence:           (document.getElementById('eds-new-ref')?.value    || '').trim(),
@@ -4964,7 +4986,7 @@ function edsAddPoint() {
     Adresse:             (document.getElementById('eds-new-adresse')?.value || '').trim(),
     'Code Postal':       (document.getElementById('eds-new-cp')?.value     || '').trim(),
     Ville:               (document.getElementById('eds-new-ville')?.value   || '').trim(),
-    Catégorie:           '',
+    Catégorie:           couleur,
     Notes:               (document.getElementById('eds-new-notes')?.value   || '').trim(),
     'Description brute': (document.getElementById('eds-new-notes')?.value   || '').trim(),
     Latitude:            latS,
