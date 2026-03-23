@@ -6587,6 +6587,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
 
   // Reset view : ramène le map-pane à (0,0) pour minimiser les offsets résiduels
   if (lmap) {
+    lmap.closePopup();
     lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
     lmap.invalidateSize();
     // Attendre que les tuiles WMS soient chargées (plus long que les tuiles raster)
@@ -6684,6 +6685,7 @@ async function downloadIgnGeol(btn) {
     });
 
     if (lmap) {
+      lmap.closePopup();
       lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
       lmap.invalidateSize();
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
