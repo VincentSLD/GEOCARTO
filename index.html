@@ -4158,7 +4158,7 @@ async function fetchArgilesAndDraw(lat, lng) {
       const mainShort = mainLevel.toLowerCase().includes('fort') ? 'forte'
         : mainLevel.toLowerCase().includes('moyen') ? 'moyenne' : 'faible';
       console.log('Argiles border check — main:', mainShort, 'neighbors:', neighborLevels);
-      borderWarning = neighborLevels.some(l => l && l !== mainShort);
+      borderWarning = neighborLevels.some(l => l !== mainShort);
     } catch (e) { console.warn('Argiles border check failed:', e); }
   }
 
