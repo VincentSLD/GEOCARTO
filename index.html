@@ -5298,12 +5298,20 @@ function addAltimetryTool(map) {
 async function fetchCavitesMap(lat, lng) {
   const countEl = document.getElementById('cavites-count-text');
   try {
-    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=1000`;
+    // Requête à 10 km pour afficher tous les points visuels
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=10000`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
+
+    // Compteur basé sur 1 km uniquement
+    const count1km = items.filter(cav => {
+      const clat = cav.latitude || cav.lat;
+      const clng = cav.longitude || cav.lon || cav.lng;
+      return clat && clng && haversineKm(lat, lng, parseFloat(clat), parseFloat(clng)) <= 1;
+    }).length;
     if (countEl) {
-      countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 1 km` : 'Aucune dans un rayon de 1 km';
-      countEl.style.color = items.length > 0 ? '#7e57c2' : 'var(--text-muted)';
+      countEl.textContent = count1km > 0 ? `${count1km} dans un rayon de 1 km` : 'Aucune dans un rayon de 1 km';
+      countEl.style.color = count1km > 0 ? '#7e57c2' : 'var(--text-muted)';
     }
 
     if (!window.cavitesMap) return;
@@ -5357,7 +5365,8 @@ async function fetchCavitesMap(lat, lng) {
 // Fetch mouvements de terrain from API and draw on the mvt Leaflet map
 async function fetchMvtMap(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=1000`;
+    // Requête à 10 km pour afficher tous les points visuels
+    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=10000`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
 
