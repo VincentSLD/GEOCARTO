@@ -3661,7 +3661,7 @@ function setupMaps(lat, lng) {
   if (window.geologieMap) { window.geologieMap.remove(); window.geologieMap = null; }
   window.geologieMap = L.map('map-geologie', {
     center: [lat, lng],
-    zoom: 14,
+    zoom: 15, // ~1/25000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.geologieMap);
@@ -3986,7 +3986,7 @@ function setupMaps(lat, lng) {
   if (window.ignMap) { window.ignMap.remove(); window.ignMap = null; }
   window.ignMap = L.map('map-ign-leaflet', {
     center: [lat, lng],
-    zoom: 16, // ~1/25000
+    zoom: 17, // ~1/10000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.ignMap);
