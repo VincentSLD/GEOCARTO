@@ -6666,7 +6666,7 @@ async function downloadIgnGeol(btn) {
   btn.innerHTML = '⏳ Captures en cours…';
 
   // Helper: capture a Leaflet map and return a Blob
-  async function _captureMapBlob(mapContainerId, pictoSrc) {
+  async function _captureMapBlob(mapContainerId, pictoSrc, square) {
     const el = document.getElementById(mapContainerId);
     if (!el) throw new Error(`Container ${mapContainerId} introuvable`);
 
@@ -6711,8 +6711,8 @@ async function downloadIgnGeol(btn) {
       },
     });
 
-    // Redimensionner a 1317x884 pour IGN et GEOL + picto (sans deformation, crop centre)
-    const outW = 1365, outH = 884;
+    // Redimensionner + picto (sans deformation, crop centre)
+    const outW = square ? 1000 : 1365, outH = square ? 1000 : 884;
     const resized = document.createElement('canvas');
     resized.width = outW; resized.height = outH;
     const scale = outW / canvas.width;
@@ -6733,13 +6733,13 @@ async function downloadIgnGeol(btn) {
 
     // Ajouter cavités si au moins 1 dans le rayon de 1 km
     if (_lastCavites && _lastCavites.length > 0) {
-      captures.push(_captureMapBlob('map-cavites', null));
+      captures.push(_captureMapBlob('map-cavites', null, true));
       fileNames.push('CAVITES.jpg');
     }
 
     // Ajouter mouvements de terrain si au moins 1 dans le rayon de 1 km
     if (_lastMvt && _lastMvt.length > 0) {
-      captures.push(_captureMapBlob('map-mvt', null));
+      captures.push(_captureMapBlob('map-mvt', null, true));
       fileNames.push('MVT-TERRAIN.jpg');
     }
 
