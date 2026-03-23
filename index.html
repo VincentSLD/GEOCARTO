@@ -3733,7 +3733,7 @@ function setupMaps(lat, lng) {
   if (window.cavitesMap) { window.cavitesMap.remove(); window.cavitesMap = null; }
   window.cavitesMap = L.map('map-cavites', {
     center: [lat, lng],
-    zoom: 13,
+    zoom: 14, // ~1/50000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.cavitesMap);
@@ -3768,7 +3768,7 @@ function setupMaps(lat, lng) {
   if (window.mvtMap) { window.mvtMap.remove(); window.mvtMap = null; }
   window.mvtMap = L.map('map-mvt', {
     center: [lat, lng],
-    zoom: 13,
+    zoom: 14, // ~1/50000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.mvtMap);
