@@ -1727,7 +1727,7 @@
 
       <div class="section-title" style="margin-top:1rem;">
         <div class="icon" style="background:linear-gradient(135deg,#e0976e 0%,#c97b4e 100%)">🔩</div>
-        Sondages géotechniques (BSS — BRGM) dans un rayon de 5km
+        Sondages géotechniques (BSS — BRGM) dans un rayon de 1km
       </div>
       <div id="bss-list">
         <div class="empty-state">Chargement des sondages BSS…</div>
@@ -3225,8 +3225,8 @@ let bssData = []; // Store globally for map markers
 
 async function fetchBSS(lat, lng) {
   try {
-    const dLat = 0.045; // ~5km
-    const dLng = 0.065;
+    const dLat = 0.009; // ~1km
+    const dLng = 0.013;
     const bboxStr = `${(lat - dLat).toFixed(6)},${(lng - dLng).toFixed(6)},${(lat + dLat).toFixed(6)},${(lng + dLng).toFixed(6)},urn:ogc:def:crs:EPSG::4326`;
 
     // Deux requêtes en parallèle : BSS_EAU_POINT (forages/puits) + BSS_TOTAL (tous types dont sondages)
@@ -3266,8 +3266,8 @@ async function fetchBSS(lat, lng) {
       }
     }
 
-    // Filtrer à 5km du point investigué
-    const maxDist = 5.0;
+    // Filtrer à 1km du point investigué
+    const maxDist = 1.0;
     const filtered = merged.filter(f => {
       if (!f.geometry?.coordinates) return false;
       const [fLng, fLat] = f.geometry.coordinates;
@@ -3360,7 +3360,7 @@ function renderBSS(features) {
   if (!features || features.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        Aucun sondage BSS trouvé dans un rayon de 5 km.
+        Aucun sondage BSS trouvé dans un rayon de 1 km.
       </div>`;
     return;
   }
@@ -3732,9 +3732,9 @@ function setupMaps(lat, lng) {
   // Marqueur principal
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.cavitesMap);
 
-  // Cercle rayon 5km
+  // Cercle rayon 1km
   L.circle([lat, lng], {
-    radius: 5000,
+    radius: 1000,
     color: '#7e57c2',
     fillColor: '#7e57c2',
     fillOpacity: 0.05,
@@ -3767,9 +3767,9 @@ function setupMaps(lat, lng) {
   // Marqueur principal
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.mvtMap);
 
-  // Cercle rayon 5km
+  // Cercle rayon 1km
   L.circle([lat, lng], {
-    radius: 5000,
+    radius: 1000,
     color: '#4CAF50',
     fillColor: '#4CAF50',
     fillOpacity: 0.05,
@@ -5284,11 +5284,11 @@ function addAltimetryTool(map) {
 async function fetchCavitesMap(lat, lng) {
   const countEl = document.getElementById('cavites-count-text');
   try {
-    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=5000`;
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=1000`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
     if (countEl) {
-      countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 5 km` : 'Aucune dans un rayon de 5 km';
+      countEl.textContent = items.length > 0 ? `${items.length} dans un rayon de 1 km` : 'Aucune dans un rayon de 1 km';
       countEl.style.color = items.length > 0 ? '#7e57c2' : 'var(--text-muted)';
     }
 
@@ -5343,7 +5343,7 @@ async function fetchCavitesMap(lat, lng) {
 // Fetch mouvements de terrain from API and draw on the mvt Leaflet map
 async function fetchMvtMap(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=5000`;
+    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=1000`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
 
