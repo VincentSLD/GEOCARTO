@@ -5363,7 +5363,7 @@ async function fetchCavitesMap(lat, lng) {
   const countEl = document.getElementById('cavites-count-text');
   try {
     // Requête à 10 km pour afficher tous les points visuels
-    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=10000`;
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=10000&page=1&page_size=100`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
 
@@ -5422,7 +5422,7 @@ async function fetchCavitesMap(lat, lng) {
 async function fetchMvtMap(lat, lng) {
   try {
     // Requête à 10 km pour afficher tous les points visuels
-    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=10000`;
+    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=10000&page=1&page_size=100`;
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
 
