@@ -3598,7 +3598,6 @@ function setupMaps(lat, lng) {
   // Leaflet WMS uses <img> tags internally = no CORS blocking
   // Key: use EPSG:3857 (Leaflet default), not EPSG:4326
   const wmsSourcesCurrent = [
-    { url: 'http://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques' },
     { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques HTTPS' },
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG', label: 'mapsref ALEARG' },
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEAARG', label: 'mapsref ALEAARG' },
@@ -3678,7 +3677,6 @@ function setupMaps(lat, lng) {
   window.geologieMap.getPane('geoPane').style.zIndex = 450;
   const geoWmsSources = [
     { url: 'https://geoservices.brgm.fr/geologie', layers: 'GEOLOGIE', label: 'BRGM GEOLOGIE HTTPS' },
-    { url: 'http://geoservices.brgm.fr/geologie', layers: 'GEOLOGIE', label: 'BRGM GEOLOGIE HTTP' },
   ];
   window.geoWmsLayer = null;
   geoWmsSources.forEach(src => {
@@ -3705,7 +3703,6 @@ function setupMaps(lat, lng) {
   // Load WMS GetLegendGraphic for geology
   const legendUrls = [
     `https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=GEOLOGIE&FORMAT=image/png&WIDTH=20&HEIGHT=16`,
-    `http://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=GEOLOGIE&FORMAT=image/png&WIDTH=20&HEIGHT=16`,
   ];
   const legendImg = document.getElementById('geol-legend-img');
   const legendLoading = document.getElementById('geol-legend-loading');
@@ -3866,7 +3863,6 @@ function setupMaps(lat, lng) {
   window.bssMap.getPane('bssPane').style.zIndex = 450;
   const bssWmsSources = [
     { url: 'https://geoservices.brgm.fr/geologie', layers: 'BSS_TOTAL_AVEC_LABEL' },
-    { url: 'http://geoservices.brgm.fr/geologie', layers: 'BSS_TOTAL_AVEC_LABEL' },
     { url: 'https://geoservices.brgm.fr/geologie', layers: 'BSS_TOTAL_SANS_LABEL' },
   ];
   bssWmsSources.forEach(src => {
@@ -4069,9 +4065,7 @@ async function fetchArgilesAndDraw(lat, lng) {
     const bbox = `${lng - 0.0001},${lat - 0.0001},${lng + 0.0001},${lat + 0.0001}`;
     const gfiUrls = [
       `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
-      `http://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
       `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
-      // Also try text/plain format
       `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`,
     ];
     for (const gfiUrl of gfiUrls) {
