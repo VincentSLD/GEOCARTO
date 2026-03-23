@@ -3573,6 +3573,10 @@ const _invIcon = L.divIcon({
   </svg>`,
   className: '', iconSize: [28, 40], iconAnchor: [14, 40], popupAnchor: [0, -40]
 });
+const _invIconSmall = L.divIcon({
+  html: '<div style="width:8px;height:8px;background:#e64a19;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>',
+  className: '', iconSize: [8, 8], iconAnchor: [4, 4],
+});
 
 function setupMaps(lat, lng) {
   // ====== Carte Argiles ======
@@ -3741,7 +3745,7 @@ function setupMaps(lat, lng) {
   }).addTo(window.cavitesMap);
 
   // Marqueur principal
-  L.marker([lat, lng], { icon: _invIcon }).addTo(window.cavitesMap);
+  L.marker([lat, lng], { icon: _invIconSmall }).addTo(window.cavitesMap);
 
   // Cercle rayon 1km
   L.circle([lat, lng], {
@@ -3776,7 +3780,7 @@ function setupMaps(lat, lng) {
   }).addTo(window.mvtMap);
 
   // Marqueur principal
-  L.marker([lat, lng], { icon: _invIcon }).addTo(window.mvtMap);
+  L.marker([lat, lng], { icon: _invIconSmall }).addTo(window.mvtMap);
 
   // Cercle rayon 1km
   L.circle([lat, lng], {
