@@ -4118,25 +4118,52 @@ async function fetchArgilesAndDraw(lat, lng) {
       const offsets = [
         [0.001, 0], [-0.001, 0], [0, 0.001], [0, -0.001] // N, S, E, W ~100m
       ];
+      const parseArgileLevel = (text) => {
+        const lower = text.toLowerCase();
+        const niveauMatch = text.match(/niveau\s*=\s*'(\d)'/i);
+        if (niveauMatch) {
+          const n = niveauMatch[1];
+          return n === '3' ? 'forte' : n === '2' ? 'moyenne' : 'faible';
+        }
+        if (lower.includes('fort')) return 'forte';
+        if (lower.includes('moyen')) return 'moyenne';
+        if (lower.includes('faible')) return 'faible';
+        return null;
+      };
       const neighborLevels = await Promise.all(offsets.map(async ([dLat, dLng]) => {
         const nLat = lat + dLat, nLng = lng + dLng;
         const nBbox = `${nLng - 0.0001},${nLat - 0.0001},${nLng + 0.0001},${nLat + 0.0001}`;
-        const nUrl = `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`;
-        try {
-          const r = await fetch(nUrl, { signal: AbortSignal.timeout(5000) });
-          if (!r.ok) return null;
-          const t = await r.text();
-          const m = t.match(/niveau\s*=\s*'(\d)'/i);
-          if (m) return m[1] === '3' ? 'forte' : m[1] === '2' ? 'moyenne' : 'faible';
-          const tl = t.toLowerCase();
-          if (tl.includes('fort')) return 'forte';
-          if (tl.includes('moyen')) return 'moyenne';
-          if (tl.includes('faible')) return 'faible';
-          return null;
-        } catch { return null; }
+        const urls = [
+          `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
+          `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
+          `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`,
+        ];
+        for (const nUrl of urls) {
+          try {
+            const r = await fetch(nUrl, { signal: AbortSignal.timeout(5000) });
+            if (!r.ok) continue;
+            const ct = r.headers.get('content-type') || '';
+            if (ct.includes('json')) {
+              const json = await r.json();
+              const features = json.features || json.data || [];
+              if (features.length > 0) {
+                const p = features[0].properties || features[0];
+                const val = p.NIVEAU || p.niveau || p.EXPOSITION || p.exposition || p.ALEA || p.alea
+                  || p.lib_alea || p.LIB_ALEA || p.DESCR || p.descr || p.NATURE || p.nature;
+                if (val) { const lvl = parseArgileLevel(String(val)); if (lvl) return lvl; }
+              }
+            } else {
+              const t = await r.text();
+              const lvl = parseArgileLevel(t);
+              if (lvl) return lvl;
+            }
+          } catch { /* try next */ }
+        }
+        return null;
       }));
       const mainShort = mainLevel.toLowerCase().includes('fort') ? 'forte'
         : mainLevel.toLowerCase().includes('moyen') ? 'moyenne' : 'faible';
+      console.log('Argiles border check — main:', mainShort, 'neighbors:', neighborLevels);
       borderWarning = neighborLevels.some(l => l && l !== mainShort);
     } catch (e) { console.warn('Argiles border check failed:', e); }
   }
