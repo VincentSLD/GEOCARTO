@@ -3090,7 +3090,7 @@ async function fetchNappes(lat, lng) {
 // Cavités
 async function fetchCavites(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=1000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const cavites = data.data || [];
     _lastCavites = cavites;
@@ -3109,7 +3109,7 @@ async function fetchCavites(lat, lng) {
 function renderCavites(items) {
   const container = document.getElementById('cavites-list');
   if (!items || items.length === 0) {
-    container.innerHTML = '<div class="empty-state">Aucune cavité souterraine répertoriée dans un rayon de 2 km.</div>';
+    container.innerHTML = '<div class="empty-state">Aucune cavité souterraine répertoriée dans un rayon de 1 km.</div>';
     return;
   }
 
@@ -3136,7 +3136,7 @@ function renderCavites(items) {
 // ICPE
 async function fetchICPE(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/installations_classees?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const url = `https://georisques.gouv.fr/api/v1/installations_classees?latlon=${lng},${lat}&rayon=1000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const icpes = data.data || [];
     _lastICPE = icpes;
@@ -3155,7 +3155,7 @@ async function fetchICPE(lat, lng) {
 function renderICPE(items) {
   const container = document.getElementById('icpe-list');
   if (!items || items.length === 0) {
-    container.innerHTML = '<div class="empty-state">Aucune installation classée (ICPE) dans un rayon de 2 km.</div>';
+    container.innerHTML = '<div class="empty-state">Aucune installation classée (ICPE) dans un rayon de 1 km.</div>';
     return;
   }
 
@@ -3176,7 +3176,7 @@ function renderICPE(items) {
 // Mouvements de terrain
 async function fetchMvtTerrain(lat, lng) {
   try {
-    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=2000&page=1&page_size=50`;
+    const url = `https://georisques.gouv.fr/api/v1/mvt?latlon=${lng},${lat}&rayon=1000&page=1&page_size=50`;
     const data = await fetchJSON(url, 10000);
     const mvts = data.data || [];
     _lastMvt = mvts;
@@ -3195,7 +3195,7 @@ async function fetchMvtTerrain(lat, lng) {
 function renderMvtTerrain(items) {
   const container = document.getElementById('mvt-list');
   if (!items || items.length === 0) {
-    container.innerHTML = '<div class="empty-state">Aucun mouvement de terrain répertorié dans un rayon de 2 km.</div>';
+    container.innerHTML = '<div class="empty-state">Aucun mouvement de terrain répertorié dans un rayon de 1 km.</div>';
     return;
   }
 
