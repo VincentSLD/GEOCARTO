@@ -3733,7 +3733,7 @@ function setupMaps(lat, lng) {
   if (window.cavitesMap) { window.cavitesMap.remove(); window.cavitesMap = null; }
   window.cavitesMap = L.map('map-cavites', {
     center: [lat, lng],
-    zoom: 14, // ~1/50000
+    zoom: 15, // ~1/25000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.cavitesMap);
@@ -3768,7 +3768,7 @@ function setupMaps(lat, lng) {
   if (window.mvtMap) { window.mvtMap.remove(); window.mvtMap = null; }
   window.mvtMap = L.map('map-mvt', {
     center: [lat, lng],
-    zoom: 14, // ~1/50000
+    zoom: 15, // ~1/25000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.mvtMap);
@@ -3851,7 +3851,7 @@ function setupMaps(lat, lng) {
   if (window.bssMap) { window.bssMap.remove(); window.bssMap = null; }
   window.bssMap = L.map('map-bss', {
     center: [lat, lng],
-    zoom: 14,
+    zoom: 15, // ~1/25000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.bssMap);
@@ -4019,7 +4019,7 @@ function setupMaps(lat, lng) {
 
   // ====== Photos Aériennes Historiques ======
   if (window.photoMap) { window.photoMap.remove(); window.photoMap = null; }
-  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 14, zoomControl: false }); // ~1/50000
+  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 15, zoomControl: false }); // ~1/25000
   L.control.zoom({ position: 'bottomleft' }).addTo(window.photoMap);
   window.photoCurrentPeriod = 'actuel';
   const _pd = photoPeriods['actuel'];
