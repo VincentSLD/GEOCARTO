@@ -3885,6 +3885,16 @@ function setupMaps(lat, lng) {
 
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.bssMap);
 
+  // Cercle rayon 1km
+  L.circle([lat, lng], {
+    radius: 1000,
+    color: '#00796b',
+    fillColor: '#00796b',
+    fillOpacity: 0.05,
+    weight: 1,
+    dashArray: '8,6',
+  }).addTo(window.bssMap);
+
   addMeasureTool(window.bssMap);
   setTimeout(() => { window.bssMap.invalidateSize(); }, 300);
 
