@@ -3962,7 +3962,7 @@ function setupMaps(lat, lng) {
   if (window.reliefMap) { window.reliefMap.remove(); window.reliefMap = null; }
   window.reliefMap = L.map('map-relief', {
     center: [lat, lng],
-    zoom: 15,
+    zoom: 17, // ~1/10000
     zoomControl: false,
     attributionControl: false,
   });
