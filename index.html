@@ -4019,7 +4019,7 @@ function setupMaps(lat, lng) {
 
   // ====== Photos Aériennes Historiques ======
   if (window.photoMap) { window.photoMap.remove(); window.photoMap = null; }
-  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 16, zoomControl: false });
+  window.photoMap = L.map('map-photo', { center: [lat, lng], zoom: 14, zoomControl: false }); // ~1/50000
   L.control.zoom({ position: 'bottomleft' }).addTo(window.photoMap);
   window.photoCurrentPeriod = 'actuel';
   const _pd = photoPeriods['actuel'];
