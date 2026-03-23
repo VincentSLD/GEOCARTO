@@ -4066,7 +4066,7 @@ async function fetchArgilesAndDraw(lat, lng) {
   // === STRATEGY 1: WMS GetFeatureInfo on the BRGM layer ===
   // This queries the actual WMS tile at the exact point — most reliable
   try {
-    const bbox = `${lng - 0.001},${lat - 0.001},${lng + 0.001},${lat + 0.001}`;
+    const bbox = `${lng - 0.00001},${lat - 0.00001},${lng + 0.00001},${lat + 0.00001}`;
     const gfiUrls = [
       `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
       `http://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
