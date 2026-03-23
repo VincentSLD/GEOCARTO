@@ -5355,16 +5355,8 @@ async function fetchCavitesMap(lat, lng) {
         .bindPopup(popup);
     });
 
-    // Ajuster la vue si des cavités existent
-    if (items.length > 0 && items.length <= 50) {
-      const bounds = L.latLngBounds([[lat, lng]]);
-      items.forEach(cav => {
-        const clat = cav.latitude || cav.lat;
-        const clng = cav.longitude || cav.lon || cav.lng;
-        if (clat && clng) bounds.extend([parseFloat(clat), parseFloat(clng)]);
-      });
-      window.cavitesMap.fitBounds(bounds.pad(0.15));
-    }
+    // Vue fixe à zoom 15 centrée sur le point investigué
+
   } catch (e) {
     console.error('Cavités map error:', e);
     countEl.textContent = 'API indisponible';
@@ -5413,16 +5405,8 @@ async function fetchMvtMap(lat, lng) {
         .bindPopup(popup);
     });
 
-    // Ajuster la vue si des mouvements existent
-    if (items.length > 0 && items.length <= 50) {
-      const bounds = L.latLngBounds([[lat, lng]]);
-      items.forEach(mvt => {
-        const mlat = mvt.latitude || mvt.lat;
-        const mlng = mvt.longitude || mvt.lon || mvt.lng;
-        if (mlat && mlng) bounds.extend([parseFloat(mlat), parseFloat(mlng)]);
-      });
-      window.mvtMap.fitBounds(bounds.pad(0.15));
-    }
+    // Vue fixe à zoom 15 centrée sur le point investigué
+
   } catch (e) {
     console.error('Mvt terrain map error:', e);
   }
