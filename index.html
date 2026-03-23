@@ -6724,36 +6724,43 @@ async function downloadIgnGeol(btn) {
   }
 
   try {
-    // Capture both maps in parallel
-    const [ignBlob, geolBlob] = await Promise.all([
+    // Captures de base : IGN + GEOL
+    const captures = [
       _captureMapBlob('map-ign-leaflet', 'assets/picto_ign.jpg'),
       _captureMapBlob('map-geologie', 'assets/picto_brgm.jpg')
-    ]);
+    ];
+    const fileNames = ['IGN.jpg', 'GEOL.jpg'];
+
+    // Ajouter cavités si au moins 1 dans le rayon de 1 km
+    if (_lastCavites && _lastCavites.length > 0) {
+      captures.push(_captureMapBlob('map-cavites', null));
+      fileNames.push('CAVITES.jpg');
+    }
+
+    // Ajouter mouvements de terrain si au moins 1 dans le rayon de 1 km
+    if (_lastMvt && _lastMvt.length > 0) {
+      captures.push(_captureMapBlob('map-mvt', null));
+      fileNames.push('MVT-TERRAIN.jpg');
+    }
+
+    const blobs = await Promise.all(captures);
 
     if (dirHandle) {
-      // Écrire directement dans le dossier choisi
-      const ignFile = await dirHandle.getFileHandle('IGN.jpg', { create: true });
-      const ignW = await ignFile.createWritable();
-      await ignW.write(ignBlob);
-      await ignW.close();
-
-      const geolFile = await dirHandle.getFileHandle('GEOL.jpg', { create: true });
-      const geolW = await geolFile.createWritable();
-      await geolW.write(geolBlob);
-      await geolW.close();
+      for (let i = 0; i < blobs.length; i++) {
+        const fh = await dirHandle.getFileHandle(fileNames[i], { create: true });
+        const w = await fh.createWritable();
+        await w.write(blobs[i]);
+        await w.close();
+      }
     } else {
-      // Fallback: classic download links
-      const dlLink = document.createElement('a');
-      dlLink.download = 'IGN.jpg';
-      dlLink.href = URL.createObjectURL(ignBlob);
-      document.body.appendChild(dlLink); dlLink.click(); document.body.removeChild(dlLink);
-      URL.revokeObjectURL(dlLink.href);
-      await new Promise(r => setTimeout(r, 500));
-      const dlLink2 = document.createElement('a');
-      dlLink2.download = 'GEOL.jpg';
-      dlLink2.href = URL.createObjectURL(geolBlob);
-      document.body.appendChild(dlLink2); dlLink2.click(); document.body.removeChild(dlLink2);
-      URL.revokeObjectURL(dlLink2.href);
+      for (let i = 0; i < blobs.length; i++) {
+        const dlLink = document.createElement('a');
+        dlLink.download = fileNames[i];
+        dlLink.href = URL.createObjectURL(blobs[i]);
+        document.body.appendChild(dlLink); dlLink.click(); document.body.removeChild(dlLink);
+        URL.revokeObjectURL(dlLink.href);
+        if (i < blobs.length - 1) await new Promise(r => setTimeout(r, 500));
+      }
     }
 
     btn.innerHTML = '✅ Enregistré !';
