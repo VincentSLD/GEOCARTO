@@ -778,6 +778,12 @@
     color: var(--text-muted);
     margin-top: 4px;
   }
+  .stat-card .stat-distance {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
 
   /* Empty state */
   .empty-state {
@@ -1282,34 +1288,42 @@
         <div class="stat-card">
           <div class="stat-value amber" id="stat-catnat">—</div>
           <div class="stat-label">Arrêtés CatNat</div>
+          <div class="stat-distance">commune</div>
         </div>
         <div class="stat-card">
           <div class="stat-value red" id="stat-risques">—</div>
           <div class="stat-label">Risques identifiés</div>
+          <div class="stat-distance">commune</div>
         </div>
         <div class="stat-card">
           <div class="stat-value purple" id="stat-sismique">—</div>
           <div class="stat-label">Zone sismique</div>
+          <div class="stat-distance">au point</div>
         </div>
         <div class="stat-card">
           <div class="stat-value teal" id="stat-cavites">—</div>
           <div class="stat-label">Cavités proches</div>
+          <div class="stat-distance">1 km</div>
         </div>
         <div class="stat-card">
           <div class="stat-value blue" id="stat-icpe">—</div>
           <div class="stat-label">Sites ICPE</div>
+          <div class="stat-distance">1 km</div>
         </div>
         <div class="stat-card">
           <div class="stat-value green" id="stat-mvt">—</div>
           <div class="stat-label">Mvt de terrain</div>
+          <div class="stat-distance">1 km</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" style="color:#e0976e" id="stat-bss">—</div>
           <div class="stat-label">Sondages BSS</div>
+          <div class="stat-distance">1 km</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" style="color:#8bc34a" id="stat-argiles">—</div>
           <div class="stat-label">Zone argile</div>
+          <div class="stat-distance">au point</div>
         </div>
       </div>
       </div><!-- /capture-stats -->
