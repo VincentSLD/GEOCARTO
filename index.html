@@ -3253,7 +3253,7 @@ async function fetchBSS(lat, lng) {
     const safeFetch = async (url) => {
       try {
         const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
-        return r.ok ? await r.text() : '';
+        return r.ok ? await fetchXmlText(r) : '';
       } catch(e) { console.warn('BSS fetch error:', e); return ''; }
     };
     const [xmlEau, xmlTotal] = await Promise.all([safeFetch(urlEau), safeFetch(urlTotal)]);
@@ -3503,7 +3503,7 @@ async function onBssMapClick(e) {
   try {
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
+    const xml = await fetchXmlText(resp);
 
     // Parser les membres
     const members = xml.split(/<wfs:member>/i).slice(1);
@@ -5697,6 +5697,17 @@ function wgs84ToLambert93(lat, lng) {
   return { x: Xs + R * Math.sin(gamma), y: Ys - R * Math.cos(gamma) };
 }
 
+// Décode une réponse fetch en texte en respectant l'encodage déclaré dans le XML (ex: ISO-8859-1)
+// resp.text() utilise UTF-8 par défaut, ce qui corrompt les caractères spéciaux des réponses BRGM
+async function fetchXmlText(resp) {
+  const buf = await resp.arrayBuffer();
+  // Détection rapide de l'encodage depuis la déclaration XML (<?xml ... encoding="..."?>)
+  const head = new TextDecoder('ascii').decode(buf.slice(0, 200));
+  const encMatch = head.match(/encoding\s*=\s*["']([^"']+)["']/i);
+  const encoding = encMatch ? encMatch[1] : 'utf-8';
+  return new TextDecoder(encoding).decode(buf);
+}
+
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
 function extractGmlField(xmlText, ...names) {
   for (const name of names) {
@@ -5737,7 +5748,7 @@ async function fetchGeologicalInfo(lat, lng) {
 
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
+    const xml = await fetchXmlText(resp);
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
@@ -5816,7 +5827,7 @@ async function onGeolMapQuery(e) {
 
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
+    const xml = await fetchXmlText(resp);
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
@@ -5901,7 +5912,7 @@ async function fetchGeolArea() {
           `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
         const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!resp.ok) return;
-        const xml = await resp.text();
+        const xml = await fetchXmlText(resp);
         const notation = extractGmlField(xml, 'notation');
         if (notation && !formations.has(notation)) {
           formations.set(notation, {

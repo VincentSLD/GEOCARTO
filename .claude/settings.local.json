@@ -58,7 +58,8 @@
       "Bash(curl -s \"https://apicarto.ign.fr/api/cadastre/parcelle?code_insee=34172&numero=0012\")",
       "WebFetch(domain:ficheinfoterre.brgm.fr)",
       "WebFetch(domain:www.brgm.fr)",
-      "WebFetch(domain:fiches-infoterre.brgm.fr)"
+      "WebFetch(domain:fiches-infoterre.brgm.fr)",
+      "Bash(ls c:/PROJETS/01_GEOCARTO/*.diff)"
     ]
   }
 }
