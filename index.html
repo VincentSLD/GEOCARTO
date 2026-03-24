@@ -5697,15 +5697,30 @@ function wgs84ToLambert93(lat, lng) {
   return { x: Xs + R * Math.sin(gamma), y: Ys - R * Math.cos(gamma) };
 }
 
-// Décode une réponse fetch en texte en respectant l'encodage déclaré dans le XML (ex: ISO-8859-1)
-// resp.text() utilise UTF-8 par défaut, ce qui corrompt les caractères spéciaux des réponses BRGM
-async function fetchXmlText(resp) {
-  const buf = await resp.arrayBuffer();
-  // Détection rapide de l'encodage depuis la déclaration XML (<?xml ... encoding="..."?>)
-  const head = new TextDecoder('ascii').decode(buf.slice(0, 200));
-  const encMatch = head.match(/encoding\s*=\s*["']([^"']+)["']/i);
-  const encoding = encMatch ? encMatch[1] : 'utf-8';
-  return new TextDecoder(encoding).decode(buf);
+// Table de substitution des notations géologiques BRGM (SCAN_GEOL50).
+// Les cartes géologiques papier utilisaient une police Symbol où les positions
+// 0xE1-0xF9 correspondent aux lettres grecques α-ω. Lors de la numérisation,
+// ces octets ont été interprétés comme Latin-1/Windows-1252 → caractères accentués.
+// On rétablit ici les vrais symboles géologiques.
+const BRGM_NOTATION_FIX = {
+  // Lettres grecques minuscules (police Symbol 0xE1-0xF9 → Latin-1)
+  'á': 'α', 'â': 'β', 'ã': 'γ', 'ä': 'δ', 'å': 'ε',
+  'æ': 'ζ', 'ç': 'η', 'è': 'θ', 'é': 'ι', 'ê': 'κ',
+  'ë': 'λ', 'ì': 'μ', 'í': 'ν', 'î': 'ξ', 'ï': 'ο',
+  'ð': 'π', 'ñ': 'ρ', 'ò': 'ς', 'ó': 'σ', 'ô': 'τ',
+  'õ': 'υ', 'ö': 'φ', '÷': 'χ', 'ø': 'ψ', 'ù': 'ω',
+  // Lettres grecques majuscules (police Symbol 0xC1-0xD9 → Latin-1)
+  'Á': 'Α', 'Â': 'Β', 'Ã': 'Γ', 'Ä': 'Δ', 'Å': 'Ε',
+  'Æ': 'Ζ', 'Ç': 'Η', 'È': 'Θ', 'É': 'Ι', 'Ê': 'Κ',
+  'Ë': 'Λ', 'Ì': 'Μ', 'Í': 'Ν', 'Î': 'Ξ', 'Ï': 'Ο',
+  'Ð': 'Π', 'Ñ': 'Ρ',           'Ó': 'Σ', 'Ô': 'Τ',
+  'Õ': 'Υ', 'Ö': 'Φ', '×': 'Χ', 'Ø': 'Ψ', 'Ù': 'Ω',
+  // Caractères spéciaux BRGM
+  '¼': 'f',
+};
+const _brgmNotationRe = new RegExp('[' + Object.keys(BRGM_NOTATION_FIX).join('') + ']', 'g');
+function fixBrgmNotation(s) {
+  return s ? s.replace(_brgmNotationRe, ch => BRGM_NOTATION_FIX[ch] || ch) : s;
 }
 
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
@@ -5752,7 +5767,7 @@ async function fetchGeologicalInfo(lat, lng) {
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
-    const notation = extractGmlField(xml, 'notation');
+    const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
     const descr    = extractGmlField(xml, 'description');
 
     if (carte || nom || notation || descr) {
@@ -5831,7 +5846,7 @@ async function onGeolMapQuery(e) {
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
-    const notation = extractGmlField(xml, 'notation');
+    const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
     const descr    = extractGmlField(xml, 'description');
 
     if (carte || nom || notation || descr) {
@@ -5913,7 +5928,7 @@ async function fetchGeolArea() {
         const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!resp.ok) return;
         const xml = await fetchXmlText(resp);
-        const notation = extractGmlField(xml, 'notation');
+        const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
         if (notation && !formations.has(notation)) {
           formations.set(notation, {
             carte: extractGmlField(xml, 'carte'),
