@@ -3253,7 +3253,7 @@ async function fetchBSS(lat, lng) {
     const safeFetch = async (url) => {
       try {
         const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
-        return r.ok ? await fetchXmlText(r) : '';
+        return r.ok ? await r.text() : '';
       } catch(e) { console.warn('BSS fetch error:', e); return ''; }
     };
     const [xmlEau, xmlTotal] = await Promise.all([safeFetch(urlEau), safeFetch(urlTotal)]);
@@ -3503,7 +3503,7 @@ async function onBssMapClick(e) {
   try {
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await fetchXmlText(resp);
+    const xml = await resp.text();
 
     // Parser les membres
     const members = xml.split(/<wfs:member>/i).slice(1);
@@ -5763,7 +5763,7 @@ async function fetchGeologicalInfo(lat, lng) {
 
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await fetchXmlText(resp);
+    const xml = await resp.text();
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
@@ -5842,7 +5842,7 @@ async function onGeolMapQuery(e) {
 
     const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await fetchXmlText(resp);
+    const xml = await resp.text();
 
     const carte    = extractGmlField(xml, 'carte');
     const nom      = extractGmlField(xml, 'nom');
@@ -5927,7 +5927,7 @@ async function fetchGeolArea() {
           `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
         const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!resp.ok) return;
-        const xml = await fetchXmlText(resp);
+        const xml = await resp.text();
         const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
         if (notation && !formations.has(notation)) {
           formations.set(notation, {
