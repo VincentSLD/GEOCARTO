@@ -4647,15 +4647,34 @@ function edsStartDrawZone() {
   });
   _edsDrawHandler.enable();
 
-  // Feedback visuel
+  // Colorer le premier vertex en vert pour le repérer facilement
+  function _colorFirst(e) {
+    const layers = e.layers?.getLayers?.() || [];
+    if (layers.length > 0) {
+      const first = layers[0];
+      if (first._icon) {
+        first._icon.style.backgroundColor = '#00e676';
+        first._icon.style.border = '3px solid #fff';
+        first._icon.style.borderRadius = '50%';
+        first._icon.style.width = '16px';
+        first._icon.style.height = '16px';
+        first._icon.style.marginLeft = '-8px';
+        first._icon.style.marginTop = '-8px';
+        first._icon.style.boxShadow = '0 0 6px rgba(0,230,118,0.8)';
+      }
+    }
+  }
+  window.edsMap.on('draw:drawvertex', _colorFirst);
+
   const btn = document.getElementById('eds-zone-draw-btn');
-  // pas de changement visuel du bouton pendant le dessin
 
   // Écouter la fin du dessin
   let _drawDone = false;
+  const _cleanup = () => { window.edsMap.off('draw:drawvertex', _colorFirst); };
   const _resetBtn = () => { if (btn) { btn.textContent = '⚠️'; btn.style.borderColor = '#e53935'; } };
   window.edsMap.once(L.Draw.Event.CREATED, function(e) {
     _drawDone = true;
+    _cleanup();
     _resetBtn();
     _edsDrawHandler = null;
     const geojson = e.layer.toGeoJSON().geometry;
@@ -4663,6 +4682,7 @@ function edsStartDrawZone() {
   });
   // Si le dessin est annulé (Escape) sans avoir créé de zone
   window.edsMap.once('draw:drawstop', function() {
+    _cleanup();
     if (!_drawDone) { _resetBtn(); _edsDrawHandler = null; }
   });
 }
