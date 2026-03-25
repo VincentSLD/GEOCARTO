@@ -1481,19 +1481,7 @@
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Ville</label>
                 <input type="text" id="eds-new-ville" placeholder="Ex: LA ROCHE SUR YON" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;">
               </div>
-              <div style="grid-column:1/-1;">
-                <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Couleur du point</label>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-primary);">
-                    <input type="radio" name="eds-new-color" value="jaune" checked style="accent-color:#ffd600;">
-                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#ffd600;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span> Jaune
-                  </label>
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-primary);">
-                    <input type="radio" name="eds-new-color" value="rouge" style="accent-color:#e53935;">
-                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#e53935;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span> Rouge
-                  </label>
-                </div>
-              </div>
+              <input type="hidden" name="eds-new-color" value="jaune">
               <div style="grid-column:1/-1;">
                 <label style="font-size:0.67rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:3px;">Notes</label>
                 <textarea id="eds-new-notes" rows="2" placeholder="Prescripteur ou autres informations" style="width:100%;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-primary,#fff);color:var(--text-primary);font-size:0.75rem;resize:vertical;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;"></textarea>
