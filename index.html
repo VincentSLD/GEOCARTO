@@ -4699,11 +4699,11 @@ function _edsShowZoneForm(geometry, existingZone) {
       <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:14px;">${isEdit ? '✏️ Modifier la zone' : '🔴 Nouvelle zone sensible'}</div>
       <div style="margin-bottom:10px;">
         <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Nom de la zone *</label>
-        <input id="eds-zone-nom" value="${isEdit ? (existingZone.nom||'').replace(/"/g,'&quot;') : ''}" placeholder="Ex: Zone inondable, PPRI…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;">
+        <input id="eds-zone-nom" value="${isEdit ? (existingZone.nom||'').replace(/"/g,'&quot;') : ''}" placeholder="" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:10px;">
         <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Description / commentaire</label>
-        <textarea id="eds-zone-desc" rows="3" placeholder="Détails visibles au clic sur la zone…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;resize:vertical;">${isEdit ? (existingZone.description||'').replace(/</g,'&lt;') : ''}</textarea>
+        <textarea id="eds-zone-desc" rows="3" placeholder="" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;resize:vertical;">${isEdit ? (existingZone.description||'').replace(/</g,'&lt;') : ''}</textarea>
       </div>
       <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-end;flex-wrap:wrap;">
         <div>
