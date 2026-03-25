@@ -1421,6 +1421,7 @@
             <button onclick="edsExitFullscreen()" style="padding:10px 12px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;">✕</button>
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:10px 12px;border-radius:10px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
             <button id="eds-fs-form-toggle" onclick="edsToggleFsForm()" style="padding:10px 22px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">+ Ajouter un point</button>
+            <button onclick="edsStartDrawZone()" style="padding:10px 16px;border-radius:10px;border:2px solid #e53935;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#e53935;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;">+ Zone sensible</button>
           </div>
         </div>
 
@@ -1429,6 +1430,16 @@
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
           <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:10px 22px;border-radius:10px;border:2px solid var(--gph-yellow);background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:var(--gph-yellow);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">+ Ajouter un point</button>
 
+        </div>
+
+        <!-- Zones sensibles -->
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;user-select:none;">
+            <input type="checkbox" id="eds-zones-toggle" checked onchange="edsToggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
+            Zones sensibles
+          </label>
+          <button onclick="edsStartDrawZone()" id="eds-zone-draw-btn" style="padding:7px 16px;border-radius:8px;border:1.5px solid #e53935;background:rgba(229,57,53,0.08);color:#e53935;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;" onmouseover="this.style.background='rgba(229,57,53,0.18)'" onmouseout="this.style.background='rgba(229,57,53,0.08)'">+ Dessiner une zone</button>
+          <span id="eds-zones-count" style="font-size:0.7rem;color:var(--text-muted);"></span>
         </div>
 
         <!-- Accordéon : Liste des études répertoriées à moins d'1km -->
@@ -4493,6 +4504,240 @@ let _edsPendingInv  = null;
 let _edsEditableRefs = [];  // refs vers points éditables pour popup edit/delete
 window.edsMap       = null;
 
+// ===== ZONES SENSIBLES EDS =====
+let _edsZonesData    = [];   // toutes les zones (depuis Supabase)
+let _edsZonesLayer   = null; // L.featureGroup contenant les polygones
+let _edsZonesVisible = true;
+let _edsDrawHandler  = null; // handler de dessin Leaflet.Draw en cours
+
+// --- Charger les zones depuis Supabase ---
+async function _edsZonesLoad() {
+  try {
+    const { data, error } = await sbAuth.from('geocarto_eds_zones')
+      .select('id,created_by,nom,description,couleur,opacite,geometry,created_at')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('Erreur chargement zones:', error); return; }
+    _edsZonesData = data || [];
+    console.log('EDS zones: ' + _edsZonesData.length + ' zones chargées');
+  } catch(e) { console.error('EDS zones load error:', e); }
+}
+
+// --- Sauvegarder une nouvelle zone ---
+async function _edsZoneSave(zone) {
+  try {
+    const row = {
+      nom: zone.nom || '',
+      description: zone.description || '',
+      couleur: zone.couleur || '#e53935',
+      opacite: zone.opacite ?? 0.25,
+      geometry: zone.geometry,
+      created_by: currentAuthUser?.id || null
+    };
+    const { data, error } = await sbAuth.from('geocarto_eds_zones').insert(row).select().single();
+    if (error) { console.error('Erreur ajout zone:', error); return null; }
+    return data;
+  } catch(e) { console.error('EDS zone save error:', e); return null; }
+}
+
+// --- Mettre à jour une zone ---
+async function _edsZoneUpdate(id, fields) {
+  try {
+    const { error } = await sbAuth.from('geocarto_eds_zones').update(fields).eq('id', id);
+    if (error) { console.error('Erreur update zone:', error); return false; }
+    return true;
+  } catch(e) { console.error('EDS zone update error:', e); return false; }
+}
+
+// --- Supprimer une zone ---
+async function _edsZoneDelete(id) {
+  try {
+    const { error } = await sbAuth.from('geocarto_eds_zones').delete().eq('id', id);
+    if (error) { console.error('Erreur delete zone:', error); return false; }
+    return true;
+  } catch(e) { console.error('EDS zone delete error:', e); return false; }
+}
+
+// --- Afficher / masquer les zones ---
+function edsToggleZones(show) {
+  _edsZonesVisible = show;
+  if (!window.edsMap || !_edsZonesLayer) return;
+  if (show) {
+    window.edsMap.addLayer(_edsZonesLayer);
+  } else {
+    window.edsMap.removeLayer(_edsZonesLayer);
+  }
+}
+
+// --- Rendre les zones sur la carte ---
+function _edsZonesRender() {
+  if (!window.edsMap) return;
+  if (_edsZonesLayer) { window.edsMap.removeLayer(_edsZonesLayer); }
+  _edsZonesLayer = L.featureGroup();
+
+  _edsZonesData.forEach(z => {
+    if (!z.geometry || !z.geometry.coordinates) return;
+    const coords = z.geometry.coordinates[0].map(c => [c[1], c[0]]); // GeoJSON [lng,lat] → Leaflet [lat,lng]
+    const poly = L.polygon(coords, {
+      color: z.couleur || '#e53935',
+      weight: 2,
+      fillColor: z.couleur || '#e53935',
+      fillOpacity: z.opacite ?? 0.25,
+    });
+    poly._edsZoneId = z.id;
+    poly._edsZone = z;
+
+    // Popup au clic
+    poly.on('click', function() {
+      const zn = this._edsZone;
+      const nom = (zn.nom || 'Zone sans nom').replace(/</g, '&lt;');
+      const desc = (zn.description || '').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+      const popup = `<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:180px;max-width:280px;">
+        <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${zn.couleur || '#e53935'};opacity:0.7;flex-shrink:0;"></span>
+          ${nom}
+        </div>
+        ${desc ? `<div style="font-size:0.74rem;color:#374151;white-space:pre-wrap;max-height:150px;overflow-y:auto;">${desc}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px;padding-top:7px;border-top:1px solid #e5e7eb;">
+          <button onclick="edsEditZone('${zn.id}')" style="flex:1;padding:5px 0;border:1px solid #1976d2;background:rgba(25,118,210,0.08);color:#1976d2;border-radius:6px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">✏️ Modifier</button>
+          <button onclick="edsDeleteZone('${zn.id}')" style="flex:1;padding:5px 0;border:1px solid #e53935;background:rgba(229,57,53,0.08);color:#e53935;border-radius:6px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">🗑 Supprimer</button>
+        </div>
+      </div>`;
+      this.bindPopup(popup, { maxWidth: 300 }).openPopup();
+    });
+
+    _edsZonesLayer.addLayer(poly);
+  });
+
+  if (_edsZonesVisible) {
+    window.edsMap.addLayer(_edsZonesLayer);
+  }
+  const countEl = document.getElementById('eds-zones-count');
+  if (countEl) countEl.textContent = _edsZonesData.length ? `(${_edsZonesData.length} zone${_edsZonesData.length > 1 ? 's' : ''})` : '';
+}
+
+// --- Lancer le dessin d'une nouvelle zone ---
+function edsStartDrawZone() {
+  if (!window.edsMap) { alert('La carte EDS n\'est pas encore chargée.'); return; }
+  if (_edsDrawHandler) { _edsDrawHandler.disable(); _edsDrawHandler = null; }
+
+  // Activer l'affichage des zones si désactivé
+  const cb = document.getElementById('eds-zones-toggle');
+  if (cb && !cb.checked) { cb.checked = true; edsToggleZones(true); }
+
+  _edsDrawHandler = new L.Draw.Polygon(window.edsMap, {
+    shapeOptions: { color: '#e53935', weight: 2, fillOpacity: 0.25 },
+    allowIntersection: false,
+    showArea: true,
+    metric: true
+  });
+  _edsDrawHandler.enable();
+
+  // Feedback visuel
+  const btn = document.getElementById('eds-zone-draw-btn');
+  if (btn) { btn.textContent = '⬛ Dessin en cours… (cliquez sur la carte)'; btn.style.borderColor = '#ff7043'; }
+
+  // Écouter la fin du dessin
+  let _drawDone = false;
+  const _resetBtn = () => { if (btn) { btn.textContent = '+ Dessiner une zone'; btn.style.borderColor = '#e53935'; } };
+  window.edsMap.once(L.Draw.Event.CREATED, function(e) {
+    _drawDone = true;
+    _resetBtn();
+    _edsDrawHandler = null;
+    const geojson = e.layer.toGeoJSON().geometry;
+    _edsShowZoneForm(geojson);
+  });
+  // Si le dessin est annulé (Escape) sans avoir créé de zone
+  window.edsMap.once('draw:drawstop', function() {
+    if (!_drawDone) { _resetBtn(); _edsDrawHandler = null; }
+  });
+}
+
+// --- Formulaire de création / édition de zone ---
+function _edsShowZoneForm(geometry, existingZone) {
+  document.getElementById('eds-zone-form-overlay')?.remove();
+  const isEdit = !!existingZone;
+  const ov = document.createElement('div');
+  ov.id = 'eds-zone-form-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:420px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:14px;">${isEdit ? '✏️ Modifier la zone' : '🔴 Nouvelle zone sensible'}</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Nom de la zone *</label>
+        <input id="eds-zone-nom" value="${isEdit ? (existingZone.nom||'').replace(/"/g,'&quot;') : ''}" placeholder="Ex: Zone inondable, PPRI…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Description / commentaire</label>
+        <textarea id="eds-zone-desc" rows="3" placeholder="Détails visibles au clic sur la zone…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;resize:vertical;">${isEdit ? (existingZone.description||'').replace(/</g,'&lt;') : ''}</textarea>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-end;">
+        <div>
+          <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Couleur</label>
+          <input type="color" id="eds-zone-color" value="${isEdit ? (existingZone.couleur||'#e53935') : '#e53935'}" style="width:50px;height:34px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;padding:2px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Opacité du remplissage</label>
+          <input type="range" id="eds-zone-opacity" min="0.05" max="0.7" step="0.05" value="${isEdit ? (existingZone.opacite??0.25) : 0.25}" style="width:100%;cursor:pointer;">
+        </div>
+      </div>
+      <div id="eds-zone-form-msg" style="font-size:0.72rem;min-height:1.2em;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="eds-zone-cancel" style="padding:10px 22px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.82rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
+        <button id="eds-zone-save" style="padding:10px 24px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #e53935;color:#e53935;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Enregistrer</button>
+      </div>
+    </div>`;
+  _edsOverlayParent().appendChild(ov);
+
+  document.getElementById('eds-zone-cancel').onclick = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+
+  document.getElementById('eds-zone-save').onclick = async () => {
+    const nom = (document.getElementById('eds-zone-nom')?.value || '').trim();
+    const msgEl = document.getElementById('eds-zone-form-msg');
+    if (!nom) { if (msgEl) { msgEl.textContent = '⚠️ Le nom est requis.'; msgEl.style.color = '#e53935'; } return; }
+    const desc = (document.getElementById('eds-zone-desc')?.value || '').trim();
+    const couleur = document.getElementById('eds-zone-color')?.value || '#e53935';
+    const opacite = parseFloat(document.getElementById('eds-zone-opacity')?.value || '0.25');
+
+    if (isEdit) {
+      const ok = await _edsZoneUpdate(existingZone.id, { nom, description: desc, couleur, opacite });
+      if (!ok) { alert('Erreur lors de la mise à jour.'); return; }
+      const z = _edsZonesData.find(zz => zz.id === existingZone.id);
+      if (z) { z.nom = nom; z.description = desc; z.couleur = couleur; z.opacite = opacite; }
+    } else {
+      const saved = await _edsZoneSave({ nom, description: desc, couleur, opacite, geometry });
+      if (!saved) { alert('Erreur lors de la sauvegarde.'); return; }
+      _edsZonesData.unshift(saved);
+    }
+    ov.remove();
+    _edsZonesRender();
+  };
+}
+
+// --- Modifier une zone (popup) ---
+function edsEditZone(zoneId) {
+  window.edsMap?.closePopup();
+  const z = _edsZonesData.find(zz => zz.id === zoneId);
+  if (!z) return;
+  _edsShowZoneForm(z.geometry, z);
+}
+
+// --- Supprimer une zone ---
+function edsDeleteZone(zoneId) {
+  window.edsMap?.closePopup();
+  const z = _edsZonesData.find(zz => zz.id === zoneId);
+  if (!z) return;
+  edsShowConfirm(`Voulez-vous supprimer la zone « ${z.nom || '—'} » ?`, async () => {
+    const ok = await _edsZoneDelete(zoneId);
+    if (ok) {
+      _edsZonesData = _edsZonesData.filter(zz => zz.id !== zoneId);
+      _edsZonesRender();
+    } else {
+      alert('Erreur lors de la suppression.');
+    }
+  });
+}
+
 // --- Charger tous les points EDS depuis Supabase ---
 function _edsMapRow(r) {
   return {
@@ -4741,8 +4986,10 @@ async function initEdsMap() {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.min.js'),
+    loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css'),
   ]);
-  const dataPromise = _edsLoadFromSupabase();
+  const dataPromise = Promise.all([_edsLoadFromSupabase(), _edsZonesLoad()]);
 
   try {
     await libsPromise;
@@ -4772,6 +5019,9 @@ async function initEdsMap() {
     _edsRenderMarkers(_edsData);
     edsUpdateNearbyList();
   }
+  // Afficher les zones sensibles
+  _edsZonesRender();
+
   const loader2 = document.getElementById('eds-loader');
   if (loader2) loader2.style.display = 'none';
 
