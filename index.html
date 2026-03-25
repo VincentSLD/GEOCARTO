@@ -4634,7 +4634,7 @@ function edsStartDrawZone() {
 
   // Feedback visuel
   const btn = document.getElementById('eds-zone-draw-btn');
-  if (btn) { btn.textContent = '⬛ Dessin en cours… (cliquez sur la carte)'; btn.style.borderColor = '#ff7043'; }
+  // pas de changement visuel du bouton pendant le dessin
 
   // Écouter la fin du dessin
   let _drawDone = false;
