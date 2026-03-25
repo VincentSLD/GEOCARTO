@@ -1421,7 +1421,7 @@
             <button onclick="edsExitFullscreen()" style="padding:10px 12px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;">✕</button>
             <input type="text" id="eds-fs-search" placeholder="🔍 Filtrer…" oninput="edsFsFilter(this.value)" style="flex:1;min-width:120px;padding:10px 12px;border-radius:10px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
             <button id="eds-fs-form-toggle" onclick="edsToggleFsForm()" style="padding:10px 22px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">+ Ajouter un point</button>
-            <button onclick="edsStartDrawZone()" style="padding:10px 16px;border-radius:10px;border:2px solid #e53935;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#e53935;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;">+ Zone sensible</button>
+            <button onclick="edsStartDrawZone()" style="padding:10px 22px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">+ Dessiner une zone</button>
           </div>
         </div>
 
@@ -4529,7 +4529,7 @@ async function _edsZoneSave(zone) {
       nom: zone.nom || '',
       description: zone.description || '',
       couleur: zone.couleur || '#e53935',
-      opacite: zone.opacite ?? 0.25,
+      opacite: zone.opacite ?? 0.5,
       geometry: zone.geometry,
       created_by: currentAuthUser?.id || null
     };
@@ -4581,7 +4581,7 @@ function _edsZonesRender() {
       color: z.couleur || '#e53935',
       weight: 2,
       fillColor: z.couleur || '#e53935',
-      fillOpacity: z.opacite ?? 0.25,
+      fillOpacity: z.opacite ?? 0.5,
     });
     poly._edsZoneId = z.id;
     poly._edsZone = z;
@@ -4626,7 +4626,7 @@ function edsStartDrawZone() {
   if (cb && !cb.checked) { cb.checked = true; edsToggleZones(true); }
 
   _edsDrawHandler = new L.Draw.Polygon(window.edsMap, {
-    shapeOptions: { color: '#e53935', weight: 2, fillOpacity: 0.25 },
+    shapeOptions: { color: '#e53935', weight: 2, fillOpacity: 0.5 },
     allowIntersection: false,
     showArea: true,
     metric: true
@@ -4671,14 +4671,19 @@ function _edsShowZoneForm(geometry, existingZone) {
         <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Description / commentaire</label>
         <textarea id="eds-zone-desc" rows="3" placeholder="Détails visibles au clic sur la zone…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;resize:vertical;">${isEdit ? (existingZone.description||'').replace(/</g,'&lt;') : ''}</textarea>
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-end;">
+      <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-end;flex-wrap:wrap;">
         <div>
           <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Couleur</label>
-          <input type="color" id="eds-zone-color" value="${isEdit ? (existingZone.couleur||'#e53935') : '#e53935'}" style="width:50px;height:34px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;padding:2px;">
+          <div id="eds-zone-color-picks" style="display:flex;gap:6px;margin-top:4px;">
+            ${['#e53935','#1976d2','#ff9800','#43a047','#8e24aa'].map(c =>
+              `<span data-color="${c}" onclick="document.querySelectorAll('#eds-zone-color-picks span').forEach(s=>s.style.outline='');this.style.outline='3px solid #1a1a1a';this.style.outlineOffset='2px';document.getElementById('eds-zone-color-val').value='${c}'" style="display:inline-block;width:28px;height:28px;border-radius:6px;background:${c};cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);${(isEdit ? (existingZone.couleur||'#e53935') : '#e53935') === c ? 'outline:3px solid #1a1a1a;outline-offset:2px;' : ''}"></span>`
+            ).join('')}
+            <input type="hidden" id="eds-zone-color-val" value="${isEdit ? (existingZone.couleur||'#e53935') : '#e53935'}">
+          </div>
         </div>
-        <div style="flex:1;">
-          <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Opacité du remplissage</label>
-          <input type="range" id="eds-zone-opacity" min="0.05" max="0.7" step="0.05" value="${isEdit ? (existingZone.opacite??0.25) : 0.25}" style="width:100%;cursor:pointer;">
+        <div>
+          <label style="font-size:0.68rem;color:#6b7280;font-weight:600;">Opacité (%)</label>
+          <input type="number" id="eds-zone-opacity" min="5" max="90" step="5" value="${isEdit ? Math.round((existingZone.opacite??0.5)*100) : 50}" style="width:70px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;box-sizing:border-box;margin-top:4px;">
         </div>
       </div>
       <div id="eds-zone-form-msg" style="font-size:0.72rem;min-height:1.2em;margin-bottom:8px;"></div>
@@ -4697,8 +4702,8 @@ function _edsShowZoneForm(geometry, existingZone) {
     const msgEl = document.getElementById('eds-zone-form-msg');
     if (!nom) { if (msgEl) { msgEl.textContent = '⚠️ Le nom est requis.'; msgEl.style.color = '#e53935'; } return; }
     const desc = (document.getElementById('eds-zone-desc')?.value || '').trim();
-    const couleur = document.getElementById('eds-zone-color')?.value || '#e53935';
-    const opacite = parseFloat(document.getElementById('eds-zone-opacity')?.value || '0.25');
+    const couleur = document.getElementById('eds-zone-color-val')?.value || '#e53935';
+    const opacite = Math.min(0.9, Math.max(0.05, (parseInt(document.getElementById('eds-zone-opacity')?.value || '50', 10) / 100)));
 
     if (isEdit) {
       const ok = await _edsZoneUpdate(existingZone.id, { nom, description: desc, couleur, opacite });
