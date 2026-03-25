@@ -4988,11 +4988,11 @@ async function initEdsMap() {
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css'),
   ]);
-  // Leaflet.Draw est optionnel (peut être bloqué par Tracking Prevention)
+  // Leaflet.Draw chargé localement (évite le blocage par Tracking Prevention)
   const drawPromise = Promise.all([
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.min.js'),
-    loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css'),
-  ]).catch(e => console.warn('Leaflet.Draw non chargé (optionnel):', e));
+    loadScript('lib/leaflet.draw.min.js'),
+    loadStylesheet('lib/leaflet.draw.css'),
+  ]).catch(e => console.warn('Leaflet.Draw non chargé:', e));
   const dataPromise = Promise.all([_edsLoadFromSupabase(), _edsZonesLoad()]);
 
   try {
