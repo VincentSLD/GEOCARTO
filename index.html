@@ -4728,10 +4728,12 @@ function edsEditZone(zoneId) {
 }
 
 // --- Supprimer une zone ---
-function edsDeleteZone(zoneId) {
+async function edsDeleteZone(zoneId) {
   window.edsMap?.closePopup();
   const z = _edsZonesData.find(zz => zz.id === zoneId);
   if (!z) return;
+  const pwdOk = await edsAskDeletePwd();
+  if (!pwdOk) return;
   edsShowConfirm(`Voulez-vous supprimer la zone « ${z.nom || '—'} » ?`, async () => {
     const ok = await _edsZoneDelete(zoneId);
     if (ok) {
