@@ -4605,6 +4605,21 @@ function _edsZonesRender() {
     });
 
     _edsZonesLayer.addLayer(poly);
+
+    // Étiquette du nom au centre de la zone
+    if (z.nom) {
+      const center = poly.getBounds().getCenter();
+      const label = L.marker(center, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="font-size:0.65rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none;">${z.nom.replace(/</g,'&lt;')}</div>`,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0]
+        }),
+        interactive: false
+      });
+      _edsZonesLayer.addLayer(label);
+    }
   });
 
   if (_edsZonesVisible) {
