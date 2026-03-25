@@ -1429,7 +1429,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
           <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="edsFilterMarkers()" style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;font-family:'Bricolage Grotesque',sans-serif;">
           <button onclick="toggleEdsForm()" id="eds-form-toggle" style="padding:10px 22px;border-radius:10px;border:2px solid var(--gph-yellow);background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:var(--gph-yellow);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">+ Ajouter un point</button>
-
+          <button onclick="edsStartDrawZone()" id="eds-zone-draw-btn" style="padding:10px 22px;border-radius:10px;border:2px solid #e53935;background:linear-gradient(135deg,#1a1a1a 0%,#333333 100%);color:#e53935;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;">+ Dessiner une zone</button>
         </div>
 
         <!-- Zones sensibles -->
@@ -1438,7 +1438,6 @@
             <input type="checkbox" id="eds-zones-toggle" checked onchange="edsToggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
             Zones sensibles
           </label>
-          <button onclick="edsStartDrawZone()" id="eds-zone-draw-btn" style="padding:7px 16px;border-radius:8px;border:1.5px solid #e53935;background:rgba(229,57,53,0.08);color:#e53935;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;" onmouseover="this.style.background='rgba(229,57,53,0.18)'" onmouseout="this.style.background='rgba(229,57,53,0.08)'">+ Dessiner une zone</button>
           <span id="eds-zones-count" style="font-size:0.7rem;color:var(--text-muted);"></span>
         </div>
 
