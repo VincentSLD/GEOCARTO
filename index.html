@@ -4618,6 +4618,7 @@ function _edsZonesRender() {
 // --- Lancer le dessin d'une nouvelle zone ---
 function edsStartDrawZone() {
   if (!window.edsMap) { alert('La carte EDS n\'est pas encore chargée.'); return; }
+  if (typeof L.Draw === 'undefined') { alert('Le module de dessin n\'a pas pu se charger. Désactivez le blocage de suivi (Tracking Prevention) dans les paramètres du navigateur, ou essayez un autre navigateur.'); return; }
   if (_edsDrawHandler) { _edsDrawHandler.disable(); _edsDrawHandler = null; }
 
   // Activer l'affichage des zones si désactivé
@@ -4986,13 +4987,16 @@ async function initEdsMap() {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css'),
+  ]);
+  // Leaflet.Draw est optionnel (peut être bloqué par Tracking Prevention)
+  const drawPromise = Promise.all([
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.min.js'),
     loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css'),
-  ]);
+  ]).catch(e => console.warn('Leaflet.Draw non chargé (optionnel):', e));
   const dataPromise = Promise.all([_edsLoadFromSupabase(), _edsZonesLoad()]);
 
   try {
-    await libsPromise;
+    await Promise.all([libsPromise, drawPromise]);
   } catch(e) {
     _edsMapReady = false;
     _setLoader(`<span style="font-size:1.5rem;">⚠️</span><div style="font-size:0.78rem;color:#e53935;margin-top:4px;">Erreur de chargement des bibliothèques.<br>Vérifiez votre connexion internet.</div>`);
