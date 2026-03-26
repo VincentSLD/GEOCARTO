@@ -5722,7 +5722,8 @@ async function fetchMvtMap(lat, lng) {
     const data = await fetchJSON(url, 15000);
     const items = data.data || [];
 
-    if (!window.mvtMap) return;
+    console.log('fetchMvtMap: ' + items.length + ' items reçus');
+    if (!window.mvtMap) { console.warn('fetchMvtMap: mvtMap non initialisée !'); return; }
 
     const mvtIcon = L.divIcon({
       html: '<div style="width:12px;height:12px;background:#4CAF50;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
@@ -5758,7 +5759,7 @@ async function fetchMvtMap(lat, lng) {
     // Vue fixe à zoom 15 centrée sur le point investigué
 
   } catch (e) {
-    console.error('Mvt terrain map error:', e);
+    console.error('Mvt terrain map error:', e.message, e);
   }
 }
 
