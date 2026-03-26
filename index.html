@@ -301,6 +301,11 @@
   }
 
   @keyframes pulse { 50% { opacity: 0.5; } }
+  @keyframes geo-pulse {
+    0%   { transform: scale(1);   opacity: 0.7; }
+    50%  { transform: scale(1.8); opacity: 0; }
+    100% { transform: scale(1);   opacity: 0; }
+  }
 
   /* Results */
   .results { 
@@ -5684,15 +5689,30 @@ async function fetchCavitesMap(lat, lng) {
 
     if (!window.cavitesMap) return;
 
-    const cavIcon = L.divIcon({
-      html: '<div style="width:12px;height:12px;background:#7e57c2;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
-      className: '', iconSize: [12, 12], iconAnchor: [6, 6],
-    });
+    // Pré-calculer les coordonnées pour détecter les voisins proches
+    const parsedCav = items.map(cav => ({
+      ...cav,
+      _lat: parseFloat(cav.latitude || cav.lat),
+      _lng: parseFloat(cav.longitude || cav.lon || cav.lng),
+    })).filter(c => !isNaN(c._lat) && !isNaN(c._lng));
 
-    items.forEach(cav => {
-      const clat = cav.latitude || cav.lat;
-      const clng = cav.longitude || cav.lon || cav.lng;
-      if (!clat || !clng) return;
+    const hasNeighborCav = new Set();
+    for (let i = 0; i < parsedCav.length; i++) {
+      for (let j = i + 1; j < parsedCav.length; j++) {
+        if (haversineKm(parsedCav[i]._lat, parsedCav[i]._lng, parsedCav[j]._lat, parsedCav[j]._lng) < 0.05) {
+          hasNeighborCav.add(i); hasNeighborCav.add(j);
+        }
+      }
+    }
+
+    parsedCav.forEach((cav, idx) => {
+      const pulseHtml = hasNeighborCav.has(idx)
+        ? '<div style="position:absolute;top:-6px;left:-6px;width:24px;height:24px;border-radius:50%;background:#7e57c2;animation:geo-pulse 2s ease-out infinite;"></div>'
+        : '';
+      const icon = L.divIcon({
+        html: `<div style="position:relative;">${pulseHtml}<div style="width:12px;height:12px;background:#7e57c2;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div></div>`,
+        className: '', iconSize: [12, 12], iconAnchor: [6, 6],
+      });
 
       const nom = cav.nom || cav.libelle || 'Cavité';
       const type = cav.type_cavite || cav.type || '';
@@ -5705,10 +5725,10 @@ async function fetchCavitesMap(lat, lng) {
           ${type ? `Type : ${type}<br>` : ''}
           ${origine ? `Origine : ${origine}<br>` : ''}
           ${commune ? `Commune : ${commune}<br>` : ''}
-          <span style="color:#888;">📍 ${parseFloat(clat).toFixed(5)}, ${parseFloat(clng).toFixed(5)}</span>
+          <span style="color:#888;">📍 ${cav._lat.toFixed(5)}, ${cav._lng.toFixed(5)}</span>
         </div>
       `;
-      L.marker([parseFloat(clat), parseFloat(clng)], { icon: cavIcon })
+      L.marker([cav._lat, cav._lng], { icon })
         .addTo(window.cavitesMap)
         .bindPopup(popup);
     });
@@ -5741,15 +5761,30 @@ async function fetchMvtMap(lat, lng) {
 
     if (!window.mvtMap) return;
 
-    const mvtIcon = L.divIcon({
-      html: '<div style="width:12px;height:12px;background:#4CAF50;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
-      className: '', iconSize: [12, 12], iconAnchor: [6, 6],
-    });
+    // Pré-calculer les coordonnées pour détecter les voisins proches
+    const parsed = items.map(mvt => ({
+      ...mvt,
+      _lat: parseFloat(mvt.latitude || mvt.lat),
+      _lng: parseFloat(mvt.longitude || mvt.lon || mvt.lng),
+    })).filter(m => !isNaN(m._lat) && !isNaN(m._lng));
 
-    items.forEach(mvt => {
-      const mlat = mvt.latitude || mvt.lat;
-      const mlng = mvt.longitude || mvt.lon || mvt.lng;
-      if (!mlat || !mlng) return;
+    const hasNeighbor = new Set();
+    for (let i = 0; i < parsed.length; i++) {
+      for (let j = i + 1; j < parsed.length; j++) {
+        if (haversineKm(parsed[i]._lat, parsed[i]._lng, parsed[j]._lat, parsed[j]._lng) < 0.05) {
+          hasNeighbor.add(i); hasNeighbor.add(j);
+        }
+      }
+    }
+
+    parsed.forEach((mvt, idx) => {
+      const pulseHtml = hasNeighbor.has(idx)
+        ? '<div style="position:absolute;top:-6px;left:-6px;width:24px;height:24px;border-radius:50%;background:#4CAF50;animation:geo-pulse 2s ease-out infinite;"></div>'
+        : '';
+      const icon = L.divIcon({
+        html: `<div style="position:relative;">${pulseHtml}<div style="width:12px;height:12px;background:#4CAF50;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div></div>`,
+        className: '', iconSize: [12, 12], iconAnchor: [6, 6],
+      });
 
       const type = mvt.type || mvt.type_mvt || 'Mouvement inconnu';
       const date = mvt.date_debut ? formatDate(mvt.date_debut) : '';
@@ -5764,10 +5799,10 @@ async function fetchMvtMap(lat, lng) {
           ${commune ? `Commune : ${commune}<br>` : ''}
           ${lieu ? `Lieu : ${lieu}<br>` : ''}
           ${fiabilite ? `Fiabilité : ${fiabilite}<br>` : ''}
-          <span style="color:#888;">📍 ${parseFloat(mlat).toFixed(5)}, ${parseFloat(mlng).toFixed(5)}</span>
+          <span style="color:#888;">📍 ${mvt._lat.toFixed(5)}, ${mvt._lng.toFixed(5)}</span>
         </div>
       `;
-      L.marker([parseFloat(mlat), parseFloat(mlng)], { icon: mvtIcon })
+      L.marker([mvt._lat, mvt._lng], { icon })
         .addTo(window.mvtMap)
         .bindPopup(popup);
     });
