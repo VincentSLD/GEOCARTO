@@ -5737,8 +5737,7 @@ async function fetchCavitesMap(lat, lng) {
 
   } catch (e) {
     console.error('Cavités map error:', e);
-    countEl.textContent = 'API indisponible';
-    countEl.style.color = 'var(--text-muted)';
+    if (countEl) { countEl.textContent = 'API indisponible'; countEl.style.color = 'var(--text-muted)'; }
   }
 }
 
