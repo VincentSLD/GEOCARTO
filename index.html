@@ -5658,10 +5658,18 @@ function addAltimetryTool(map) {
 async function fetchCavitesMap(lat, lng) {
   const countEl = document.getElementById('cavites-count-text');
   try {
-    // Requête à 10 km pour afficher tous les points visuels
-    const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=10000&page=1&page_size=100`;
-    const data = await fetchJSON(url, 15000);
-    const items = data.data || [];
+    // Charger toutes les pages pour ne manquer aucun point
+    let items = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const url = `https://georisques.gouv.fr/api/v1/cavites?latlon=${lng},${lat}&rayon=10000&page=${page}&page_size=100`;
+      const data = await fetchJSON(url, 15000);
+      const chunk = data.data || [];
+      items = items.concat(chunk);
+      hasMore = chunk.length === 100;
+      page++;
+    }
 
     // Compteur basé sur 1 km uniquement
     const count1km = items.filter(cav => {
