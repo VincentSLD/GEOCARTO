@@ -5731,20 +5731,17 @@ async function fetchMvtMap(lat, lng) {
       page++;
     }
 
-    console.log('fetchMvtMap: ' + items.length + ' items reçus');
-    if (!window.mvtMap) { console.warn('fetchMvtMap: mvtMap non initialisée !'); return; }
+    if (!window.mvtMap) return;
 
     const mvtIcon = L.divIcon({
       html: '<div style="width:12px;height:12px;background:#4CAF50;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
       className: '', iconSize: [12, 12], iconAnchor: [6, 6],
     });
 
-    let _mvtCount = 0;
     items.forEach(mvt => {
       const mlat = mvt.latitude || mvt.lat;
       const mlng = mvt.longitude || mvt.lon || mvt.lng;
-      if (!mlat || !mlng) { console.warn('MVT sans coordonnées:', mvt.identifiant, mvt); return; }
-      _mvtCount++;
+      if (!mlat || !mlng) return;
 
       const type = mvt.type || mvt.type_mvt || 'Mouvement inconnu';
       const date = mvt.date_debut ? formatDate(mvt.date_debut) : '';
@@ -5762,13 +5759,10 @@ async function fetchMvtMap(lat, lng) {
           <span style="color:#888;">📍 ${parseFloat(mlat).toFixed(5)}, ${parseFloat(mlng).toFixed(5)}</span>
         </div>
       `;
-      const dist = haversineKm(lat, lng, parseFloat(mlat), parseFloat(mlng));
-      if (dist < 1.1) console.log('MVT <1km:', mvt.identifiant, mvt.type, 'dist=' + dist.toFixed(3) + 'km', 'coords=' + mlat + ',' + mlng);
       L.marker([parseFloat(mlat), parseFloat(mlng)], { icon: mvtIcon })
         .addTo(window.mvtMap)
         .bindPopup(popup);
     });
-    console.log('fetchMvtMap: ' + _mvtCount + ' marqueurs ajoutés sur ' + items.length + ' items');
 
     // Vue fixe à zoom 15 centrée sur le point investigué
 
