@@ -465,6 +465,9 @@
   .map-embed:fullscreen #map-satellite-mini,
   .map-embed:-webkit-full-screen #map-satellite-mini,
   .map-embed.fs-manual #map-satellite-mini { display: block !important; }
+  .map-embed:fullscreen #map-street-mini,
+  .map-embed:-webkit-full-screen #map-street-mini,
+  .map-embed.fs-manual #map-street-mini { display: block !important; }
   .map-embed:fullscreen #btn-geol-query-fs,
   .map-embed:-webkit-full-screen #btn-geol-query-fs,
   .map-embed.fs-manual #btn-geol-query-fs { display: flex !important; }
@@ -1386,6 +1389,8 @@
         <div class="map-embed" style="position:relative;">
           <div id="map-satellite" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+          <!-- Mini street view incrustée en plein écran -->
+          <div id="map-street-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:440px;height:440px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
         <div class="map-embed" style="position:relative;">
           <div id="map-street" style="width:100%;height:100%;"></div>
@@ -3610,7 +3615,7 @@ const _invIconSmall = L.divIcon({
 
 // ====== Google Maps satellite + Street View synchronisés ======
 let _gSatMap = null, _gStreetView = null, _gPegman = null;
-let _gMiniMap = null, _gMiniPegman = null;
+let _gMiniMap = null, _gMiniPegman = null, _gMiniStreetView = null;
 
 function _initGoogleMaps(lat, lng) {
   if (typeof google === 'undefined' || !google.maps) {
@@ -3701,6 +3706,29 @@ function _initGoogleMaps(lat, lng) {
   _gMiniPegman.addListener('dragend', () => {
     const p = _gMiniPegman.position;
     _gStreetView.setPosition({ lat: p.lat, lng: p.lng });
+  });
+
+  // Mini Street View incrustée dans la carte satellite (visible en plein écran)
+  _gMiniStreetView = new google.maps.StreetViewPanorama(
+    document.getElementById('map-street-mini'), {
+      position: pos,
+      pov: { heading: 0, pitch: 0 },
+      zoom: 1,
+      addressControl: false,
+      fullscreenControl: false,
+      linksControl: false,
+      panControl: false,
+      zoomControl: false,
+    }
+  );
+
+  // Synchroniser la mini street view avec la street view principale
+  _gStreetView.addListener('pov_changed', () => {
+    if (_gMiniStreetView) _gMiniStreetView.setPov(_gStreetView.getPov());
+  });
+  _gStreetView.addListener('position_changed', () => {
+    const p = _gStreetView.getPosition();
+    if (_gMiniStreetView && p) _gMiniStreetView.setPosition(p);
   });
 }
 
