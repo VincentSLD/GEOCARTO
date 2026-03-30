@@ -1312,6 +1312,16 @@
     </div><!-- /capture-address -->
     </div><!-- /capture-address-stats -->
 
+    <!-- Commentaire particulier -->
+    <div id="capture-infospart" class="capturable" style="margin-top:0.75rem;margin-bottom:0.75rem;">
+      <div style="border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:12px 16px;background:rgba(121,85,72,0.04);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:0.82rem;font-weight:700;color:#795548;font-family:'Bricolage Grotesque',sans-serif;">📝 Commentaire particulier</div>
+          <button class="btn-screenshot" onclick="captureElement('capture-infospart','INFOSPART',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+        </div>
+        <textarea id="infospart-text" rows="4" placeholder="" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;background:var(--bg-primary,#fff);color:var(--text-primary);resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+    </div>
 
     <!-- TAB: Maps -->
     <div class="tab-content active" id="tab-maps">
@@ -7385,6 +7395,19 @@ async function downloadIgnGeol(btn) {
           logging: false, foreignObjectRendering: false,
         }).then(c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))));
         fileNames.push('INFOGEOL.jpg');
+      }
+    }
+
+    // Ajouter INFOSPART si le commentaire particulier est rempli
+    const _infospartText = (document.getElementById('infospart-text')?.value || '').trim();
+    if (_infospartText) {
+      const infospartEl = document.getElementById('capture-infospart');
+      if (infospartEl) {
+        captures.push(html2canvas(infospartEl, {
+          backgroundColor: '#f5f6f8', scale: 2, useCORS: true, allowTaint: true,
+          logging: false, foreignObjectRendering: false,
+        }).then(c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))));
+        fileNames.push('INFOSPART.jpg');
       }
     }
 
