@@ -4809,7 +4809,6 @@ function edsToggleRoads(show) {
   if (!window.edsMap || !_edsRoadsLayer) return;
   if (show) {
     _edsRoadsLayer.addTo(window.edsMap);
-    _edsRoadsLayer.bringToBack();
   } else {
     window.edsMap.removeLayer(_edsRoadsLayer);
   }
@@ -5302,9 +5301,11 @@ async function initEdsMap() {
     maxZoom: 19, opacity: 1
   }).addTo(window.edsMap);
 
-  // Calque routes OSM (masqué par défaut)
+  // Calque routes OSM (masqué par défaut, au-dessus du satellite)
+  window.edsMap.createPane('roadsPane');
+  window.edsMap.getPane('roadsPane').style.zIndex = 400;
   _edsRoadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, opacity: 0.55, attribution: '© OSM',
+    maxZoom: 19, opacity: 0.55, attribution: '© OSM', pane: 'roadsPane',
   });
 
   // Placer le marqueur rouge si une investigation est déjà en cours
