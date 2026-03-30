@@ -1321,27 +1321,44 @@
         </div>
         <!-- Barre d'outils -->
         <div class="infospart-toolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
-          <button onclick="document.execCommand('bold')" title="Gras" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">G</button>
-          <button onclick="document.execCommand('underline')" title="Souligné" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;text-decoration:underline;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">S</button>
+          <button id="infospart-btn-bold" onclick="document.execCommand('bold');_infospartUpdateToolbar()" title="Gras" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.15s;">G</button>
+          <button id="infospart-btn-underline" onclick="document.execCommand('underline');_infospartUpdateToolbar()" title="Souligné" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;text-decoration:underline;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.15s;">S</button>
           <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
           <span style="font-size:0.65rem;color:#6b7280;font-weight:600;">Couleur de texte</span>
-          <span onclick="document.execCommand('foreColor',false,'#e53935')" title="Rouge" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#e53935;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('foreColor',false,'#1976d2')" title="Bleu" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1976d2;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('foreColor',false,'#43a047')" title="Vert" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#43a047;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('foreColor',false,'#ff9800')" title="Orange" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ff9800;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('foreColor',false,'#8e24aa')" title="Violet" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#8e24aa;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('foreColor',false,'#1a1a1a')" title="Noir" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1a1a1a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#e53935');_ipSelectColor(this)" title="Rouge" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#e53935;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#1976d2');_ipSelectColor(this)" title="Bleu" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1976d2;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#43a047');_ipSelectColor(this)" title="Vert" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#43a047;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#ff9800');_ipSelectColor(this)" title="Orange" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ff9800;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#8e24aa');_ipSelectColor(this)" title="Violet" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#8e24aa;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-color" onclick="document.execCommand('foreColor',false,'#1a1a1a');_ipSelectColor(this)" title="Noir" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1a1a1a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
           <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
           <span style="font-size:0.65rem;color:#6b7280;font-weight:600;">Surlignage</span>
-          <span onclick="document.execCommand('hiliteColor',false,'#ffff00')" title="Jaune" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffff00;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('hiliteColor',false,'#a5d6a7')" title="Vert clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#a5d6a7;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('hiliteColor',false,'#90caf9')" title="Bleu clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#90caf9;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('hiliteColor',false,'#ffab91')" title="Orange clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffab91;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('hiliteColor',false,'#ce93d8')" title="Violet clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ce93d8;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('hiliteColor',false,'#ef9a9a')" title="Rose" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ef9a9a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
-          <span onclick="document.execCommand('backColor',false,'#ffffff');document.execCommand('hiliteColor',false,'#ffffff')" title="Pas de surlignage" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#fff;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;position:relative;overflow:hidden;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;color:#d32f2f;line-height:1;">✕</span></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#ffff00');_ipSelectHilite(this)" title="Jaune" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffff00;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#a5d6a7');_ipSelectHilite(this)" title="Vert clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#a5d6a7;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#90caf9');_ipSelectHilite(this)" title="Bleu clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#90caf9;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#ffab91');_ipSelectHilite(this)" title="Orange clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffab91;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#ce93d8');_ipSelectHilite(this)" title="Violet clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ce93d8;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('hiliteColor',false,'#ef9a9a');_ipSelectHilite(this)" title="Rose" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ef9a9a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;transition:all 0.15s;"></span>
+          <span class="ip-hilite" onclick="document.execCommand('backColor',false,'#ffffff');document.execCommand('hiliteColor',false,'#ffffff');_ipSelectHilite(this)" title="Pas de surlignage" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#fff;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;position:relative;overflow:hidden;transition:all 0.15s;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;color:#d32f2f;line-height:1;">✕</span></span>
         </div>
         <!-- Zone de texte riche -->
+        <script>
+        function _ipSelectColor(el) {
+          document.querySelectorAll('.ip-color').forEach(s => { s.style.outline = ''; s.style.outlineOffset = ''; });
+          el.style.outline = '2px solid #1a1a1a'; el.style.outlineOffset = '2px';
+        }
+        function _ipSelectHilite(el) {
+          document.querySelectorAll('.ip-hilite').forEach(s => { s.style.outline = ''; s.style.outlineOffset = ''; });
+          el.style.outline = '2px solid #1a1a1a'; el.style.outlineOffset = '2px';
+        }
+        function _infospartUpdateToolbar() {
+          const btnB = document.getElementById('infospart-btn-bold');
+          const btnU = document.getElementById('infospart-btn-underline');
+          if (btnB) btnB.style.background = document.queryCommandState('bold') ? '#e0e0e0' : '#fff';
+          if (btnU) btnU.style.background = document.queryCommandState('underline') ? '#e0e0e0' : '#fff';
+        }
+        document.addEventListener('selectionchange', _infospartUpdateToolbar);
+        </script>
         <div id="infospart-text" contenteditable="true" style="width:100%;min-height:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;background:#fff;color:var(--text-primary);box-sizing:border-box;outline:none;overflow-y:visible;white-space:pre-wrap;word-wrap:break-word;"></div>
       </div>
     </div>
