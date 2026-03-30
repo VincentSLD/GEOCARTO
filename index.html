@@ -1391,7 +1391,7 @@
           <div id="map-street" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
           <!-- Mini carte satellite incrustée en plein écran -->
-          <div id="map-satellite-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:220px;height:220px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
+          <div id="map-satellite-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:440px;height:440px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
       </div>
 
@@ -3686,6 +3686,10 @@ function _initGoogleMaps(lat, lng) {
       zoomControl: true,
     }
   );
+
+  // Routes en bleu sur la mini carte
+  const svLayerMini = new google.maps.StreetViewCoverageLayer();
+  svLayerMini.setMap(_gMiniMap);
 
   _gMiniPegman = new google.maps.marker.AdvancedMarkerElement({
     position: pos,
