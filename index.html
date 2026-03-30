@@ -3645,6 +3645,10 @@ function _initGoogleMaps(lat, lng) {
     }
   );
 
+  // Couverture Street View (routes en bleu)
+  const svLayer = new google.maps.StreetViewCoverageLayer();
+  svLayer.setMap(_gSatMap);
+
   // Bonhomme Pegman déplaçable sur la carte satellite
   _gPegman = new google.maps.marker.AdvancedMarkerElement({
     position: pos,
