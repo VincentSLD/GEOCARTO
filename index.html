@@ -7297,6 +7297,19 @@ async function downloadIgnGeol(btn) {
       fileNames.push('MVT-TERRAIN.jpg');
     }
 
+    // Ajouter INFOGEOL si la notation géologique est Mz, Mfya, Mfyb ou Fmz
+    const _geolNot = (document.getElementById('geol-notation')?.textContent || '').trim();
+    if (/^(Mz|Mfya|Mfyb|Fmz)$/i.test(_geolNot)) {
+      const infoEl = document.getElementById('capture-infogeol');
+      if (infoEl) {
+        captures.push(html2canvas(infoEl, {
+          backgroundColor: '#f5f6f8', scale: 2, useCORS: true, allowTaint: true,
+          logging: false, foreignObjectRendering: false,
+        }).then(c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))));
+        fileNames.push('INFOGEOL.jpg');
+      }
+    }
+
     const blobs = await Promise.all(captures);
 
     if (dirHandle) {
