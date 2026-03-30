@@ -2909,10 +2909,15 @@ async function reverseGeocode(lat, lng) {
       );
       if (geoData && geoData.length > 0) {
         const commune = geoData[0];
+        const oldCity = addrCity;
         addrCity = commune.nom || addrCity;
         addrInsee = commune.code || addrInsee;
         if (commune.codesPostaux && commune.codesPostaux.length > 0) addrPostcode = commune.codesPostaux[0];
         if (commune.departement) addrContext = `${commune.codeDepartement || ''}, ${commune.departement.nom || ''}`;
+        // Corriger le libellé d'adresse si la commune a changé
+        if (oldCity !== addrCity && addrLabel !== '—') {
+          addrLabel = addrLabel.replace(new RegExp(`\\d{5}\\s+${oldCity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), `${addrPostcode} ${addrCity}`);
+        }
       }
     } catch(e2) { console.warn('API Géo communes fallback:', e2); }
 
