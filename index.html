@@ -3722,9 +3722,11 @@ function _initGoogleMaps(lat, lng) {
     }
   );
 
-  // Synchroniser la mini street view avec la street view principale
+  // Synchroniser la mini street view et le cône de direction
   _gStreetView.addListener('pov_changed', () => {
-    if (_gMiniStreetView) _gMiniStreetView.setPov(_gStreetView.getPov());
+    const pov = _gStreetView.getPov();
+    if (_gMiniStreetView) _gMiniStreetView.setPov(pov);
+    _updatePegmanHeading(pov.heading);
   });
   _gStreetView.addListener('position_changed', () => {
     const p = _gStreetView.getPosition();
@@ -3733,8 +3735,20 @@ function _initGoogleMaps(lat, lng) {
 }
 
 function _createPegmanElement() {
-  const div = document.createElement('div');
-  div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 50" width="32" height="50" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));">
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:relative;width:60px;height:60px;';
+  // Cône de direction (champ de vision)
+  const cone = document.createElement('div');
+  cone.className = 'pegman-cone';
+  cone.style.cssText = 'position:absolute;top:50%;left:50%;width:60px;height:60px;transform:translate(-50%,-50%) rotate(0deg);pointer-events:none;';
+  cone.innerHTML = `<svg viewBox="0 0 60 60" width="60" height="60">
+    <path d="M30 30 L15 0 A30 30 0 0 1 45 0 Z" fill="rgba(33,150,243,0.35)" stroke="rgba(33,150,243,0.6)" stroke-width="1"/>
+  </svg>`;
+  wrapper.appendChild(cone);
+  // Bonhomme
+  const pegman = document.createElement('div');
+  pegman.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);';
+  pegman.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 50" width="28" height="44" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));">
     <circle cx="16" cy="7" r="6" fill="#f9a825" stroke="#e65100" stroke-width="1.5"/>
     <path d="M16 14 C8 14 6 20 6 24 L10 24 L12 36 L20 36 L22 24 L26 24 C26 20 24 14 16 14z" fill="#f9a825" stroke="#e65100" stroke-width="1"/>
     <line x1="6" y1="20" x2="2" y2="28" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
@@ -3744,7 +3758,14 @@ function _createPegmanElement() {
     <line x1="10" y1="38" x2="22" y2="50" stroke="#e65100" stroke-width="1.5" stroke-linecap="round"/>
     <line x1="22" y1="38" x2="10" y2="50" stroke="#e65100" stroke-width="1.5" stroke-linecap="round"/>
   </svg>`;
-  return div;
+  wrapper.appendChild(pegman);
+  return wrapper;
+}
+
+function _updatePegmanHeading(heading) {
+  document.querySelectorAll('.pegman-cone').forEach(cone => {
+    cone.style.transform = `translate(-50%,-50%) rotate(${heading}deg)`;
+  });
 }
 
 function setupMaps(lat, lng) {
