@@ -1320,13 +1320,26 @@
           <button class="btn-screenshot" onclick="captureElement('capture-infospart','INFOSPART',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <!-- Barre d'outils -->
-        <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
           <button onclick="document.execCommand('bold')" title="Gras" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">G</button>
           <button onclick="document.execCommand('underline')" title="Souligné" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;text-decoration:underline;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">S</button>
-          <input type="color" id="infospart-color" value="#e53935" title="Couleur du texte" onchange="document.execCommand('foreColor',false,this.value)" style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;padding:1px;">
-          <button onclick="document.execCommand('foreColor',false,document.getElementById('infospart-color').value)" title="Appliquer la couleur" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;font-weight:600;color:#e53935;font-family:'Bricolage Grotesque',sans-serif;">A</button>
-          <input type="color" id="infospart-hilite" value="#ffff00" title="Couleur de surlignage" onchange="document.execCommand('hiliteColor',false,this.value)" style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;padding:1px;">
-          <button onclick="document.execCommand('hiliteColor',false,document.getElementById('infospart-hilite').value)" title="Surligner" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#ffff00;cursor:pointer;font-size:0.75rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">ab</button>
+          <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
+          <span style="font-size:0.65rem;color:#6b7280;font-weight:600;">A</span>
+          <span onclick="document.execCommand('foreColor',false,'#e53935')" title="Rouge" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#e53935;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('foreColor',false,'#1976d2')" title="Bleu" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1976d2;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('foreColor',false,'#43a047')" title="Vert" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#43a047;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('foreColor',false,'#ff9800')" title="Orange" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ff9800;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('foreColor',false,'#8e24aa')" title="Violet" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#8e24aa;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('foreColor',false,'#1a1a1a')" title="Noir" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#1a1a1a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
+          <span style="font-size:0.65rem;color:#6b7280;font-weight:600;">ab</span>
+          <span onclick="document.execCommand('hiliteColor',false,'#ffff00')" title="Jaune" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffff00;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('hiliteColor',false,'#a5d6a7')" title="Vert clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#a5d6a7;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('hiliteColor',false,'#90caf9')" title="Bleu clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#90caf9;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('hiliteColor',false,'#ffab91')" title="Orange clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ffab91;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('hiliteColor',false,'#ce93d8')" title="Violet clair" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ce93d8;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span onclick="document.execCommand('hiliteColor',false,'#ef9a9a')" title="Rose" style="display:inline-block;width:20px;height:20px;border-radius:4px;background:#ef9a9a;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;"></span>
+          <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
           <button onclick="document.execCommand('removeFormat')" title="Effacer le formatage" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.75rem;color:#6b7280;font-family:'Bricolage Grotesque',sans-serif;">✕</button>
         </div>
         <!-- Zone de texte riche -->
