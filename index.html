@@ -3887,10 +3887,10 @@ function setupMaps(lat, lng) {
 
   // Calque parcellaire cadastral
   L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', {
-    layers: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',
+    layers: 'parcellaire_express_parcelle_noir',
     format: 'image/png',
     transparent: true,
-    opacity: 0.6,
+    opacity: 0.5,
     version: '1.3.0',
     pane: 'wmsPane',
   }).addTo(argilesMap);
