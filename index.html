@@ -1330,7 +1330,7 @@
           <button onclick="document.execCommand('removeFormat')" title="Effacer le formatage" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.75rem;color:#6b7280;font-family:'Bricolage Grotesque',sans-serif;">✕</button>
         </div>
         <!-- Zone de texte riche -->
-        <div id="infospart-text" contenteditable="true" style="width:100%;min-height:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;background:#fff;color:var(--text-primary);box-sizing:border-box;outline:none;overflow-y:auto;max-height:300px;"></div>
+        <div id="infospart-text" contenteditable="true" style="width:100%;min-height:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;font-family:'Bricolage Grotesque',sans-serif;background:#fff;color:var(--text-primary);box-sizing:border-box;outline:none;overflow-y:visible;white-space:pre-wrap;word-wrap:break-word;"></div>
       </div>
     </div>
 
@@ -7146,8 +7146,14 @@ async function captureElement(elementId, label, rawName) {
     clone.querySelectorAll('.btn-screenshot, .screenshot-bar').forEach(b => b.remove());
 
     // Force white background on all child elements for rawName captures
+    // (sauf ceux qui ont un style inline de background/highlight)
     if (rawName) {
-      clone.querySelectorAll('*').forEach(n => { n.style.backgroundColor = '#ffffff'; });
+      clone.querySelectorAll('*').forEach(n => {
+        const inlineBg = n.style.backgroundColor;
+        if (!inlineBg || inlineBg === 'transparent' || inlineBg === 'rgba(0, 0, 0, 0)') {
+          n.style.backgroundColor = '#ffffff';
+        }
+      });
     }
 
     document.body.appendChild(clone);
