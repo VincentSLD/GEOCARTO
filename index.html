@@ -6718,7 +6718,7 @@ function copyField(fieldId) {
 
 // Enter key support
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.id !== 'address-search') investigate();
+  if (e.key === 'Enter' && e.target.id !== 'address-search' && e.target.tagName !== 'TEXTAREA') investigate();
 });
 
 // ====== SCREENSHOT FUNCTIONS ======
