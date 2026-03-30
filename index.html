@@ -1622,9 +1622,11 @@
       </div><!-- /capture-geologie -->
 
       <!-- Informations géologiques au point -->
+      <div id="capture-infogeol" class="capturable">
       <div id="geol-info-panel" style="margin-top:0.75rem;border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:14px 18px;background:rgba(121,85,72,0.04);">
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:0.85rem;font-weight:700;color:#795548;">🔬 Informations géologiques au point investigué</div>
+          <button class="btn-screenshot" onclick="captureElement('capture-infogeol','INFOGEOL',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
           ⏳ Interrogation InfoTerre (BD Charm-50)…
@@ -1653,6 +1655,7 @@
           ⚠️ Informations géologiques non disponibles pour ce point.
         </div>
       </div>
+      </div><!-- /capture-infogeol -->
 
       <!-- ===== Carte Cavités Souterraines ===== -->
       <div id="capture-cavites" class="capturable">
