@@ -1320,7 +1320,7 @@
           <button class="btn-screenshot" onclick="captureElement('capture-infospart','INFOSPART',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <!-- Barre d'outils -->
-        <div onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
+        <div class="infospart-toolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
           <button onclick="document.execCommand('bold')" title="Gras" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">G</button>
           <button onclick="document.execCommand('underline')" title="Souligné" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer;font-size:0.8rem;text-decoration:underline;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;">S</button>
           <span style="width:1px;height:20px;background:#d1d5db;margin:0 2px;"></span>
@@ -7156,7 +7156,7 @@ async function captureElement(elementId, label, rawName) {
     clone.style.width = el.offsetWidth + 'px';
 
     // Remove any screenshot buttons from clone
-    clone.querySelectorAll('.btn-screenshot, .screenshot-bar').forEach(b => b.remove());
+    clone.querySelectorAll('.btn-screenshot, .screenshot-bar, .infospart-toolbar').forEach(b => b.remove());
 
     // Force white background on all child elements for rawName captures
     // (sauf ceux qui ont un style inline de background/highlight)
@@ -7434,8 +7434,9 @@ async function downloadIgnGeol(btn) {
       const infospartEl = document.getElementById('capture-infospart');
       if (infospartEl) {
         captures.push(html2canvas(infospartEl, {
-          backgroundColor: '#f5f6f8', scale: 2, useCORS: true, allowTaint: true,
+          backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true,
           logging: false, foreignObjectRendering: false,
+          onclone: (_doc, cloned) => { cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot').forEach(b => b.remove()); },
         }).then(c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))));
         fileNames.push('INFOSPART.jpg');
       }
