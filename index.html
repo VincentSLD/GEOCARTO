@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&callback=Function.prototype" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1377,12 +1376,12 @@
 
       <!-- Vues satellite & Street View -->
       <div class="maps-grid" style="margin-bottom:1.5rem;">
-        <div class="map-embed">
+        <div class="map-embed" style="position:relative;">
           <div id="map-satellite" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
         <div class="map-embed">
-          <div id="map-street" style="width:100%;height:100%;"></div>
+          <iframe id="map-street" loading="lazy" allowfullscreen></iframe>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
       </div>
@@ -3600,72 +3599,49 @@ const _invIconSmall = L.divIcon({
   className: '', iconSize: [8, 8], iconAnchor: [4, 4],
 });
 
-// ====== Google Maps satellite + Street View interactifs ======
-let _gSatMap = null, _gStreetView = null, _gPegman = null;
+// ====== Carte satellite Leaflet + Street View iframe synchronisés ======
+let _satLeaflet = null, _satPegman = null;
+
+const _pegmanIcon = L.divIcon({
+  html: `<div style="position:relative;width:32px;height:38px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 38" width="32" height="38">
+      <circle cx="16" cy="7" r="6" fill="#f9a825" stroke="#e65100" stroke-width="1.5"/>
+      <path d="M16 14 C8 14 6 20 6 24 L10 24 L12 36 L20 36 L22 24 L26 24 C26 20 24 14 16 14z" fill="#1976d2" stroke="#0d47a1" stroke-width="1"/>
+      <line x1="6" y1="20" x2="2" y2="28" stroke="#1976d2" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="26" y1="20" x2="30" y2="28" stroke="#1976d2" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>`,
+  className: '', iconSize: [32, 38], iconAnchor: [16, 38],
+});
 
 function _initGoogleMaps(lat, lng) {
-  if (typeof google === 'undefined' || !google.maps) {
-    // Fallback iframes si l'API JS n'est pas chargée
-    const satEl = document.getElementById('map-satellite');
-    const strEl = document.getElementById('map-street');
-    if (satEl) satEl.innerHTML = `<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${lat},${lng}&zoom=17&maptype=satellite" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`;
-    if (strEl) strEl.innerHTML = `<iframe src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${lat},${lng}&heading=0&pitch=0&fov=90" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`;
-    return;
-  }
+  // Street View iframe
+  document.getElementById('map-street').src =
+    `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
 
-  const pos = { lat, lng };
+  // Carte satellite Leaflet avec bonhomme déplaçable
+  if (_satLeaflet) { _satLeaflet.remove(); _satLeaflet = null; }
+  _satLeaflet = L.map('map-satellite', {
+    center: [lat, lng], zoom: 17,
+    zoomControl: false, attributionControl: false,
+  });
+  L.control.zoom({ position: 'bottomleft' }).addTo(_satLeaflet);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+  }).addTo(_satLeaflet);
 
-  // Street View panorama
-  _gStreetView = new google.maps.StreetViewPanorama(
-    document.getElementById('map-street'), {
-      position: pos,
-      pov: { heading: 0, pitch: 0 },
-      zoom: 1,
-      addressControl: false,
-      fullscreenControl: false,
-    }
-  );
+  // Bonhomme déplaçable
+  _satPegman = L.marker([lat, lng], { icon: _pegmanIcon, draggable: true, zIndexOffset: 1000 })
+    .addTo(_satLeaflet)
+    .bindTooltip('Déplacez-moi pour changer le Street View', { direction: 'top', offset: [0, -40] });
 
-  // Carte satellite avec Pegman
-  _gSatMap = new google.maps.Map(
-    document.getElementById('map-satellite'), {
-      center: pos,
-      zoom: 17,
-      mapTypeId: 'satellite',
-      streetViewControl: true,
-      fullscreenControl: false,
-      mapTypeControl: false,
-    }
-  );
-
-  // Connecter le Street View à la carte satellite (active le Pegman natif)
-  _gSatMap.setStreetView(_gStreetView);
-
-  // Marqueur bonhomme déplaçable
-  _gPegman = new google.maps.Marker({
-    position: pos,
-    map: _gSatMap,
-    draggable: true,
-    icon: {
-      url: 'https://maps.google.com/mapfiles/ms/micons/man.png',
-      scaledSize: new google.maps.Size(32, 32),
-      anchor: new google.maps.Point(16, 32),
-    },
-    title: 'Déplacez-moi pour changer le Street View',
-    zIndex: 999,
+  _satPegman.on('dragend', function() {
+    const p = _satPegman.getLatLng();
+    document.getElementById('map-street').src =
+      `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${p.lat},${p.lng}&heading=0&pitch=0&fov=90`;
   });
 
-  // Quand on déplace le bonhomme, mettre à jour le street view
-  _gPegman.addListener('dragend', () => {
-    const p = _gPegman.getPosition();
-    _gStreetView.setPosition({ lat: p.lat(), lng: p.lng() });
-  });
-
-  // Quand on se déplace dans street view, mettre à jour la position du bonhomme
-  _gStreetView.addListener('position_changed', () => {
-    const p = _gStreetView.getPosition();
-    if (_gPegman && p) _gPegman.setPosition(p);
-  });
+  setTimeout(() => _satLeaflet?.invalidateSize(), 300);
 }
 
 function setupMaps(lat, lng) {
@@ -4075,7 +4051,7 @@ function setupMaps(lat, lng) {
 
   setTimeout(() => { window.reliefMap.invalidateSize(); }, 300);
 
-  // ====== Google Maps satellite + Street View interactifs ======
+  // ====== Carte satellite + Street View ======
   _initGoogleMaps(lat, lng);
 
   // ====== Carte IGN Leaflet ======
@@ -7247,7 +7223,7 @@ function captureIframe(iframeId, label) {
 // ====== PLEIN ÉCRAN CARTES ======
 
 function _invalidateAllMaps() {
-  [pickerMap, argilesMap, window.geologieMap, window.cavitesMap, window.mvtMap, window.sismiqueMap,
+  [pickerMap, _satLeaflet, argilesMap, window.geologieMap, window.cavitesMap, window.mvtMap, window.sismiqueMap,
    window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap,
    window.histoMap, window.edsMap, window.sitadelDepMap]
     .forEach(function(m) { if (m) m.invalidateSize(); });
