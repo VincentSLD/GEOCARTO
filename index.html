@@ -1908,7 +1908,12 @@ async function openAdminPanel() {
   document.getElementById('admin-panel').style.display = 'block';
   document.getElementById('admin-list').innerHTML = '<div class="admin-empty">Chargement...</div>';
   const pwdField = document.getElementById('admin-delete-pwd');
-  if (pwdField) pwdField.value = localStorage.getItem('geocarto_delete_pwd') || '';
+  if (pwdField) {
+    try {
+      const { data } = await sbAuth.from('geocarto_settings').select('value').eq('key', 'delete_password').single();
+      pwdField.value = data?.value || '';
+    } catch(e) { pwdField.value = ''; }
+  }
   try {
     const token = await getAuthToken();
     if (!token) throw new Error('Session expiree, reconnectez-vous');
@@ -1936,16 +1941,30 @@ async function openAdminPanel() {
   }
 }
 
-// --- Mot de passe suppression EDS ---
-function saveDeletePwd() {
+// --- Mot de passe suppression EDS (partagé via Supabase) ---
+async function saveDeletePwd() {
   const pwd = document.getElementById('admin-delete-pwd').value.trim();
-  if (!pwd) { document.getElementById('admin-pwd-status').textContent = 'Veuillez saisir un mot de passe.'; return; }
-  localStorage.setItem('geocarto_delete_pwd', pwd);
-  document.getElementById('admin-pwd-status').textContent = 'Mot de passe enregistré.';
-  setTimeout(() => { document.getElementById('admin-pwd-status').textContent = ''; }, 2000);
+  const status = document.getElementById('admin-pwd-status');
+  if (!pwd) { if (status) status.textContent = 'Veuillez saisir un mot de passe.'; return; }
+  try {
+    const { error } = await sbAuth.from('geocarto_settings').upsert({ key: 'delete_password', value: pwd, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    if (status) { status.textContent = 'Mot de passe enregistré.'; setTimeout(() => { status.textContent = ''; }, 2000); }
+  } catch(e) {
+    console.error('Erreur sauvegarde mot de passe:', e);
+    if (status) status.textContent = 'Erreur lors de la sauvegarde.';
+  }
 }
 
-function edsAskDeletePwd() {
+async function edsAskDeletePwd() {
+  // Récupérer le mot de passe partagé depuis Supabase
+  let storedPwd = '';
+  try {
+    const { data } = await sbAuth.from('geocarto_settings').select('value').eq('key', 'delete_password').single();
+    storedPwd = data?.value || '';
+  } catch(e) { console.error('Erreur lecture mot de passe:', e); }
+  if (!storedPwd) { alert('Aucun mot de passe de suppression défini. Un administrateur doit le configurer dans le panneau Admin.'); return false; }
+
   return new Promise((resolve) => {
     document.getElementById('eds-confirm-overlay')?.remove();
     const overlay = document.createElement('div');
@@ -1968,9 +1987,7 @@ function edsAskDeletePwd() {
     overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
     document.getElementById('eds-pwd-ok').onclick = () => {
       const input = document.getElementById('eds-delete-pwd-input').value;
-      const stored = localStorage.getItem('geocarto_delete_pwd');
-      if (!stored) { alert('Aucun mot de passe défini. Configurez-le dans le panneau Admin.'); close(false); return; }
-      if (input === stored) { close(true); }
+      if (input === storedPwd) { close(true); }
       else { document.getElementById('eds-delete-pwd-error').style.display = 'block'; }
     };
     document.getElementById('eds-delete-pwd-input').addEventListener('keydown', e => {
