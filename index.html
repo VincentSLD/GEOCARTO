@@ -3879,6 +3879,16 @@ function setupMaps(lat, lng) {
   _argilesWms2026.forEach(l => argilesMap.removeLayer(l));
   _argilesVersion = 'current';
 
+  // Calque parcellaire cadastral
+  L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', {
+    layers: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.6,
+    version: '1.3.0',
+    pane: 'wmsPane',
+  }).addTo(argilesMap);
+
   // Marqueur du point (above WMS on default pane)
   window.argilesMarker = L.marker([lat, lng], { icon: _invIcon }).addTo(argilesMap);
 
