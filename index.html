@@ -461,6 +461,9 @@
     aspect-ratio: unset !important;
   }
   .map-embed.fs-manual .btn-map-fs { display: none !important; }
+  .map-embed:fullscreen #map-satellite-mini,
+  .map-embed:-webkit-full-screen #map-satellite-mini,
+  .map-embed.fs-manual #map-satellite-mini { display: block !important; }
   .map-embed:fullscreen #btn-geol-query-fs,
   .map-embed:-webkit-full-screen #btn-geol-query-fs,
   .map-embed.fs-manual #btn-geol-query-fs { display: flex !important; }
@@ -1383,9 +1386,11 @@
           <div id="map-satellite" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
         </div>
-        <div class="map-embed">
+        <div class="map-embed" id="street-embed">
           <iframe id="map-street" loading="lazy" allowfullscreen></iframe>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+          <!-- Mini carte satellite incrustée en plein écran -->
+          <div id="map-satellite-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:220px;height:220px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
       </div>
 
@@ -3603,7 +3608,7 @@ const _invIconSmall = L.divIcon({
 });
 
 // ====== Carte satellite Leaflet + Street View iframe synchronisés ======
-let _satLeaflet = null, _satPegman = null;
+let _satLeaflet = null, _satPegman = null, _satMini = null, _satMiniPegman = null;
 
 const _pegmanIcon = L.divIcon({
   html: `<div style="position:relative;width:32px;height:38px;">
@@ -3642,9 +3647,37 @@ function _initGoogleMaps(lat, lng) {
     const p = _satPegman.getLatLng();
     document.getElementById('map-street').src =
       `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${p.lat},${p.lng}&heading=0&pitch=0&fov=90`;
+    // Synchroniser la mini carte
+    if (_satMiniPegman) _satMiniPegman.setLatLng(p);
+    if (_satMini) _satMini.setView(p, _satMini.getZoom());
   });
 
   setTimeout(() => _satLeaflet?.invalidateSize(), 300);
+
+  // Mini carte satellite incrustée dans le Street View (visible en plein écran)
+  if (_satMini) { _satMini.remove(); _satMini = null; }
+  _satMini = L.map('map-satellite-mini', {
+    center: [lat, lng], zoom: 17,
+    zoomControl: false, attributionControl: false,
+    dragging: true, scrollWheelZoom: true,
+  });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+  }).addTo(_satMini);
+
+  _satMiniPegman = L.marker([lat, lng], { icon: _pegmanIcon, draggable: true, zIndexOffset: 1000 })
+    .addTo(_satMini);
+
+  _satMiniPegman.on('dragend', function() {
+    const p = _satMiniPegman.getLatLng();
+    document.getElementById('map-street').src =
+      `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${p.lat},${p.lng}&heading=0&pitch=0&fov=90`;
+    // Synchroniser la carte principale
+    if (_satPegman) _satPegman.setLatLng(p);
+    _satMini.setView(p, _satMini.getZoom());
+  });
+
+  setTimeout(() => _satMini?.invalidateSize(), 300);
 }
 
 function setupMaps(lat, lng) {
@@ -7226,7 +7259,7 @@ function captureIframe(iframeId, label) {
 // ====== PLEIN ÉCRAN CARTES ======
 
 function _invalidateAllMaps() {
-  [pickerMap, _satLeaflet, argilesMap, window.geologieMap, window.cavitesMap, window.mvtMap, window.sismiqueMap,
+  [pickerMap, _satLeaflet, _satMini, argilesMap, window.geologieMap, window.cavitesMap, window.mvtMap, window.sismiqueMap,
    window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap,
    window.histoMap, window.edsMap, window.sitadelDepMap]
     .forEach(function(m) { if (m) m.invalidateSize(); });
