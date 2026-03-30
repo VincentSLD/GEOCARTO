@@ -2888,34 +2888,54 @@ async function investigate() {
 // Reverse geocoding
 async function reverseGeocode(lat, lng) {
   try {
+    // 1) Reverse geocoding classique pour l'adresse
     const data = await fetchJSON(
       `https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}&limit=1`
     );
+    let addrCity = '—', addrPostcode = '—', addrInsee = '—', addrContext = '—', addrLabel = '—';
     if (data.features && data.features.length > 0) {
       const props = data.features[0].properties;
-      document.getElementById('addr-label').textContent = props.label || '—';
-      document.getElementById('addr-city').textContent = props.city || '—';
-      document.getElementById('addr-postcode').textContent = props.postcode || '—';
-      document.getElementById('addr-insee').textContent = props.citycode || '—';
-      document.getElementById('addr-dept').textContent = props.context || '—';
-      currentInsee = props.citycode;
-      // Remplir le champ de recherche adresse
-      const addrLabel = props.label || '';
-      document.getElementById('address-search').value = addrLabel;
-      const fsAddr = document.getElementById('fs-address-search');
-      if (fsAddr) fsAddr.value = addrLabel;
-      // Auto-fill DT-DICT form
-      const dtLieuAddr = document.getElementById('dtdict-lieu-adresse');
-      if (dtLieuAddr) dtLieuAddr.value = props.label || props.name || '';
-      const dtLieuCp = document.getElementById('dtdict-lieu-cp');
-      if (dtLieuCp) dtLieuCp.value = props.postcode || '';
-      const dtLieuCommune = document.getElementById('dtdict-lieu-commune');
-      if (dtLieuCommune) dtLieuCommune.value = props.city || '';
+      addrLabel = props.label || '—';
+      addrCity = props.city || '—';
+      addrPostcode = props.postcode || '—';
+      addrInsee = props.citycode || '—';
+      addrContext = props.context || '—';
     }
+
+    // 2) Commune exacte par inclusion géographique (API Géo)
+    try {
+      const geoData = await fetchJSON(
+        `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,code,codesPostaux,codeDepartement,departement&limit=1`
+      );
+      if (geoData && geoData.length > 0) {
+        const commune = geoData[0];
+        addrCity = commune.nom || addrCity;
+        addrInsee = commune.code || addrInsee;
+        if (commune.codesPostaux && commune.codesPostaux.length > 0) addrPostcode = commune.codesPostaux[0];
+        if (commune.departement) addrContext = `${commune.codeDepartement || ''}, ${commune.departement.nom || ''}`;
+      }
+    } catch(e2) { console.warn('API Géo communes fallback:', e2); }
+
+    document.getElementById('addr-label').textContent = addrLabel;
+    document.getElementById('addr-city').textContent = addrCity;
+    document.getElementById('addr-postcode').textContent = addrPostcode;
+    document.getElementById('addr-insee').textContent = addrInsee;
+    document.getElementById('addr-dept').textContent = addrContext;
+    currentInsee = addrInsee;
+    // Remplir le champ de recherche adresse
+    document.getElementById('address-search').value = addrLabel;
+    const fsAddr = document.getElementById('fs-address-search');
+    if (fsAddr) fsAddr.value = addrLabel;
+    // Auto-fill DT-DICT form
+    const dtLieuAddr = document.getElementById('dtdict-lieu-adresse');
+    if (dtLieuAddr) dtLieuAddr.value = addrLabel;
+    const dtLieuCp = document.getElementById('dtdict-lieu-cp');
+    if (dtLieuCp) dtLieuCp.value = addrPostcode;
+    const dtLieuCommune = document.getElementById('dtdict-lieu-commune');
+    if (dtLieuCommune) dtLieuCommune.value = addrCity;
   } catch (e) {
     document.getElementById('addr-label').textContent = 'Non disponible';
   }
-  // addr-coords remplacé par addr-surface (rempli par reverseCadastre)
 }
 
 // Georisques - Risques (GASPAR)
