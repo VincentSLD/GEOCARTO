@@ -1317,7 +1317,7 @@
       <div style="border:1px solid rgba(121,85,72,0.2);border-radius:10px;padding:12px 16px;background:rgba(121,85,72,0.04);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="font-size:0.82rem;font-weight:700;color:#795548;font-family:'Bricolage Grotesque',sans-serif;">📝 Informations Particulières</div>
-          <button class="btn-screenshot" onclick="captureElement('capture-infospart','INFOSPART',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+          <button class="btn-screenshot" onclick="captureInfospartFile(this)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <!-- Barre d'outils -->
         <div class="infospart-toolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
@@ -7137,6 +7137,56 @@ function inlineComputedStyles(original, clone) {
   }
 }
 
+// Bouton capture individuel INFOSPART
+async function captureInfospartFile(btn) {
+  const origHTML = btn.innerHTML;
+  const fname = 'INFOSPART.jpg';
+  const fileHandle = await promptSaveLocation(fname);
+  if (fileHandle === 'abort') return;
+  btn.classList.add('busy'); btn.innerHTML = '⏳';
+  try {
+    const blob = await _captureInfospart();
+    if (fileHandle) {
+      const w = await fileHandle.createWritable(); await w.write(blob); await w.close();
+    } else {
+      const a = document.createElement('a'); a.download = fname; a.href = URL.createObjectURL(blob);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    }
+    btn.innerHTML = '✅'; setTimeout(() => { btn.innerHTML = origHTML; btn.classList.remove('busy'); }, 2000);
+  } catch(e) {
+    console.error('INFOSPART capture error:', e);
+    btn.innerHTML = origHTML; btn.classList.remove('busy');
+  }
+}
+
+// Capture INFOSPART composite : carte investigation + coordonnées + infos particulières + stats risques
+async function _captureInfospart() {
+  const ids = ['picker-map-wrapper', 'capture-address', 'capture-infospart', 'capture-stats'];
+  const opts = { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false, foreignObjectRendering: false };
+  const canvases = [];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const c = await html2canvas(el, {
+      ...opts,
+      onclone: (_doc, cloned) => {
+        cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs').forEach(b => b.remove());
+      },
+    });
+    canvases.push(c);
+  }
+  // Assembler verticalement
+  const totalW = Math.max(...canvases.map(c => c.width));
+  const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * 20;
+  const final = document.createElement('canvas');
+  final.width = totalW; final.height = totalH;
+  const ctx = final.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, totalW, totalH);
+  let y = 0;
+  canvases.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + 20; });
+  return new Promise(r => final.toBlob(r, 'image/jpeg', 0.92));
+}
+
 // 1) Capture a normal HTML element
 async function captureElement(elementId, label, rawName) {
   const el = document.getElementById(elementId);
@@ -7447,15 +7497,8 @@ async function downloadIgnGeol(btn) {
     // Ajouter INFOSPART si le commentaire particulier est rempli
     const _infospartText = (document.getElementById('infospart-text')?.innerText || '').trim();
     if (_infospartText) {
-      const infospartEl = document.getElementById('capture-infospart');
-      if (infospartEl) {
-        captures.push(html2canvas(infospartEl, {
-          backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true,
-          logging: false, foreignObjectRendering: false,
-          onclone: (_doc, cloned) => { cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot').forEach(b => b.remove()); },
-        }).then(c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))));
-        fileNames.push('INFOSPART.jpg');
-      }
+      captures.push(_captureInfospart());
+      fileNames.push('INFOSPART.jpg');
     }
 
     const blobs = await Promise.all(captures);
