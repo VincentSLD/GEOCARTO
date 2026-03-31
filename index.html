@@ -7433,46 +7433,32 @@ async function captureInfospartFile(btn) {
 // Capture INFOSPART composite : carte investigation + coordonnées + infos particulières + stats risques
 async function _captureInfospart() {
   const ids = ['picker-map-wrapper', 'gps-coords-row', 'capture-address', 'capture-infospart', 'capture-stats'];
-  const opts = { backgroundColor: '#ffffff', scale: 1.5, useCORS: true, allowTaint: true, logging: false, foreignObjectRendering: false, imageTimeout: 3000 };
 
-  // Préparer les éléments visibles
-  const elements = ids.map(id => {
+  // Créer un wrapper temporaire hors écran avec tous les blocs clonés
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;z-index:-1;background:#fff;padding:20px;width:' + document.getElementById('capture-address')?.offsetWidth + 'px;';
+
+  ids.forEach(id => {
     const el = document.getElementById(id);
-    if (!el) return null;
-    if (el.offsetParent === null && id !== 'gps-coords-row') return null;
-    return { id, el };
-  }).filter(Boolean);
-
-  // Lancer toutes les captures en parallèle
-  const canvases = await Promise.all(elements.map(({ id, el }) =>
-    html2canvas(el, {
-      ...opts,
-      onclone: (_doc, cloned) => {
-        cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs, .btn-copy').forEach(b => b.remove());
-        if (id === 'gps-coords-row') cloned.style.display = 'flex';
-      },
-    })
-  ));
-
-  if (!canvases.length) return null;
-  // Assembler verticalement avec marges, centré horizontalement
-  const padY = 30;
-  const padX = 30;
-  const gap = 20;
-  const maxW = Math.max(...canvases.map(c => c.width));
-  const totalW = maxW + padX * 2;
-  const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * gap + padY * 2;
-  const final = document.createElement('canvas');
-  final.width = totalW; final.height = totalH;
-  const ctx = final.getContext('2d');
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, totalW, totalH);
-  let y = padY;
-  canvases.forEach(c => {
-    const x = padX + Math.round((maxW - c.width) / 2);
-    ctx.drawImage(c, x, y);
-    y += c.height + gap;
+    if (!el) return;
+    if (el.offsetParent === null && id !== 'gps-coords-row') return;
+    const clone = el.cloneNode(true);
+    clone.style.marginBottom = '12px';
+    if (id === 'gps-coords-row') clone.style.display = 'flex';
+    clone.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs, .btn-copy').forEach(b => b.remove());
+    wrapper.appendChild(clone);
   });
-  return new Promise(r => final.toBlob(r, 'image/jpeg', 0.85));
+
+  document.body.appendChild(wrapper);
+
+  const canvas = await html2canvas(wrapper, {
+    backgroundColor: '#ffffff', scale: 1.5, useCORS: true, allowTaint: true,
+    logging: false, foreignObjectRendering: false, imageTimeout: 3000,
+  });
+
+  document.body.removeChild(wrapper);
+
+  return new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
 }
 
 // 1) Capture a normal HTML element
