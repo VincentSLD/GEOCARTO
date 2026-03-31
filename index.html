@@ -7438,18 +7438,25 @@ async function _captureInfospart() {
   for (const id of ids) {
     const el = document.getElementById(id);
     if (!el) continue;
+    // Vérifier si l'élément est visible (sauf gps-coords-row qu'on force)
+    const isHidden = el.offsetParent === null && id !== 'gps-coords-row';
+    if (isHidden) continue;
     const c = await html2canvas(el, {
       ...opts,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
       onclone: (_doc, cloned) => {
         cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs, .btn-copy').forEach(b => b.remove());
-        cloned.style.display = 'flex';
+        // Forcer visible uniquement le gps-coords-row (masqué en mobile)
+        if (id === 'gps-coords-row') cloned.style.display = 'flex';
       },
     });
     canvases.push(c);
   }
+  if (!canvases.length) return null;
   // Assembler verticalement avec marges
-  const pad = 40; // marge haute et basse (en pixels à scale 2)
-  const gap = 30; // espacement entre blocs
+  const pad = 40;
+  const gap = 30;
   const totalW = Math.max(...canvases.map(c => c.width));
   const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * gap + pad * 2;
   const final = document.createElement('canvas');
