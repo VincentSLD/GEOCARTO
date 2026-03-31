@@ -5082,16 +5082,22 @@ function edsToggleRoads(show) {
 function _edsZonesRender() {
   if (!window.edsMap) return;
   if (_edsZonesLayer) { window.edsMap.removeLayer(_edsZonesLayer); }
-  _edsZonesLayer = L.featureGroup();
+  // Pane au-dessus des routes pour que les zones restent visibles
+  if (!window.edsMap.getPane('zonesPane')) {
+    window.edsMap.createPane('zonesPane');
+    window.edsMap.getPane('zonesPane').style.zIndex = 450;
+  }
+  _edsZonesLayer = L.featureGroup({ pane: 'zonesPane' });
 
   _edsZonesData.forEach(z => {
     if (!z.geometry || !z.geometry.coordinates) return;
     const coords = z.geometry.coordinates[0].map(c => [c[1], c[0]]); // GeoJSON [lng,lat] → Leaflet [lat,lng]
     const poly = L.polygon(coords, {
       color: z.couleur || '#e53935',
-      weight: 2,
+      weight: 3,
       fillColor: z.couleur || '#e53935',
       fillOpacity: z.opacite ?? 0.5,
+      pane: 'zonesPane',
     });
     poly._edsZoneId = z.id;
     poly._edsZone = z;
