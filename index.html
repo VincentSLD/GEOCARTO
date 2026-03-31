@@ -3204,7 +3204,7 @@ async function _fetchPprnInfo(lat, lng) {
   el.style.color = 'var(--text-muted)';
 
   try {
-    if (!currentInsee) { el.textContent = 'Code INSEE non disponible'; return; }
+    if (!currentInsee) { display.style.display = 'none'; return; }
     const data = await fetchJSON(`https://georisques.gouv.fr/api/v1/ppr?code_insee=${currentInsee}&page=1&page_size=50`, 15000);
     const pprs = data.data || [];
     const approuves = pprs.filter(p => p.etat?.libelle_etat === 'Approuve' || p.etat?.libelle_etat === 'Approuvé');
