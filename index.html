@@ -7175,15 +7175,17 @@ async function _captureInfospart() {
     });
     canvases.push(c);
   }
-  // Assembler verticalement
+  // Assembler verticalement avec marges
+  const pad = 40; // marge haute et basse (en pixels à scale 2)
+  const gap = 30; // espacement entre blocs
   const totalW = Math.max(...canvases.map(c => c.width));
-  const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * 20;
+  const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * gap + pad * 2;
   const final = document.createElement('canvas');
   final.width = totalW; final.height = totalH;
   const ctx = final.getContext('2d');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, totalW, totalH);
-  let y = 0;
-  canvases.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + 20; });
+  let y = pad;
+  canvases.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + gap; });
   return new Promise(r => final.toBlob(r, 'image/jpeg', 0.92));
 }
 
