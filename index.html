@@ -1796,6 +1796,31 @@
       </div>
       </div><!-- /capture-nappes -->
 
+      <!-- ===== Carte PPRN ===== -->
+      <div id="capture-pprn" class="capturable">
+      <div class="section-title" style="margin-top:1.5rem">
+        <div class="icon" style="background:rgba(211,47,47,0.12);color:#d32f2f;">🛡️</div>
+        Plans de Prévention des Risques Naturels (PPRN)
+        <button class="btn-screenshot" onclick="captureLeaflet('map-pprn','PPRN', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+      </div>
+      <div id="pprn-info-display" style="margin:0 0 0.75rem;display:none;">
+        <span id="pprn-info-text" style="display:inline-block;padding:5px 14px;border-radius:6px;font-size:0.82rem;font-weight:700;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted);">⏳ Chargement…</span>
+      </div>
+      <div class="map-embed full-map" style="margin-bottom:0.5rem;">
+        <div id="map-pprn" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+      </div>
+      <div style="margin:0.5rem 0 0.5rem;font-size:0.72rem;color:var(--text-secondary);">
+        <span style="font-weight:600;">Légende :</span>
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(211,47,47,0.5);border:1px solid #d32f2f;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Inondation
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(121,85,72,0.5);border:1px solid #795548;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Mouvement de terrain
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(2,119,189,0.5);border:1px solid #0277bd;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Submersion marine
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(230,74,25,0.5);border:1px solid #e64a19;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Feu de forêt
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(126,87,194,0.5);border:1px solid #7e57c2;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Séisme
+        <span style="display:inline-block;width:12px;height:12px;background:rgba(69,90,100,0.5);border:1px solid #455a64;border-radius:2px;vertical-align:middle;margin:0 3px;"></span> Avalanche
+      </div>
+      </div><!-- /capture-pprn -->
+
       <!-- ===== EN COURS DE DÉVELOPPEMENT ===== -->
       <div style="margin-top:2rem;">
         <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.6rem;background:linear-gradient(135deg,#1a1a1a,#333333);border:none;border-radius:10px;padding:14px 16px;user-select:none;transition:all 0.2s;box-shadow:0 4px 16px rgba(26,26,26,0.2);"
@@ -3168,6 +3193,39 @@ async function fetchSismique(lat, lng) {
 }
 
 // Remontées de nappes — lecture du pixel WMS (plus fiable que WFS)
+// ====== PPRN — info API ======
+async function _fetchPprnInfo(lat, lng) {
+  const display = document.getElementById('pprn-info-display');
+  const el = document.getElementById('pprn-info-text');
+  if (!display || !el) return;
+  display.style.display = 'block';
+  el.textContent = '⏳ Chargement des PPRN…';
+  el.style.background = 'var(--bg-secondary)';
+  el.style.color = 'var(--text-muted)';
+
+  try {
+    if (!currentInsee) { el.textContent = 'Code INSEE non disponible'; return; }
+    const data = await fetchJSON(`https://georisques.gouv.fr/api/v1/ppr?code_insee=${currentInsee}&page=1&page_size=50`, 15000);
+    const pprs = data.data || [];
+    const approuves = pprs.filter(p => p.etat?.libelle_etat === 'Approuve' || p.etat?.libelle_etat === 'Approuvé');
+
+    if (approuves.length === 0 && pprs.length === 0) {
+      el.textContent = 'Aucun PPRN sur cette commune';
+      el.style.background = 'rgba(76,175,80,0.1)';
+      el.style.color = '#43a047';
+    } else {
+      const types = [...new Set(approuves.map(p => p.risque?.libelle_risque || p.nom_ppr).filter(Boolean))];
+      el.innerHTML = `<strong>${approuves.length} PPRN approuvé${approuves.length > 1 ? 's' : ''}</strong> : ${types.join(', ')}`;
+      el.style.background = 'rgba(211,47,47,0.08)';
+      el.style.color = '#d32f2f';
+    }
+  } catch(e) {
+    el.textContent = 'API PPRN indisponible';
+    el.style.color = 'var(--text-muted)';
+    console.warn('PPRN API error:', e);
+  }
+}
+
 // CORS ouvert sur mapsref.brgm.fr → fetch ArrayBuffer → Blob URL → canvas → getImageData
 // Nearest-neighbor RGB vers table SLD BRGM
 async function fetchNappes(lat, lng) {
@@ -4252,6 +4310,54 @@ function setupMaps(lat, lng) {
 
   addMeasureTool(window.nappesMap);
   setTimeout(() => { window.nappesMap.invalidateSize(); }, 300);
+
+  // ====== Carte PPRN ======
+  if (window.pprnMap) { window.pprnMap.remove(); window.pprnMap = null; }
+  window.pprnMap = L.map('map-pprn', {
+    center: [lat, lng],
+    zoom: 14,
+    zoomControl: false,
+  });
+  L.control.zoom({ position: 'bottomleft' }).addTo(window.pprnMap);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OSM', maxZoom: 19,
+  }).addTo(window.pprnMap);
+
+  window.pprnMap.createPane('pprnPane');
+  window.pprnMap.getPane('pprnPane').style.zIndex = 450;
+
+  const pprnLayers = [
+    'PPRN_ZONE_INOND', 'PPRN_ZONE_MVT', 'PPRN_ZONE_SUBMAR',
+    'PPRN_ZONE_FEU', 'PPRN_ZONE_SEISME', 'PPRN_ZONE_AVALANCHE',
+  ];
+  pprnLayers.forEach(layerName => {
+    try {
+      L.tileLayer.wms('https://mapsref.brgm.fr/wxs/georisques/risques', {
+        layers: layerName,
+        format: 'image/png',
+        transparent: true,
+        opacity: 0.7,
+        version: '1.1.1',
+        attribution: '© BRGM / Géorisques',
+        pane: 'pprnPane',
+      }).addTo(window.pprnMap);
+    } catch(e) {}
+  });
+
+  L.marker([lat, lng], { icon: _invIcon }).addTo(window.pprnMap);
+
+  // Cercle 1km
+  L.circle([lat, lng], {
+    radius: 1000, color: '#d32f2f', fillColor: '#d32f2f',
+    fillOpacity: 0.05, weight: 1, dashArray: '8,6',
+  }).addTo(window.pprnMap);
+
+  addMeasureTool(window.pprnMap);
+  setTimeout(() => { window.pprnMap.invalidateSize(); }, 300);
+
+  // Fetch PPRN info via API
+  _fetchPprnInfo(lat, lng);
 
   // ====== Liens Permis de Construire SITADEL (supprimés du HTML) ======
   // ====== Liens DT-DICT (supprimés du HTML) ======
@@ -7615,7 +7721,7 @@ function captureIframe(iframeId, label) {
 
 function _invalidateAllMaps() {
   [pickerMap, argilesMap, window.geologieMap, window.cavitesMap, window.mvtMap, window.sismiqueMap,
-   window.bssMap, window.nappesMap, window.reliefMap, window.ignMap, window.photoMap,
+   window.bssMap, window.nappesMap, window.pprnMap, window.reliefMap, window.ignMap, window.photoMap,
    window.histoMap, window.edsMap, window.sitadelDepMap]
     .forEach(function(m) { if (m) m.invalidateSize(); });
 }
