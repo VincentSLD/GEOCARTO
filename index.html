@@ -7327,7 +7327,7 @@ async function captureInfospartFile(btn) {
 
 // Capture INFOSPART composite : carte investigation + coordonnées + infos particulières + stats risques
 async function _captureInfospart() {
-  const ids = ['picker-map-wrapper', 'capture-address', 'capture-infospart', 'capture-stats'];
+  const ids = ['picker-map-wrapper', 'gps-coords-row', 'capture-address', 'capture-infospart', 'capture-stats'];
   const opts = { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false, foreignObjectRendering: false };
   const canvases = [];
   for (const id of ids) {
@@ -7336,7 +7336,8 @@ async function _captureInfospart() {
     const c = await html2canvas(el, {
       ...opts,
       onclone: (_doc, cloned) => {
-        cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs').forEach(b => b.remove());
+        cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs, .btn-copy').forEach(b => b.remove());
+        cloned.style.display = 'flex';
       },
     });
     canvases.push(c);
