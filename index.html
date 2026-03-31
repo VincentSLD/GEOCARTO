@@ -7433,30 +7433,31 @@ async function captureInfospartFile(btn) {
 // Capture INFOSPART composite : carte investigation + coordonnées + infos particulières + stats risques
 async function _captureInfospart() {
   const ids = ['picker-map-wrapper', 'gps-coords-row', 'capture-address', 'capture-infospart', 'capture-stats'];
-  const opts = { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false, foreignObjectRendering: false };
-  const canvases = [];
-  for (const id of ids) {
+  const opts = { backgroundColor: '#ffffff', scale: 1.5, useCORS: true, allowTaint: true, logging: false, foreignObjectRendering: false, imageTimeout: 3000 };
+
+  // Préparer les éléments visibles
+  const elements = ids.map(id => {
     const el = document.getElementById(id);
-    if (!el) continue;
-    // Vérifier si l'élément est visible (sauf gps-coords-row qu'on force)
-    const isHidden = el.offsetParent === null && id !== 'gps-coords-row';
-    if (isHidden) continue;
-    const c = await html2canvas(el, {
+    if (!el) return null;
+    if (el.offsetParent === null && id !== 'gps-coords-row') return null;
+    return { id, el };
+  }).filter(Boolean);
+
+  // Lancer toutes les captures en parallèle
+  const canvases = await Promise.all(elements.map(({ id, el }) =>
+    html2canvas(el, {
       ...opts,
-      width: el.scrollWidth,
-      height: el.scrollHeight,
       onclone: (_doc, cloned) => {
         cloned.querySelectorAll('.infospart-toolbar, .btn-screenshot, .btn-map-fs, .btn-copy').forEach(b => b.remove());
-        // Forcer visible uniquement le gps-coords-row (masqué en mobile)
         if (id === 'gps-coords-row') cloned.style.display = 'flex';
       },
-    });
-    canvases.push(c);
-  }
+    })
+  ));
+
   if (!canvases.length) return null;
   // Assembler verticalement avec marges
-  const pad = 40;
-  const gap = 30;
+  const pad = 30;
+  const gap = 20;
   const totalW = Math.max(...canvases.map(c => c.width));
   const totalH = canvases.reduce((h, c) => h + c.height, 0) + (canvases.length - 1) * gap + pad * 2;
   const final = document.createElement('canvas');
@@ -7465,7 +7466,7 @@ async function _captureInfospart() {
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, totalW, totalH);
   let y = pad;
   canvases.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + gap; });
-  return new Promise(r => final.toBlob(r, 'image/jpeg', 0.92));
+  return new Promise(r => final.toBlob(r, 'image/jpeg', 0.85));
 }
 
 // 1) Capture a normal HTML element
