@@ -4434,11 +4434,23 @@ function setupMaps(lat, lng) {
     }).addTo(window.cadastreMap);
   });
 
-  // Marqueur
-  L.marker([lat, lng], { icon: _invIcon }).addTo(window.cadastreMap);
-
   // Afficher le contour de la parcelle et zoomer dessus
   _initCadastreParcel(lat, lng);
+
+  // Boussole Nord
+  const northControl = L.control({ position: 'topright' });
+  northControl.onAdd = function() {
+    const div = L.DomUtil.create('div');
+    div.innerHTML = `<div style="background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.25);pointer-events:none;">
+      <svg viewBox="0 0 40 40" width="32" height="32">
+        <polygon points="20,4 24,20 20,17 16,20" fill="#d32f2f"/>
+        <polygon points="20,36 16,20 20,23 24,20" fill="#bdbdbd"/>
+        <text x="20" y="3" text-anchor="middle" font-size="7" font-weight="700" fill="#d32f2f" font-family="sans-serif">N</text>
+      </svg>
+    </div>`;
+    return div;
+  };
+  northControl.addTo(window.cadastreMap);
 
   addMeasureTool(window.cadastreMap);
   setTimeout(() => { window.cadastreMap.invalidateSize(); }, 300);
