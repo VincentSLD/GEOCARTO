@@ -6440,38 +6440,44 @@ async function fetchGeolNotations1km(lat, lng) {
   el.textContent = '⏳…';
 
   try {
-    const { x, y } = wgs84ToLambert93(lat, lng);
-    // Points sondés : 3 cercles (250m, 500m, 750m, 1000m) x 8 directions = 32 points
-    const offsets = [];
-    const distances = [250, 500, 750, 1000];
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-    distances.forEach(dist => {
-      angles.forEach(deg => {
-        const rad = deg * Math.PI / 180;
-        offsets.push([Math.round(dist * Math.sin(rad)), Math.round(dist * Math.cos(rad))]);
-      });
-    });
+    // Même grille carrée que fetchGeolArea
+    const { x: cx, y: cy } = wgs84ToLambert93(lat, lng);
+    const radius = 1000;
+    const steps = 8;
+    const step = (radius * 2) / (steps - 1);
+    const points = [];
+    for (let i = 0; i < steps && points.length < 35; i++) {
+      for (let j = 0; j < steps && points.length < 35; j++) {
+        const px = cx - radius + i * step;
+        const py = cy - radius + j * step;
+        if (Math.hypot(px - cx, py - cy) <= radius) {
+          points.push({ x: px, y: py });
+        }
+      }
+    }
 
     const notations = new Set();
-    const d = 100;
 
-    const promises = offsets.map(async ([dx, dy]) => {
-      try {
-        const px = x + dx, py = y + dy;
-        const bbox = `${px - d},${py - d},${px + d},${py + d}`;
-        const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-          `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-          `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
-          `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!resp.ok) return;
-        const xml = await resp.text();
-        const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
-        if (n) notations.add(n);
-      } catch(e) { /* ignorer les erreurs individuelles */ }
-    });
-
-    await Promise.all(promises);
+    // Requêtes en parallèle par batch de 10
+    const batchSize = 10;
+    for (let b = 0; b < points.length; b += batchSize) {
+      const batch = points.slice(b, b + batchSize);
+      await Promise.all(batch.map(async (pt) => {
+        try {
+          const d = 50;
+          const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
+          const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+            `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+            `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
+            `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+          const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+          if (!resp.ok) return;
+          const xml = await resp.text();
+          const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
+          if (n) notations.add(n);
+        } catch(e) { /* ignorer */ }
+      }));
+    }
 
     // Retirer la notation du point principal (déjà affichée)
     const mainNot = (document.getElementById('geol-notation')?.textContent || '').trim();
