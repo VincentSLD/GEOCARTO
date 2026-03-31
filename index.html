@@ -4413,39 +4413,26 @@ function setupMaps(lat, lng) {
   window.cadastreMap = L.map('map-cadastre', {
     center: [lat, lng],
     zoom: 18,
+    maxZoom: 22,
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.cadastreMap);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OSM', maxZoom: 20,
+    attribution: '© OSM', maxZoom: 20, maxNativeZoom: 19,
   }).addTo(window.cadastreMap);
 
   // Couches parcellaires cadastrales (plusieurs sources pour fiabilité)
   window.cadastreMap.createPane('cadastrePane');
   window.cadastreMap.getPane('cadastrePane').style.zIndex = 450;
 
-  // Parcelles + numéros via tuiles vectorielles Géoplateforme
-  ['parcellaire_express_parcelle_noir', 'parcellaire_express_numero'].forEach(layer => {
+  // Parcelles + numéros + bâtiments via Géoplateforme
+  ['parcellaire_express_parcelle_noir', 'parcellaire_express_numero', 'parcellaire_express_batiment_noir'].forEach(layer => {
     L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', {
       layers: layer, format: 'image/png', transparent: true, opacity: 0.8,
-      version: '1.3.0', pane: 'cadastrePane',
+      version: '1.3.0', maxZoom: 22, maxNativeZoom: 20, pane: 'cadastrePane',
     }).addTo(window.cadastreMap);
   });
-
-  // Fallback : couche PCI vecteur
-  L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', {
-    layers: 'CADASTRALPARCELS.PCI_VECTEUR',
-    format: 'image/png', transparent: true, opacity: 0.5,
-    version: '1.3.0', pane: 'cadastrePane',
-  }).addTo(window.cadastreMap);
-
-  // Bâtiments
-  L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', {
-    layers: 'parcellaire_express_batiment_noir',
-    format: 'image/png', transparent: true, opacity: 0.6,
-    version: '1.3.0', pane: 'cadastrePane',
-  }).addTo(window.cadastreMap);
 
   // Marqueur
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.cadastreMap);
