@@ -1705,6 +1705,8 @@
             <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
             <span style="font-weight:600;color:#795548;">Notation :</span>
             <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
+            <span style="font-weight:600;color:#795548;">Notation &lt;1km :</span>
+            <span id="geol-notation-1km" style="font-family:monospace;font-weight:600;font-size:0.82rem;color:#795548;">—</span>
             <span style="font-weight:600;color:#795548;">Description :</span>
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
           </div>
@@ -4030,6 +4032,7 @@ function setupMaps(lat, lng) {
 
   // Fetch geological info via WMS GetFeatureInfo (BD Charm-50)
   fetchGeologicalInfo(lat, lng);
+  fetchGeolNotations1km(lat, lng);
 
   // ====== Carte Cavités Souterraines ======
   if (window.cavitesMap) { window.cavitesMap.remove(); window.cavitesMap = null; }
@@ -6427,6 +6430,54 @@ async function fetchGeologicalInfo(lat, lng) {
     loading.style.display = 'none';
     errorDiv.innerHTML = `⚠️ Erreur BRGM : ${e.message}`;
     errorDiv.style.display = 'block';
+  }
+}
+
+// ====== Notations géologiques dans un rayon de 1 km ======
+async function fetchGeolNotations1km(lat, lng) {
+  const el = document.getElementById('geol-notation-1km');
+  if (!el) return;
+  el.textContent = '⏳…';
+
+  try {
+    const { x, y } = wgs84ToLambert93(lat, lng);
+    // 8 points cardinaux + 4 intermédiaires à ~500m et ~1000m
+    const offsets = [
+      [0, 500], [0, -500], [500, 0], [-500, 0],
+      [350, 350], [-350, 350], [350, -350], [-350, -350],
+      [0, 1000], [0, -1000], [1000, 0], [-1000, 0],
+      [700, 700], [-700, 700], [700, -700], [-700, -700],
+    ];
+
+    const notations = new Set();
+    const d = 100;
+
+    const promises = offsets.map(async ([dx, dy]) => {
+      try {
+        const px = x + dx, py = y + dy;
+        const bbox = `${px - d},${py - d},${px + d},${py + d}`;
+        const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+          `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+          `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
+          `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!resp.ok) return;
+        const xml = await resp.text();
+        const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
+        if (n) notations.add(n);
+      } catch(e) { /* ignorer les erreurs individuelles */ }
+    });
+
+    await Promise.all(promises);
+
+    // Retirer la notation du point principal (déjà affichée)
+    const mainNot = (document.getElementById('geol-notation')?.textContent || '').trim();
+    notations.delete(mainNot);
+
+    el.textContent = notations.size > 0 ? [...notations].join(', ') : 'identique';
+  } catch(e) {
+    el.textContent = '—';
+    console.warn('Notations 1km error:', e);
   }
 }
 
