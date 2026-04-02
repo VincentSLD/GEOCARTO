@@ -3833,18 +3833,16 @@ const _invIconSmall = L.divIcon({
   className: '', iconSize: [8, 8], iconAnchor: [4, 4],
 });
 
-// Label rayon en bas à gauche de la carte (contrôle Leaflet, à droite du zoom)
+// Label rayon en bas à gauche de la carte, sous les boutons zoom
 function _addCircleLabel(map, lat, lng, radiusM, color, cssClass) {
   const label = radiusM >= 1000 ? `Rayon ${radiusM / 1000} km` : `Rayon ${radiusM} m`;
-  const ctrl = L.control({ position: 'bottomleft' });
-  ctrl.onAdd = function() {
-    const div = L.DomUtil.create('div');
-    if (cssClass) div.className = cssClass;
-    div.style.cssText = 'margin-left:4px;pointer-events:none;';
-    div.innerHTML = `<div style="font-size:0.7rem;font-weight:700;color:${color || '#d32f2f'};background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:5px;white-space:nowrap;border:1px solid ${color || '#d32f2f'};box-shadow:0 1px 3px rgba(0,0,0,0.15);">${label}</div>`;
-    return div;
-  };
-  ctrl.addTo(map);
+  const div = document.createElement('div');
+  if (cssClass) div.className = cssClass;
+  div.style.cssText = 'pointer-events:none;margin-top:4px;';
+  div.innerHTML = `<div style="font-size:0.7rem;font-weight:700;color:${color || '#d32f2f'};background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:5px;white-space:nowrap;border:1px solid ${color || '#d32f2f'};box-shadow:0 1px 3px rgba(0,0,0,0.15);">${label}</div>`;
+  // Insérer dans le conteneur bottomleft, après le zoom
+  const corner = map.getContainer().querySelector('.leaflet-bottom.leaflet-left');
+  if (corner) corner.appendChild(div);
 }
 
 // ====== Google Maps satellite + Street View synchronisés ======
