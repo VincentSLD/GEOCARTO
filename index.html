@@ -5206,7 +5206,12 @@ function edsStartDrawZone() {
     _resetBtn();
     _edsDrawHandler = null;
     const geojson = e.layer.toGeoJSON().geometry;
-    _edsShowZoneForm(geojson);
+    // Mot de passe requis pour créer une zone
+    (async () => {
+      const pwdOk = await edsAskDeletePwd();
+      if (!pwdOk) return;
+      _edsShowZoneForm(geojson);
+    })();
   });
   // Si le dessin est annulé (Escape) sans avoir créé de zone
   window.edsMap.once('draw:drawstop', function() {
