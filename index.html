@@ -1454,6 +1454,16 @@
         <div class="map-embed" style="position:relative;">
           <div id="map-satellite" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+          <!-- Boussole carte satellite -->
+          <div id="gsat-compass" style="position:absolute;top:10px;left:10px;z-index:1000;width:50px;height:50px;cursor:grab;user-select:none;" title="Glissez pour orienter le nord">
+            <svg viewBox="0 0 50 50" width="50" height="50" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3));">
+              <circle cx="25" cy="25" r="23" fill="rgba(255,255,255,0.9)" stroke="#bdbdbd" stroke-width="1"/>
+              <polygon points="25,4 29,22 25,19 21,22" fill="#d32f2f"/>
+              <polygon points="25,46 21,28 25,31 29,28" fill="#bdbdbd"/>
+              <text x="25" y="3" text-anchor="middle" font-size="7" font-weight="700" fill="#d32f2f" font-family="sans-serif">N</text>
+              <circle cx="25" cy="25" r="3" fill="#fff" stroke="#999" stroke-width="1"/>
+            </svg>
+          </div>
           <!-- Mini street view incrustée en plein écran -->
           <div id="map-street-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:440px;height:440px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
@@ -3943,6 +3953,65 @@ function _addCircleLabel(map, lat, lng, radiusM, color, cssClass) {
 let _gSatMap = null, _gStreetView = null, _gPegman = null;
 let _gMiniMap = null, _gMiniPegman = null, _gMiniStreetView = null;
 
+// Boussole interactive pour la carte satellite Google Maps
+let _gsatRotation = 0;
+
+function _initGsatCompass() {
+  const compass = document.getElementById('gsat-compass');
+  if (!compass || !_gSatMap) return;
+
+  let dragging = false, startAngle = 0;
+
+  function getAngle(e, rect) {
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return Math.atan2(clientX - cx, -(clientY - cy)) * 180 / Math.PI;
+  }
+
+  function applyRotation(deg) {
+    _gsatRotation = deg;
+    // Tourner la carte Google Maps
+    _gSatMap.setHeading(deg);
+    // Tourner la boussole
+    compass.querySelector('svg').style.transform = `rotate(${deg}deg)`;
+  }
+
+  function onStart(e) {
+    e.preventDefault(); e.stopPropagation();
+    dragging = true;
+    compass.style.cursor = 'grabbing';
+    startAngle = getAngle(e, compass.getBoundingClientRect()) - _gsatRotation;
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    applyRotation(getAngle(e, compass.getBoundingClientRect()) - startAngle);
+  }
+  function onEnd() { dragging = false; compass.style.cursor = 'grab'; }
+
+  compass.addEventListener('mousedown', onStart);
+  compass.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchend', onEnd);
+
+  // Double-clic pour réinitialiser au nord
+  compass.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    applyRotation(0);
+  });
+
+  // Synchroniser la boussole si l'utilisateur tourne la carte autrement
+  _gSatMap.addListener('heading_changed', () => {
+    const h = _gSatMap.getHeading() || 0;
+    _gsatRotation = h;
+    compass.querySelector('svg').style.transform = `rotate(${h}deg)`;
+  });
+}
+
 function _initGoogleMaps(lat, lng) {
   if (typeof google === 'undefined' || !google.maps) {
     console.warn('Google Maps JS API non chargée');
@@ -3970,9 +4039,12 @@ function _initGoogleMaps(lat, lng) {
       zoom: 17,
       mapTypeId: 'satellite',
       mapId: 'geocarto_satellite',
+      heading: 0,
+      tilt: 0,
       streetViewControl: false,
       fullscreenControl: false,
       mapTypeControl: false,
+      rotateControl: false,
     }
   );
 
@@ -4058,6 +4130,9 @@ function _initGoogleMaps(lat, lng) {
     const p = _gStreetView.getPosition();
     if (_gMiniStreetView && p) _gMiniStreetView.setPosition(p);
   });
+
+  // Boussole interactive pour la carte satellite
+  _initGsatCompass();
 }
 
 function _createPegmanElement() {
