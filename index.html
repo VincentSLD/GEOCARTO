@@ -2296,12 +2296,12 @@ let pickerCadastreVisible = false;
 let pickerCurrentLayer = 'osm';
 let searchDebounceTimer = null;
 
-// Boussole interactive pour la rotation de la carte investigation
+// Boussole — indicateur visuel du nord (ne tourne pas la carte)
 let _pickerRotation = 0;
 
 function _initPickerCompass() {
   const compass = document.getElementById('picker-compass');
-  if (!compass || !pickerMap) return;
+  if (!compass) return;
 
   let dragging = false, startAngle = 0;
 
@@ -2315,34 +2315,12 @@ function _initPickerCompass() {
 
   function applyRotation(deg) {
     _pickerRotation = deg;
-    // Tourner les tuiles et overlays
-    const container = pickerMap.getContainer();
-    const tilePane = container.querySelector('.leaflet-map-pane');
-    if (tilePane) tilePane.style.transform = `rotate(${deg}deg)`;
-    // Agrandir le pane pour éviter les coins blancs
-    if (tilePane) { tilePane.style.width = '150%'; tilePane.style.height = '150%'; tilePane.style.left = '-25%'; tilePane.style.top = '-25%'; }
-    // Contre-tourner les contrôles
-    container.querySelectorAll('.leaflet-control-container').forEach(c => { c.style.transform = ''; });
-    // Tourner l'aiguille de la boussole
-    const svg = compass.querySelector('svg');
-    if (svg) {
-      svg.querySelector('#compass-needle-n').setAttribute('transform', `rotate(${-deg} 25 25)`);
-      svg.querySelector('#compass-needle-s').setAttribute('transform', `rotate(${-deg} 25 25)`);
-      const nText = svg.querySelector('#compass-N');
-      if (nText) {
-        const rad = (-deg) * Math.PI / 180;
-        nText.setAttribute('x', 25 + 22 * Math.sin(rad));
-        nText.setAttribute('y', 25 - 22 * Math.cos(rad) + 3);
-      }
-    }
-    // Contre-tourner les marqueurs
-    container.querySelectorAll('.leaflet-marker-icon, .leaflet-marker-shadow').forEach(mk => {
-      mk.style.transform = (mk.style.transform || '').replace(/rotate\([^)]*\)/g, '') + ` rotate(${-deg}deg)`;
-    });
+    // Tourner toute la boussole (aiguilles + lettre N)
+    compass.querySelector('svg').style.transform = `rotate(${deg}deg)`;
   }
 
   function onStart(e) {
-    e.preventDefault();
+    e.preventDefault(); e.stopPropagation();
     dragging = true;
     compass.style.cursor = 'grabbing';
     startAngle = getAngle(e, compass.getBoundingClientRect()) - _pickerRotation;
@@ -2350,13 +2328,9 @@ function _initPickerCompass() {
   function onMove(e) {
     if (!dragging) return;
     e.preventDefault();
-    const angle = getAngle(e, compass.getBoundingClientRect()) - startAngle;
-    applyRotation(angle);
+    applyRotation(getAngle(e, compass.getBoundingClientRect()) - startAngle);
   }
-  function onEnd() {
-    dragging = false;
-    compass.style.cursor = 'grab';
-  }
+  function onEnd() { dragging = false; compass.style.cursor = 'grab'; }
 
   compass.addEventListener('mousedown', onStart);
   compass.addEventListener('touchstart', onStart, { passive: false });
@@ -2610,7 +2584,15 @@ function togglePickerFullscreen() {
     // Move the map into fullscreen (after panel so map is on the right)
     mapDiv._fsOrigParent = mapDiv.parentNode;
     mapDiv._fsOrigNext = mapDiv.nextSibling;
-    fs.appendChild(mapDiv);
+    const compassEl = document.getElementById('picker-compass');
+    if (compassEl) { compassEl._fsOrigParent = compassEl.parentNode; compassEl._fsOrigNext = compassEl.nextSibling; }
+    // Wrapper pour la carte + boussole en plein écran
+    const mapContainer = document.createElement('div');
+    mapContainer.id = 'picker-fs-map-container';
+    mapContainer.style.cssText = 'flex:1;position:relative;min-width:0;';
+    mapContainer.appendChild(mapDiv);
+    if (compassEl) mapContainer.appendChild(compassEl);
+    fs.appendChild(mapContainer);
 
     document.body.appendChild(fs);
     pickerFullscreen = true;
@@ -2645,6 +2627,15 @@ function togglePickerFullscreen() {
         mapDiv._fsOrigParent.insertBefore(mapDiv, mapDiv._fsOrigNext);
       } else {
         mapDiv._fsOrigParent.appendChild(mapDiv);
+      }
+      // Restaurer la boussole
+      const compassEl2 = document.getElementById('picker-compass');
+      if (compassEl2 && compassEl2._fsOrigParent) {
+        if (compassEl2._fsOrigNext) {
+          compassEl2._fsOrigParent.insertBefore(compassEl2, compassEl2._fsOrigNext);
+        } else {
+          compassEl2._fsOrigParent.appendChild(compassEl2);
+        }
       }
       const fsAddr = document.getElementById('fs-address-search');
       if (fsAddr) document.getElementById('address-search').value = fsAddr.value;
