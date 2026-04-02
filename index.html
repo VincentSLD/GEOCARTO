@@ -7689,7 +7689,7 @@ async function downloadIgnGeol(btn) {
   btn.innerHTML = '⏳ Captures en cours…';
 
   // Helper: capture a Leaflet map and return a Blob
-  async function _captureMapBlob(mapContainerId, pictoSrc, square) {
+  async function _captureMapBlob(mapContainerId, pictoSrc, square, forceZoom) {
     const el = document.getElementById(mapContainerId);
     if (!el) throw new Error(`Container ${mapContainerId} introuvable`);
 
@@ -7702,12 +7702,19 @@ async function downloadIgnGeol(btn) {
       try { return m?.getContainer?.().id === mapContainerId; } catch { return false; }
     });
 
+    let savedZoom = null;
     if (lmap) {
       lmap.closePopup();
-      lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
+      // Forcer un zoom spécifique pour la capture si demandé
+      if (forceZoom && lmap.getZoom() !== forceZoom) {
+        savedZoom = lmap.getZoom();
+        lmap.setView(lmap.getCenter(), forceZoom, { animate: false, reset: true });
+      } else {
+        lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
+      }
       lmap.invalidateSize();
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, forceZoom ? 2000 : 1500));
     }
 
     const canvas = await html2canvas(el, {
@@ -7744,14 +7751,18 @@ async function downloadIgnGeol(btn) {
     const srcY = Math.max(0, (canvas.height - srcH) / 2);
     resized.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, outW, outH);
     if (pictoSrc) await _drawPictoOnCanvas(resized, pictoSrc, 10, 120);
+    // Restaurer le zoom original si on l'avait changé
+    if (savedZoom !== null && lmap) {
+      lmap.setView(lmap.getCenter(), savedZoom, { animate: false });
+    }
     return new Promise(resolve => resized.toBlob(resolve, 'image/jpeg', 0.92));
   }
 
   try {
-    // Captures de base : IGN + GEOL + RGA
+    // Captures de base : IGN (zoom 17) + GEOL (zoom 15) + RGA
     const captures = [
-      _captureMapBlob('map-ign-leaflet', 'assets/picto_ign.jpg'),
-      _captureMapBlob('map-geologie', 'assets/picto_brgm.jpg'),
+      _captureMapBlob('map-ign-leaflet', 'assets/picto_ign.jpg', false, 17),
+      _captureMapBlob('map-geologie', 'assets/picto_brgm.jpg', false, 15),
       _captureMapBlob('map-argiles', null, true)
     ];
     const fileNames = ['IGN.jpg', 'GEOL.jpg', 'RGA.jpg'];
