@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="lib/leaflet-rotate.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2296,12 +2297,12 @@ let pickerCadastreVisible = false;
 let pickerCurrentLayer = 'osm';
 let searchDebounceTimer = null;
 
-// Boussole — indicateur visuel du nord (ne tourne pas la carte)
+// Boussole interactive — tourne la carte via leaflet-rotate
 let _pickerRotation = 0;
 
 function _initPickerCompass() {
   const compass = document.getElementById('picker-compass');
-  if (!compass) return;
+  if (!compass || !pickerMap) return;
 
   let dragging = false, startAngle = 0;
 
@@ -2315,7 +2316,9 @@ function _initPickerCompass() {
 
   function applyRotation(deg) {
     _pickerRotation = deg;
-    // Tourner toute la boussole (aiguilles + lettre N)
+    // Tourner la carte via leaflet-rotate
+    if (pickerMap.setBearing) pickerMap.setBearing(deg);
+    // Tourner la boussole (aiguille suit le nord)
     compass.querySelector('svg').style.transform = `rotate(${deg}deg)`;
   }
 
@@ -2344,6 +2347,13 @@ function _initPickerCompass() {
     e.preventDefault();
     applyRotation(0);
   });
+
+  // Synchroniser la boussole si la carte est tournée autrement (tactile 2 doigts)
+  pickerMap.on('rotate', () => {
+    const bearing = pickerMap.getBearing ? pickerMap.getBearing() : 0;
+    _pickerRotation = bearing;
+    compass.querySelector('svg').style.transform = `rotate(${bearing}deg)`;
+  });
 }
 
 function initPickerMap() {
@@ -2354,6 +2364,9 @@ function initPickerMap() {
     center: [46.6, 2.5],
     zoom: 5,
     zoomControl: false,
+    rotate: true,
+    bearing: 0,
+    touchRotate: true,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(pickerMap);
 
