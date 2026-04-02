@@ -4507,7 +4507,7 @@ function setupMaps(lat, lng) {
   if (window.ignMap) { window.ignMap.remove(); window.ignMap = null; }
   window.ignMap = L.map('map-ign-leaflet', {
     center: [lat, lng],
-    zoom: 17, // ~1/10000
+    zoom: 16, // ~1/20000
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.ignMap);
