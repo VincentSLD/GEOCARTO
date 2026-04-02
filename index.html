@@ -6466,7 +6466,8 @@ function addMeasureTool(map) {
       html: `<div style="width:10px;height:10px;background:#d32f2f;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`,
       className: '', iconSize: [10, 10], iconAnchor: [5, 5],
     });
-    const m = L.marker(e.latlng, { icon: dotIcon, interactive: false }).addTo(map);
+    const m = L.marker(e.latlng, { icon: dotIcon, interactive: false, className: 'measure-element' }).addTo(map);
+    if (m._icon) m._icon.classList.add('measure-element');
     measureMarkers.push(m);
 
     // Draw line segment
@@ -6474,7 +6475,7 @@ function addMeasureTool(map) {
       const prev = measurePoints[measurePoints.length - 2];
       const curr = measurePoints[measurePoints.length - 1];
       const line = L.polyline([prev, curr], {
-        color: '#d32f2f', weight: 2.5, dashArray: '6,5', opacity: 0.85
+        color: '#d32f2f', weight: 2.5, dashArray: '6,5', opacity: 0.85, className: 'measure-element'
       }).addTo(map);
       measureLines.push(line);
 
@@ -6485,10 +6486,11 @@ function addMeasureTool(map) {
       const label = L.marker([midLat, midLng], {
         icon: L.divIcon({
           html: `<div style="background:#fff;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;color:#d32f2f;border:1px solid #d32f2f;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.2);">${formatDist(segDist)}</div>`,
-          className: '', iconAnchor: [30, 10],
+          className: 'measure-element', iconAnchor: [30, 10],
         }),
         interactive: false,
       }).addTo(map);
+      if (label._icon) label._icon.classList.add('measure-element');
       measureLabels.push(label);
     }
 
@@ -7729,7 +7731,7 @@ async function downloadIgnGeol(btn) {
         const target = clonedEl?.id === mapContainerId ? clonedEl : _clonedDoc.getElementById(mapContainerId);
         if (target) {
           _fixTransformsInClone(target);
-          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs, .ign-circle-500').forEach(el => { el.style.display = 'none'; });
+          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs, .ign-circle-500, .measure-element').forEach(el => { el.style.display = 'none'; });
           // Pictos marqueurs : supprimer contour, ombre et fond pour ne garder que le picto
           target.querySelectorAll('.leaflet-marker-icon').forEach(mk => {
             mk.style.background = 'transparent';
