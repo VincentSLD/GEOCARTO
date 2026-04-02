@@ -1226,6 +1226,16 @@
         <div id="picker-map-wrapper" style="position:relative;">
           <div id="picker-map" style="width:100%;height:320px;border-radius:10px;border:1px solid var(--border);overflow:hidden;cursor:crosshair;"></div>
           <button class="btn-map-fs" onclick="togglePickerFullscreen()">⛶ Plein écran</button>
+          <!-- Boussole interactive pour orienter le nord -->
+          <div id="picker-compass" style="position:absolute;top:10px;left:10px;z-index:1000;width:50px;height:50px;cursor:grab;user-select:none;" title="Glissez pour orienter le nord">
+            <svg viewBox="0 0 50 50" width="50" height="50" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3));">
+              <circle cx="25" cy="25" r="23" fill="rgba(255,255,255,0.9)" stroke="#bdbdbd" stroke-width="1"/>
+              <polygon id="compass-needle-n" points="25,4 29,22 25,19 21,22" fill="#d32f2f"/>
+              <polygon id="compass-needle-s" points="25,46 21,28 25,31 29,28" fill="#bdbdbd"/>
+              <text id="compass-N" x="25" y="3" text-anchor="middle" font-size="7" font-weight="700" fill="#d32f2f" font-family="sans-serif">N</text>
+              <circle cx="25" cy="25" r="3" fill="#fff" stroke="#999" stroke-width="1"/>
+            </svg>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
           <button class="preset-btn" id="btn-toggle-layer" onclick="togglePickerLayer()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;">
@@ -2286,6 +2296,82 @@ let pickerCadastreVisible = false;
 let pickerCurrentLayer = 'osm';
 let searchDebounceTimer = null;
 
+// Boussole interactive pour la rotation de la carte investigation
+let _pickerRotation = 0;
+
+function _initPickerCompass() {
+  const compass = document.getElementById('picker-compass');
+  if (!compass || !pickerMap) return;
+
+  let dragging = false, startAngle = 0;
+
+  function getAngle(e, rect) {
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return Math.atan2(clientX - cx, -(clientY - cy)) * 180 / Math.PI;
+  }
+
+  function applyRotation(deg) {
+    _pickerRotation = deg;
+    // Tourner les tuiles et overlays
+    const container = pickerMap.getContainer();
+    const tilePane = container.querySelector('.leaflet-map-pane');
+    if (tilePane) tilePane.style.transform = `rotate(${deg}deg)`;
+    // Agrandir le pane pour éviter les coins blancs
+    if (tilePane) { tilePane.style.width = '150%'; tilePane.style.height = '150%'; tilePane.style.left = '-25%'; tilePane.style.top = '-25%'; }
+    // Contre-tourner les contrôles
+    container.querySelectorAll('.leaflet-control-container').forEach(c => { c.style.transform = ''; });
+    // Tourner l'aiguille de la boussole
+    const svg = compass.querySelector('svg');
+    if (svg) {
+      svg.querySelector('#compass-needle-n').setAttribute('transform', `rotate(${-deg} 25 25)`);
+      svg.querySelector('#compass-needle-s').setAttribute('transform', `rotate(${-deg} 25 25)`);
+      const nText = svg.querySelector('#compass-N');
+      if (nText) {
+        const rad = (-deg) * Math.PI / 180;
+        nText.setAttribute('x', 25 + 22 * Math.sin(rad));
+        nText.setAttribute('y', 25 - 22 * Math.cos(rad) + 3);
+      }
+    }
+    // Contre-tourner les marqueurs
+    container.querySelectorAll('.leaflet-marker-icon, .leaflet-marker-shadow').forEach(mk => {
+      mk.style.transform = (mk.style.transform || '').replace(/rotate\([^)]*\)/g, '') + ` rotate(${-deg}deg)`;
+    });
+  }
+
+  function onStart(e) {
+    e.preventDefault();
+    dragging = true;
+    compass.style.cursor = 'grabbing';
+    startAngle = getAngle(e, compass.getBoundingClientRect()) - _pickerRotation;
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const angle = getAngle(e, compass.getBoundingClientRect()) - startAngle;
+    applyRotation(angle);
+  }
+  function onEnd() {
+    dragging = false;
+    compass.style.cursor = 'grab';
+  }
+
+  compass.addEventListener('mousedown', onStart);
+  compass.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchend', onEnd);
+
+  // Double-clic pour réinitialiser au nord
+  compass.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    applyRotation(0);
+  });
+}
+
 function initPickerMap() {
   if (pickerMap) return;
 
@@ -2322,6 +2408,9 @@ function initPickerMap() {
   pickerCadastreVisible = true;
   const cadBtn = document.getElementById('btn-toggle-cadastre');
   if (cadBtn) { cadBtn.innerHTML = '📐 Cadastre ✓'; cadBtn.style.background = 'rgba(26,26,26,0.15)'; }
+
+  // Boussole interactive — rotation de la carte
+  _initPickerCompass();
 
   // Click to place marker
   pickerMap.on('click', function(e) {
