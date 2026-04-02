@@ -473,9 +473,9 @@
   .map-embed:fullscreen #btn-geol-query-fs,
   .map-embed:-webkit-full-screen #btn-geol-query-fs,
   .map-embed.fs-manual #btn-geol-query-fs { display: flex !important; }
-  .map-embed:fullscreen #eds-zones-checkbox,
-  .map-embed:-webkit-full-screen #eds-zones-checkbox,
-  .map-embed.fs-manual #eds-zones-checkbox { bottom: 70px !important; }
+  .map-embed:fullscreen #eds-checkboxes,
+  .map-embed:-webkit-full-screen #eds-checkboxes,
+  .map-embed.fs-manual #eds-checkboxes { bottom: 70px !important; }
   .btn-map-fs-close {
     position: fixed;
     top: 12px; right: 12px;
@@ -1512,7 +1512,7 @@
             <button onclick="edsStartDrawZone()" title="Dessiner une zone sensible" style="padding:6px 14px;border-radius:10px;border:2px solid #e53935;background:rgba(229,57,53,0.2);font-size:1.2rem;line-height:1;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">⚠️</button>
           </div>
           <!-- Coches en bas à droite de la carte -->
-          <div style="position:absolute;bottom:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;">
+          <div id="eds-checkboxes" style="position:absolute;bottom:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;">
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.75rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;user-select:none;background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);padding:6px 10px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.2);">
               <input type="checkbox" id="eds-roads-toggle" checked onchange="edsToggleRoads(this.checked)" style="accent-color:#1976d2;width:15px;height:15px;cursor:pointer;">
               Routes
