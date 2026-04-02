@@ -4521,6 +4521,17 @@ function setupMaps(lat, lng) {
   // Marqueur
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.ignMap);
 
+  // Cercle rayon 500m (masqué à la capture)
+  window._ignCircle500 = L.circle([lat, lng], {
+    radius: 500,
+    className: 'ign-circle-500',
+    color: '#d32f2f',
+    weight: 2,
+    dashArray: '8 6',
+    fillColor: '#d32f2f',
+    fillOpacity: 0.04,
+  }).addTo(window.ignMap);
+
   // Outil de mesure
   addMeasureTool(window.ignMap);
 
@@ -7618,7 +7629,7 @@ async function captureLeaflet(mapContainerId, label, rawName) {
         if (target) {
           _fixTransformsInClone(target);
           // Masquer les contrôles (zoom +/-, outil mesure) dans la capture
-          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => {
+          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs, .ign-circle-500').forEach(el => {
             el.style.display = 'none';
           });
           // Pictos marqueurs : supprimer contour, ombre et fond pour ne garder que le picto
@@ -7711,7 +7722,7 @@ async function downloadIgnGeol(btn) {
         const target = clonedEl?.id === mapContainerId ? clonedEl : _clonedDoc.getElementById(mapContainerId);
         if (target) {
           _fixTransformsInClone(target);
-          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs').forEach(el => { el.style.display = 'none'; });
+          target.querySelectorAll('.leaflet-control-zoom, .leaflet-control-container .leaflet-bar, .leaflet-control-attribution, .btn-map-fs, .ign-circle-500').forEach(el => { el.style.display = 'none'; });
           // Pictos marqueurs : supprimer contour, ombre et fond pour ne garder que le picto
           target.querySelectorAll('.leaflet-marker-icon').forEach(mk => {
             mk.style.background = 'transparent';
