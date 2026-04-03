@@ -3926,20 +3926,23 @@ let _argilesWms2026 = [];
 let _argilesVersion = 'current';
 
 // Double-clic molette pour recentrer sur le point d'investigation
-function _addMiddleClickRecenter(map, getZoom) {
-  map.getContainer().addEventListener('dblclick', function(e) {
-    if (e.button === 1 && currentLat && currentLng) {
-      e.preventDefault();
-      e.stopPropagation();
-      map.setView([currentLat, currentLng], getZoom || map.getZoom(), { animate: true });
+function _addMiddleClickRecenter(map) {
+  let lastMiddle = 0;
+  map.getContainer().addEventListener('mousedown', function(e) {
+    if (e.button !== 1) return; // bouton du milieu uniquement
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastMiddle < 500 && currentLat && currentLng) {
+      // Double-clic molette détecté
+      map.setView([currentLat, currentLng], map.getZoom(), { animate: true });
+      lastMiddle = 0;
+    } else {
+      lastMiddle = now;
     }
   });
-  // Le middle-click (auxclick) peut aussi déclencher le recentrage
+  // Empêcher le comportement par défaut du clic molette (scroll auto)
   map.getContainer().addEventListener('auxclick', function(e) {
-    if (e.button === 1 && e.detail >= 2 && currentLat && currentLng) {
-      e.preventDefault();
-      map.setView([currentLat, currentLng], getZoom || map.getZoom(), { animate: true });
-    }
+    if (e.button === 1) e.preventDefault();
   });
 }
 
