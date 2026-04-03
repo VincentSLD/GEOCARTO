@@ -5,15 +5,28 @@
 <title>Import EDS vers Supabase</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
-  body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; background: #f5f5f0; }
+  body { font-family: -apple-system, sans-serif; max-width: 700px; margin: 60px auto; padding: 20px; background: #f5f5f0; }
   h1 { font-size: 1.3rem; }
   .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
   label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px; }
   input[type=password] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; font-size: 0.8rem; box-sizing: border-box; margin-bottom: 12px; }
-  button { padding: 10px 24px; border: none; border-radius: 8px; background: #1a1a1a; color: #f5c518; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  button { padding: 10px 24px; border: none; border-radius: 8px; background: #1a1a1a; color: #f5c518; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-right: 8px; }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tabs { display: flex; gap: 0; margin-bottom: 16px; }
+  .tab { padding: 10px 20px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  .tab:first-child { border-radius: 8px 0 0 8px; }
+  .tab:last-child { border-radius: 0 8px 8px 0; }
+  .tab.active { background: #1a1a1a; color: #f5c518; border-color: #1a1a1a; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
   #log { background: #1a1a1a; color: #e0e0e0; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.75rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.75rem; margin-top: 12px; }
+  th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+  th { background: #f5f5f0; font-weight: 700; }
+  tr:nth-child(even) { background: #fafafa; }
+  .preview { max-height: 300px; overflow-y: auto; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -22,14 +35,44 @@
 <div class="card">
   <label>Supabase Service Role Key</label>
   <input type="password" id="service-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
-
-  <label>Fichier CSV (Carte_EDS_V1.csv)</label>
-  <input type="file" id="csv-file" accept=".csv">
-
-  <br><br>
-  <button id="btn-import" onclick="startImport()">Lancer l'import</button>
 </div>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('csv')">CSV</div>
+  <div class="tab" onclick="switchTab('kmz')">KMZ / KML</div>
+</div>
+
+<div id="panel-csv" class="tab-panel active">
+  <div class="card">
+    <label>Fichier CSV (séparateur ;)</label>
+    <input type="file" id="csv-file" accept=".csv">
+    <p style="font-size:0.72rem;color:#888;margin-top:6px;">Colonnes attendues : Dossier, Référence, Nom, Adresse, Code Postal, Ville, Catégorie, Notes, Latitude, Longitude</p>
+    <br>
+    <button onclick="previewCSV()">Aperçu</button>
+    <button onclick="startImportCSV()">Importer</button>
+  </div>
+</div>
+
+<div id="panel-kmz" class="tab-panel">
+  <div class="card">
+    <label>Fichier KMZ ou KML (Google Earth)</label>
+    <input type="file" id="kmz-file" accept=".kmz,.kml">
+    <div style="margin-top:12px;">
+      <label>Dossier (optionnel)</label>
+      <input type="text" id="kmz-dossier" placeholder="Ex: Import Google Earth 2024" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:0.8rem;box-sizing:border-box;margin-bottom:8px;">
+      <label>Catégorie par défaut</label>
+      <select id="kmz-categorie" style="padding:6px;border:1px solid #ccc;border-radius:6px;font-size:0.8rem;">
+        <option value="jaune">Jaune</option>
+        <option value="rouge">Rouge</option>
+      </select>
+    </div>
+    <br>
+    <button onclick="previewKMZ()">Aperçu</button>
+    <button onclick="startImportKMZ()">Importer</button>
+  </div>
+</div>
+
+<div id="preview-container" class="preview"></div>
 <div id="log"></div>
 
 <script>
@@ -41,77 +84,192 @@ function log(msg) {
   el.scrollTop = el.scrollHeight;
 }
 
-async function startImport() {
-  const serviceKey = document.getElementById('service-key').value.trim();
-  const fileInput = document.getElementById('csv-file');
-  const btn = document.getElementById('btn-import');
-
-  if (!serviceKey) { alert('Service Role Key requise'); return; }
-  if (!fileInput.files.length) { alert('Selectionnez le fichier CSV'); return; }
-
-  btn.disabled = true;
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab-panel#panel-${tab}`).classList.add('active');
+  document.querySelectorAll('.tab')[tab === 'csv' ? 0 : 1].classList.add('active');
+  document.getElementById('preview-container').innerHTML = '';
   document.getElementById('log').textContent = '';
+}
 
+// ====== CSV ======
+function parseCSVFile() {
+  return new Promise((resolve, reject) => {
+    const file = document.getElementById('csv-file').files[0];
+    if (!file) { alert('Sélectionnez un fichier CSV'); reject(); return; }
+    file.text().then(text => {
+      const result = Papa.parse(text, { delimiter: ';', header: true, skipEmptyLines: true });
+      const valid = result.data.filter(r => {
+        const lat = parseFloat((r.Latitude || '').replace(',', '.'));
+        const lng = parseFloat((r.Longitude || '').replace(',', '.'));
+        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+      });
+      const rows = valid.map(r => ({
+        dossier: r.Dossier || null,
+        reference: r['Référence'] || r['Reference'] || null,
+        nom: (r.Nom || '').trim() || 'Sans nom',
+        adresse: r.Adresse || null,
+        code_postal: r['Code Postal'] || null,
+        ville: r.Ville || null,
+        categorie: r['Catégorie'] || r['Categorie'] || null,
+        notes: r.Notes || r['Description brute'] || null,
+        latitude: parseFloat((r.Latitude || '').replace(',', '.')),
+        longitude: parseFloat((r.Longitude || '').replace(',', '.')),
+        created_by: null
+      }));
+      resolve(rows);
+    });
+  });
+}
+
+function previewCSV() {
+  parseCSVFile().then(rows => showPreview(rows));
+}
+
+async function startImportCSV() {
+  const rows = await parseCSVFile();
+  await importRows(rows);
+}
+
+// ====== KMZ / KML ======
+async function parseKMZFile() {
+  const file = document.getElementById('kmz-file').files[0];
+  if (!file) { alert('Sélectionnez un fichier KMZ ou KML'); return []; }
+
+  let kmlText;
+  if (file.name.toLowerCase().endsWith('.kmz')) {
+    // KMZ = ZIP contenant un KML
+    const zip = await JSZip.loadAsync(file);
+    const kmlFile = Object.keys(zip.files).find(f => f.toLowerCase().endsWith('.kml'));
+    if (!kmlFile) { alert('Aucun fichier KML trouvé dans le KMZ'); return []; }
+    kmlText = await zip.files[kmlFile].async('string');
+  } else {
+    kmlText = await file.text();
+  }
+
+  // Parser le KML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(kmlText, 'text/xml');
+  const placemarks = doc.querySelectorAll('Placemark');
+
+  const dossier = document.getElementById('kmz-dossier').value.trim() || null;
+  const categorie = document.getElementById('kmz-categorie').value || 'jaune';
+
+  const rows = [];
+  placemarks.forEach(pm => {
+    const name = pm.querySelector('name')?.textContent?.trim() || 'Sans nom';
+    const desc = pm.querySelector('description')?.textContent?.trim() || '';
+
+    // Coordonnées : peut être dans Point/coordinates ou dans d'autres géométries
+    const coordsEl = pm.querySelector('Point coordinates') || pm.querySelector('coordinates');
+    if (!coordsEl) return;
+
+    const coordsText = coordsEl.textContent.trim();
+    // Format KML : longitude,latitude,altitude
+    const parts = coordsText.split(',');
+    if (parts.length < 2) return;
+
+    const lng = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+    // Extraire les données étendues (ExtendedData)
+    let reference = '', adresse = '', codePostal = '', ville = '';
+    pm.querySelectorAll('ExtendedData SimpleData, ExtendedData Data').forEach(d => {
+      const fieldName = (d.getAttribute('name') || '').toLowerCase();
+      const val = d.textContent?.trim() || '';
+      if (fieldName.includes('ref')) reference = val;
+      if (fieldName.includes('adresse') || fieldName.includes('address')) adresse = val;
+      if (fieldName.includes('postal') || fieldName.includes('cp') || fieldName.includes('zip')) codePostal = val;
+      if (fieldName.includes('ville') || fieldName.includes('city') || fieldName.includes('commune')) ville = val;
+    });
+
+    // Aussi chercher dans les balises Data/value
+    pm.querySelectorAll('ExtendedData Data').forEach(d => {
+      const fieldName = (d.getAttribute('name') || '').toLowerCase();
+      const val = d.querySelector('value')?.textContent?.trim() || '';
+      if (fieldName.includes('ref')) reference = val;
+      if (fieldName.includes('adresse') || fieldName.includes('address')) adresse = val;
+      if (fieldName.includes('postal') || fieldName.includes('cp') || fieldName.includes('zip')) codePostal = val;
+      if (fieldName.includes('ville') || fieldName.includes('city') || fieldName.includes('commune')) ville = val;
+    });
+
+    rows.push({
+      dossier,
+      reference: reference || null,
+      nom: name,
+      adresse: adresse || null,
+      code_postal: codePostal || null,
+      ville: ville || null,
+      categorie,
+      notes: desc || null,
+      latitude: lat,
+      longitude: lng,
+      created_by: null
+    });
+  });
+
+  return rows;
+}
+
+async function previewKMZ() {
+  const rows = await parseKMZFile();
+  showPreview(rows);
+}
+
+async function startImportKMZ() {
+  const rows = await parseKMZFile();
+  await importRows(rows);
+}
+
+// ====== Commun ======
+function showPreview(rows) {
+  const container = document.getElementById('preview-container');
+  if (!rows.length) {
+    container.innerHTML = '<p style="color:#c62828;font-weight:600;">Aucun point valide trouvé.</p>';
+    return;
+  }
+  let html = `<p style="font-weight:600;">${rows.length} points trouvés :</p>`;
+  html += '<table><thead><tr><th>#</th><th>Nom</th><th>Ville</th><th>Lat</th><th>Lng</th><th>Notes</th></tr></thead><tbody>';
+  rows.slice(0, 50).forEach((r, i) => {
+    html += `<tr><td>${i + 1}</td><td>${r.nom || ''}</td><td>${r.ville || ''}</td><td>${r.latitude.toFixed(5)}</td><td>${r.longitude.toFixed(5)}</td><td>${(r.notes || '').substring(0, 60)}</td></tr>`;
+  });
+  if (rows.length > 50) html += `<tr><td colspan="6" style="text-align:center;color:#888;">... et ${rows.length - 50} autres points</td></tr>`;
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+async function importRows(rows) {
+  const serviceKey = document.getElementById('service-key').value.trim();
+  if (!serviceKey) { alert('Service Role Key requise'); return; }
+  if (!rows.length) { alert('Aucun point à importer'); return; }
+
+  document.getElementById('log').textContent = '';
   const sb = window.supabase.createClient(SUPABASE_URL, serviceKey);
 
-  // Lire le CSV
-  log('Lecture du fichier CSV...');
-  const file = fileInput.files[0];
-  const text = await file.text();
-
-  log('Parsing CSV avec PapaParse...');
-  const result = Papa.parse(text, { delimiter: ';', header: true, skipEmptyLines: true });
-  log('  ' + result.data.length + ' lignes parsees.');
-
-  // Filtrer les points valides
-  const valid = result.data.filter(r => {
-    const lat = parseFloat((r.Latitude || '').replace(',', '.'));
-    const lng = parseFloat((r.Longitude || '').replace(',', '.'));
-    return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
-  });
-  log('  ' + valid.length + ' points avec coordonnees valides.');
-
-  // Preparer les rows
-  const rows = valid.map(r => ({
-    dossier: r.Dossier || null,
-    reference: r['Référence'] || r['Reference'] || null,
-    nom: (r.Nom || '').trim() || 'Sans nom',
-    adresse: r.Adresse || null,
-    code_postal: r['Code Postal'] || null,
-    ville: r.Ville || null,
-    categorie: r['Catégorie'] || r['Categorie'] || null,
-    notes: r.Notes || r['Description brute'] || null,
-    latitude: parseFloat((r.Latitude || '').replace(',', '.')),
-    longitude: parseFloat((r.Longitude || '').replace(',', '.')),
-    created_by: null
-  }));
-
-  // Inserer par lots de 500
   const BATCH = 500;
-  let inserted = 0;
-  let errors = 0;
+  let inserted = 0, errors = 0;
 
-  log('\nInsertion par lots de ' + BATCH + '...');
+  log(`Import de ${rows.length} points...`);
 
   for (let start = 0; start < rows.length; start += BATCH) {
     const batch = rows.slice(start, start + BATCH);
     const { error } = await sb.from('geocarto_eds').insert(batch);
     if (error) {
-      log('  ERREUR lot ' + start + '-' + (start + batch.length) + ': ' + error.message);
+      log(`  ERREUR lot ${start}-${start + batch.length}: ${error.message}`);
       errors++;
     } else {
       inserted += batch.length;
-      log('  ' + inserted + ' / ' + rows.length + ' inseres...');
+      log(`  ${inserted} / ${rows.length} insérés...`);
     }
   }
 
   log('\n============================');
-  log('Import termine !');
-  log('  ' + inserted + ' points inseres');
-  if (errors) log('  ' + errors + ' lots en erreur');
+  log('Import terminé !');
+  log(`  ${inserted} points insérés`);
+  if (errors) log(`  ${errors} lots en erreur`);
   log('============================');
-
-  btn.disabled = false;
 }
 </script>
 </body>
