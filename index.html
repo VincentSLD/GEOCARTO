@@ -5384,9 +5384,12 @@ function _edsZonesRender() {
 }
 
 // --- Lancer le dessin d'une nouvelle zone ---
-function edsStartDrawZone() {
+async function edsStartDrawZone() {
   if (!window.edsMap) { alert('La carte EDS n\'est pas encore chargée.'); return; }
   if (typeof L.Draw === 'undefined') { alert('Le module de dessin n\'a pas pu se charger. Désactivez le blocage de suivi (Tracking Prevention) dans les paramètres du navigateur, ou essayez un autre navigateur.'); return; }
+  // Mot de passe requis avant de dessiner
+  const pwdOk = await edsAskDeletePwd();
+  if (!pwdOk) return;
   if (_edsDrawHandler) { _edsDrawHandler.disable(); _edsDrawHandler = null; }
 
   // Activer l'affichage des zones si désactivé
@@ -5432,12 +5435,7 @@ function edsStartDrawZone() {
     _resetBtn();
     _edsDrawHandler = null;
     const geojson = e.layer.toGeoJSON().geometry;
-    // Mot de passe requis pour créer une zone
-    (async () => {
-      const pwdOk = await edsAskDeletePwd();
-      if (!pwdOk) return;
-      _edsShowZoneForm(geojson);
-    })();
+    _edsShowZoneForm(geojson);
   });
   // Si le dessin est annulé (Escape) sans avoir créé de zone
   window.edsMap.once('draw:drawstop', function() {
