@@ -68,7 +68,8 @@
     </div>
     <br>
     <button onclick="previewKMZ()">Aperçu</button>
-    <button onclick="startImportKMZ()">Importer</button>
+    <button onclick="exportCSV()">📥 Exporter en CSV</button>
+    <button onclick="startImportKMZ()">Importer dans Supabase</button>
   </div>
 </div>
 
@@ -281,6 +282,38 @@ function filterPreview() {
     const text = tr.textContent.toLowerCase();
     tr.style.display = text.includes(filter) ? '' : 'none';
   });
+}
+
+async function exportCSV() {
+  if (!_pendingRows.length) _pendingRows = await parseKMZFile();
+  if (!_pendingRows.length) { alert('Aucun point à exporter'); return; }
+
+  const headers = ['Dossier', 'Référence', 'Nom', 'Adresse', 'Code Postal', 'Ville', 'Catégorie', 'Notes', 'Latitude', 'Longitude'];
+  const lines = [headers.join(';')];
+  _pendingRows.forEach(r => {
+    lines.push([
+      r.dossier || '',
+      r.reference || '',
+      (r.nom || '').replace(/;/g, ','),
+      (r.adresse || '').replace(/;/g, ','),
+      r.code_postal || '',
+      r.ville || '',
+      r.categorie || '',
+      (r.notes || '').replace(/;/g, ',').replace(/\n/g, ' '),
+      r.latitude,
+      r.longitude
+    ].join(';'));
+  });
+
+  const csv = '\uFEFF' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.download = 'export_eds.csv';
+  a.href = URL.createObjectURL(blob);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 async function importRows(rows) {
