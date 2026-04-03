@@ -4155,6 +4155,24 @@ function _initGoogleMaps(lat, lng) {
 
   // Boussole interactive pour la carte satellite
   _initGsatCompass();
+
+  // Double-clic molette pour recentrer sur le point d'investigation
+  let _gsatLastMiddle = 0;
+  const satEl = document.getElementById('map-satellite');
+  if (satEl) {
+    satEl.addEventListener('mousedown', function(e) {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      const now = Date.now();
+      if (now - _gsatLastMiddle < 500 && currentLat && currentLng) {
+        _gSatMap.setCenter({ lat: currentLat, lng: currentLng });
+        _gsatLastMiddle = 0;
+      } else {
+        _gsatLastMiddle = now;
+      }
+    });
+    satEl.addEventListener('auxclick', function(e) { if (e.button === 1) e.preventDefault(); });
+  }
 }
 
 function _createPegmanElement() {
