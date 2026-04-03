@@ -26,7 +26,7 @@
   th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
   th { background: #f5f5f0; font-weight: 700; }
   tr:nth-child(even) { background: #fafafa; }
-  .preview { max-height: 300px; overflow-y: auto; margin-top: 12px; }
+  .preview { max-height: 500px; overflow-y: auto; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -93,6 +93,8 @@ function switchTab(tab) {
   document.getElementById('log').textContent = '';
 }
 
+let _pendingRows = []; // Données prêtes à importer (éditables)
+
 // ====== CSV ======
 function parseCSVFile() {
   return new Promise((resolve, reject) => {
@@ -124,12 +126,12 @@ function parseCSVFile() {
 }
 
 function previewCSV() {
-  parseCSVFile().then(rows => showPreview(rows));
+  parseCSVFile().then(rows => { _pendingRows = rows; showPreview(); });
 }
 
 async function startImportCSV() {
-  const rows = await parseCSVFile();
-  await importRows(rows);
+  if (!_pendingRows.length) { const rows = await parseCSVFile(); _pendingRows = rows; }
+  await importRows(_pendingRows);
 }
 
 // ====== KMZ / KML ======
@@ -214,30 +216,71 @@ async function parseKMZFile() {
 }
 
 async function previewKMZ() {
-  const rows = await parseKMZFile();
-  showPreview(rows);
+  _pendingRows = await parseKMZFile();
+  showPreview();
 }
 
 async function startImportKMZ() {
-  const rows = await parseKMZFile();
-  await importRows(rows);
+  if (!_pendingRows.length) _pendingRows = await parseKMZFile();
+  await importRows(_pendingRows);
 }
 
 // ====== Commun ======
-function showPreview(rows) {
+function showPreview() {
   const container = document.getElementById('preview-container');
-  if (!rows.length) {
+  if (!_pendingRows.length) {
     container.innerHTML = '<p style="color:#c62828;font-weight:600;">Aucun point valide trouvé.</p>';
     return;
   }
-  let html = `<p style="font-weight:600;">${rows.length} points trouvés :</p>`;
-  html += '<table><thead><tr><th>#</th><th>Nom</th><th>Ville</th><th>Lat</th><th>Lng</th><th>Notes</th></tr></thead><tbody>';
-  rows.slice(0, 50).forEach((r, i) => {
-    html += `<tr><td>${i + 1}</td><td>${r.nom || ''}</td><td>${r.ville || ''}</td><td>${r.latitude.toFixed(5)}</td><td>${r.longitude.toFixed(5)}</td><td>${(r.notes || '').substring(0, 60)}</td></tr>`;
+  let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+    <span style="font-weight:700;">${_pendingRows.length} points</span>
+    <button onclick="deleteSelected()" style="padding:6px 14px;font-size:0.78rem;background:#c62828;color:#fff;">🗑 Supprimer sélectionnés</button>
+    <button onclick="selectAll(true)" style="padding:6px 14px;font-size:0.78rem;">Tout cocher</button>
+    <button onclick="selectAll(false)" style="padding:6px 14px;font-size:0.78rem;">Tout décocher</button>
+    <input type="text" id="filter-text" placeholder="🔍 Filtrer..." oninput="filterPreview()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.78rem;flex:1;min-width:120px;">
+  </div>`;
+  html += '<table id="preview-table"><thead><tr><th><input type="checkbox" checked onchange="selectAll(this.checked)"></th><th>#</th><th>Nom</th><th>Ville</th><th>Lat</th><th>Lng</th><th>Notes</th><th></th></tr></thead><tbody>';
+  _pendingRows.forEach((r, i) => {
+    html += `<tr data-idx="${i}">
+      <td><input type="checkbox" class="row-check" data-idx="${i}" checked></td>
+      <td>${i + 1}</td>
+      <td>${(r.nom || '').replace(/</g,'&lt;')}</td>
+      <td>${(r.ville || '').replace(/</g,'&lt;')}</td>
+      <td>${r.latitude.toFixed(5)}</td>
+      <td>${r.longitude.toFixed(5)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(r.notes || '').replace(/</g,'&lt;').substring(0, 80)}</td>
+      <td><span onclick="deleteRow(${i})" style="cursor:pointer;color:#c62828;font-weight:700;" title="Supprimer cette ligne">✕</span></td>
+    </tr>`;
   });
-  if (rows.length > 50) html += `<tr><td colspan="6" style="text-align:center;color:#888;">... et ${rows.length - 50} autres points</td></tr>`;
   html += '</tbody></table>';
   container.innerHTML = html;
+}
+
+function deleteRow(idx) {
+  _pendingRows.splice(idx, 1);
+  showPreview();
+}
+
+function deleteSelected() {
+  const checks = document.querySelectorAll('.row-check');
+  const toDelete = new Set();
+  checks.forEach(cb => { if (cb.checked) toDelete.add(parseInt(cb.dataset.idx)); });
+  if (!toDelete.size) { alert('Aucune ligne sélectionnée'); return; }
+  if (!confirm(`Supprimer ${toDelete.size} ligne(s) de l'aperçu ?`)) return;
+  _pendingRows = _pendingRows.filter((_, i) => !toDelete.has(i));
+  showPreview();
+}
+
+function selectAll(checked) {
+  document.querySelectorAll('.row-check').forEach(cb => { cb.checked = checked; });
+}
+
+function filterPreview() {
+  const filter = (document.getElementById('filter-text')?.value || '').toLowerCase();
+  document.querySelectorAll('#preview-table tbody tr').forEach(tr => {
+    const text = tr.textContent.toLowerCase();
+    tr.style.display = text.includes(filter) ? '' : 'none';
+  });
 }
 
 async function importRows(rows) {
