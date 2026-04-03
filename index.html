@@ -2408,6 +2408,7 @@ function initPickerMap() {
 
   // Boussole interactive — rotation de la carte
   _initPickerCompass();
+  _addMiddleClickRecenter(pickerMap);
 
   // Click to place marker
   pickerMap.on('click', function(e) {
@@ -3923,6 +3924,24 @@ let argilesMap = null;
 let _argilesWmsCurrent = [];
 let _argilesWms2026 = [];
 let _argilesVersion = 'current';
+
+// Double-clic molette pour recentrer sur le point d'investigation
+function _addMiddleClickRecenter(map, getZoom) {
+  map.getContainer().addEventListener('dblclick', function(e) {
+    if (e.button === 1 && currentLat && currentLng) {
+      e.preventDefault();
+      e.stopPropagation();
+      map.setView([currentLat, currentLng], getZoom || map.getZoom(), { animate: true });
+    }
+  });
+  // Le middle-click (auxclick) peut aussi déclencher le recentrage
+  map.getContainer().addEventListener('auxclick', function(e) {
+    if (e.button === 1 && e.detail >= 2 && currentLat && currentLng) {
+      e.preventDefault();
+      map.setView([currentLat, currentLng], getZoom || map.getZoom(), { animate: true });
+    }
+  });
+}
 
 const _invIcon = L.divIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
@@ -6542,6 +6561,9 @@ async function fetchMvtMap(lat, lng) {
 // ====== MEASURE TOOL ======
 // Custom Leaflet control for measuring distances on the map
 function addMeasureTool(map) {
+  // Double-clic molette → recentrer sur le point d'investigation
+  _addMiddleClickRecenter(map);
+
   let measuring = false;
   let measurePoints = [];
   let measureMarkers = [];
