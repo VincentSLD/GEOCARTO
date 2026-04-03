@@ -5831,6 +5831,9 @@ async function initEdsMap() {
   // Afficher les zones sensibles
   _edsZonesRender();
 
+  // Double-clic molette pour recentrer
+  _addMiddleClickRecenter(window.edsMap);
+
   const loader2 = document.getElementById('eds-loader');
   if (loader2) loader2.style.display = 'none';
 
