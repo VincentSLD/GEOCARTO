@@ -45,7 +45,7 @@
     Routes
   </label>
   <label>
-    <input type="checkbox" id="toggle-zones" checked onchange="toggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
+    <input type="checkbox" id="toggle-zones" onchange="toggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
     Zones sensibles
   </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
@@ -178,7 +178,7 @@ function renderZones() {
       L.marker(center, { icon: L.divIcon({ className: '', html: `<div style="font-size:0.65rem;font-weight:700;color:#1a1a1a;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff;pointer-events:none;">${z.nom.replace(/</g,'&lt;')}</div>`, iconSize: [0,0], iconAnchor: [0,0] }), interactive: false }).addTo(zonesLayer);
     }
   });
-  zonesLayer.addTo(map);
+  // Masqué par défaut
 }
 
 function toggleRoads(show) {
