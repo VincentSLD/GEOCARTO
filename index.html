@@ -4699,6 +4699,7 @@ function setupMaps(lat, lng) {
 
   let _altiTimer = null;
   let _altiCache = {};
+  let _altiDot = null;
   window.cadastreMap.on('mousemove', function(e) {
     clearTimeout(_altiTimer);
     const lat = e.latlng.lat.toFixed(4);
@@ -4719,6 +4720,11 @@ function setupMaps(lat, lng) {
         if (z !== null && z !== -99999) {
           _altiCache[key] = z.toFixed(1);
           el.textContent = '⛰ ' + z.toFixed(1) + ' m NGF';
+          // Petit rond à l'endroit de la mesure
+          if (_altiDot) window.cadastreMap.removeLayer(_altiDot);
+          _altiDot = L.circleMarker([parseFloat(lat), parseFloat(lng)], {
+            radius: 4, color: '#795548', fillColor: '#fff', fillOpacity: 1, weight: 2, interactive: false,
+          }).addTo(window.cadastreMap);
         } else {
           el.textContent = '⛰ —';
         }
