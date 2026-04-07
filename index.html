@@ -4702,14 +4702,23 @@ function setupMaps(lat, lng) {
   let _altiDot = null;
   window.cadastreMap.on('mousemove', function(e) {
     clearTimeout(_altiTimer);
-    const lat = e.latlng.lat.toFixed(4);
-    const lng = e.latlng.lng.toFixed(4);
+    const exactLat = e.latlng.lat;
+    const exactLng = e.latlng.lng;
+    const lat = exactLat.toFixed(4);
+    const lng = exactLng.toFixed(4);
     const key = lat + ',' + lng;
     const el = document.getElementById('cadastre-alti-display');
     if (!el) return;
+    // Déplacer le rond à la position exacte de la souris
+    if (_altiDot) _altiDot.setLatLng([exactLat, exactLng]);
     // Vérifier le cache
     if (_altiCache[key] !== undefined) {
       el.textContent = '⛰ ' + _altiCache[key] + ' m NGF';
+      if (!_altiDot) {
+        _altiDot = L.circleMarker([exactLat, exactLng], {
+          radius: 4, color: '#795548', fillColor: '#fff', fillOpacity: 1, weight: 2, interactive: false,
+        }).addTo(window.cadastreMap);
+      }
       return;
     }
     _altiTimer = setTimeout(async () => {
@@ -4720,11 +4729,12 @@ function setupMaps(lat, lng) {
         if (z !== null && z !== -99999) {
           _altiCache[key] = z.toFixed(1);
           el.textContent = '⛰ ' + z.toFixed(1) + ' m NGF';
-          // Petit rond à l'endroit de la mesure
-          if (_altiDot) window.cadastreMap.removeLayer(_altiDot);
-          _altiDot = L.circleMarker([parseFloat(lat), parseFloat(lng)], {
-            radius: 4, color: '#795548', fillColor: '#fff', fillOpacity: 1, weight: 2, interactive: false,
-          }).addTo(window.cadastreMap);
+          if (_altiDot) { _altiDot.setLatLng([exactLat, exactLng]); }
+          else {
+            _altiDot = L.circleMarker([exactLat, exactLng], {
+              radius: 4, color: '#795548', fillColor: '#fff', fillOpacity: 1, weight: 2, interactive: false,
+            }).addTo(window.cadastreMap);
+          }
         } else {
           el.textContent = '⛰ —';
         }
