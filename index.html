@@ -4731,6 +4731,12 @@ function setupMaps(lat, lng) {
       } catch(e) { /* silencieux */ }
     }, 200);
   });
+  window.cadastreMap.on('mouseout', function() {
+    clearTimeout(_altiTimer);
+    const el = document.getElementById('cadastre-alti-display');
+    if (el) el.textContent = '⛰ —';
+    if (_altiDot) { window.cadastreMap.removeLayer(_altiDot); _altiDot = null; }
+  });
 
   [300, 600, 1000, 1500].forEach(d => setTimeout(() => { window.cadastreMap?.invalidateSize(); }, d));
 
