@@ -4723,23 +4723,37 @@ function setupMaps(lat, lng) {
     }
     _altiTimer = setTimeout(async () => {
       try {
-        const resp = await fetch(`https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false&zonly=true`, { signal: AbortSignal.timeout(3000) });
+        // Requête multi-points : point actuel + 8 voisins pour pré-remplir le cache
+        const step = 0.0001; // ~11m
+        const lats = [], lngs = [];
+        for (let di = -1; di <= 1; di++) {
+          for (let dj = -1; dj <= 1; dj++) {
+            const pLat = (parseFloat(lat) + di * step).toFixed(4);
+            const pLng = (parseFloat(lng) + dj * step).toFixed(4);
+            if (_altiCache[pLat + ',' + pLng] === undefined) {
+              lats.push(pLat); lngs.push(pLng);
+            }
+          }
+        }
+        if (!lats.length) return;
+        const resp = await fetch(`https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lngs.join('|')}&lat=${lats.join('|')}&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false&zonly=true`, { signal: AbortSignal.timeout(3000) });
         const data = await resp.json();
-        const z = data.elevations?.[0] ?? null;
-        if (z !== null && z !== -99999) {
-          _altiCache[key] = z.toFixed(1);
-          el.textContent = '⛰ ' + z.toFixed(1) + ' m NGF';
+        const elevs = data.elevations || [];
+        elevs.forEach((z, i) => {
+          if (z !== null && z !== -99999) _altiCache[lats[i] + ',' + lngs[i]] = z.toFixed(1);
+        });
+        // Afficher la valeur du point actuel
+        if (_altiCache[key]) {
+          el.textContent = '⛰ ' + _altiCache[key] + ' m NGF';
           if (_altiDot) { _altiDot.setLatLng([exactLat, exactLng]); }
           else {
             _altiDot = L.circleMarker([exactLat, exactLng], {
               radius: 4, color: '#795548', fillColor: '#fff', fillOpacity: 1, weight: 2, interactive: false,
             }).addTo(window.cadastreMap);
           }
-        } else {
-          el.textContent = '⛰ —';
         }
       } catch(e) { /* silencieux */ }
-    }, 200);
+    }, 50);
   });
   window.cadastreMap.on('mouseout', function() {
     clearTimeout(_altiTimer);
