@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte EDS - GEOCARTO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; font-family: 'Bricolage Grotesque', sans-serif; overflow: hidden; }
+  #toolbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+    background: rgba(255,255,255,0.93); backdrop-filter: blur(6px);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12); flex-wrap: wrap;
+  }
+  #toolbar input[type=text] {
+    flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid #ccc; font-size: 0.82rem; font-family: 'Bricolage Grotesque', sans-serif;
+  }
+  #toolbar label {
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+    font-size: 0.75rem; font-weight: 700; color: #1a1a1a;
+    background: rgba(255,255,255,0.9); padding: 6px 10px; border-radius: 8px;
+    border: 1px solid #ccc; user-select: none; white-space: nowrap;
+  }
+  #map { position: absolute; inset: 0; top: 0; }
+  .leaflet-top { top: 50px !important; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div style="font-weight:700;font-size:0.9rem;color:#388e3c;">📍 Carte EDS</div>
+  <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="filterMarkers()">
+  <label>
+    <input type="checkbox" id="toggle-roads" checked onchange="toggleRoads(this.checked)" style="accent-color:#1976d2;width:15px;height:15px;cursor:pointer;">
+    Routes
+  </label>
+  <label>
+    <input type="checkbox" id="toggle-zones" checked onchange="toggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
+    Zones sensibles
+  </label>
+  <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
+</div>
+
+<div id="map"></div>
+
+<script>
+const SUPABASE_URL = 'https://asuccniyofzvwgooxjah.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzdWNjbml5b2Z6dndnb294amFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDQyNjgsImV4cCI6MjA4ODQ4MDI2OH0.dPerW1BApAxe26xzv9i7oWIubgGuzO5RibMvs-MFm88';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let map, markerGroup, roadsLayer, zonesLayer;
+let allData = [], zonesData = [];
+
+// Icônes
+function colorIcon(color) {
+  const isRouge = (color || '').toLowerCase() === 'rouge';
+  const fill = isRouge ? '#e53935' : '#ffd600';
+  const stem = isRouge ? '#c62828' : '#f9a825';
+  return L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+      <circle cx="11" cy="10" r="9" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="11" cy="10" r="3.5" fill="#fff" opacity="0.6"/>
+      <line x1="11" y1="19" x2="11" y2="29" stroke="${stem}" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`,
+    className: '', iconSize: [22, 30], iconAnchor: [11, 29]
+  });
+}
+const iconJaune = colorIcon('jaune');
+const iconRouge = colorIcon('rouge');
+
+// Init carte
+map = L.map('map', { center: [46.8, 2.2], zoom: 6, zoomControl: false, attributionControl: false });
+L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+
+map.createPane('roadsPane');
+map.getPane('roadsPane').style.zIndex = 400;
+roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.55, pane: 'roadsPane' }).addTo(map);
+
+// Charger les données
+async function loadData() {
+  document.getElementById('count').textContent = '⏳ Chargement…';
+
+  // Points EDS
+  const PAGE = 1000;
+  let from = 0, hasMore = true;
+  allData = [];
+  while (hasMore) {
+    const { data, error } = await sb.from('geocarto_eds')
+      .select('id,dossier,reference,nom,adresse,code_postal,ville,categorie,notes,latitude,longitude')
+      .range(from, from + PAGE - 1).order('created_at', { ascending: false });
+    if (error || !data?.length) break;
+    allData = allData.concat(data);
+    from += data.length;
+    hasMore = data.length === PAGE;
+  }
+
+  // Zones sensibles
+  const { data: zd } = await sb.from('geocarto_eds_zones')
+    .select('id,nom,description,couleur,opacite,geometry').order('created_at', { ascending: false });
+  zonesData = zd || [];
+
+  renderMarkers(allData);
+  renderZones();
+  document.getElementById('count').textContent = `${allData.length} points · ${zonesData.length} zones`;
+}
+
+function renderMarkers(data) {
+  if (markerGroup) map.removeLayer(markerGroup);
+  markerGroup = L.markerClusterGroup({
+    chunkedLoading: true, maxClusterRadius: 55,
+    iconCreateFunction: cluster => {
+      const n = cluster.getChildCount();
+      const size = n < 100 ? 30 : n < 1000 ? 36 : 42;
+      const bg = n < 50 ? '#ffe57f' : n < 500 ? '#ffd600' : '#f9a825';
+      return L.divIcon({
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};color:#5a3e00;display:flex;align-items:center;justify-content:center;font-size:${size < 36 ? 10 : 12}px;font-weight:700;font-family:'Space Grotesk',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.28);border:2px solid rgba(255,255,255,0.85);">${n >= 1000 ? (n/1000).toFixed(1)+'k' : n}</div>`,
+        className: '', iconSize: [size, size], iconAnchor: [size/2, size/2]
+      });
+    }
+  });
+
+  data.forEach(r => {
+    const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+    if (isNaN(lat) || isNaN(lng)) return;
+    const icon = (r.categorie || '').toLowerCase() === 'rouge' ? iconRouge : iconJaune;
+    const m = L.marker([lat, lng], { icon });
+    m.bindTooltip(r.nom || '—', { sticky: false, opacity: 0.95 });
+    const loc = [r.adresse, r.code_postal, r.ville].filter(Boolean).join(' ').trim();
+    m.on('click', function() {
+      if (!this.getPopup()) {
+        this.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:190px;max-width:270px;">
+          <div style="font-weight:700;font-size:0.83rem;color:#1a1a1a;margin-bottom:4px;">${r.nom || '—'}</div>
+          ${r.reference ? `<div style="font-size:0.7rem;color:#6b7280;">📁 ${r.reference}</div>` : ''}
+          ${loc ? `<div style="font-size:0.7rem;color:#6b7280;">📍 ${loc}</div>` : ''}
+          ${r.notes ? `<div style="font-size:0.72rem;color:#374151;margin-top:5px;padding-top:5px;border-top:1px solid #e5e7eb;white-space:pre-wrap;max-height:110px;overflow-y:auto;">${r.notes}</div>` : ''}
+          ${r.dossier ? `<div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;font-style:italic;">${r.dossier}</div>` : ''}
+        </div>`, { maxWidth: 290 });
+        this.openPopup();
+      }
+    });
+    markerGroup.addLayer(m);
+  });
+  map.addLayer(markerGroup);
+}
+
+function renderZones() {
+  if (zonesLayer) map.removeLayer(zonesLayer);
+  zonesLayer = L.featureGroup();
+  zonesData.forEach(z => {
+    if (!z.geometry?.coordinates) return;
+    const coords = z.geometry.coordinates[0].map(c => [c[1], c[0]]);
+    const poly = L.polygon(coords, { color: z.couleur || '#e53935', weight: 3, fillColor: z.couleur || '#e53935', fillOpacity: z.opacite ?? 0.5 });
+    poly.on('click', function() {
+      const nom = (z.nom || '').replace(/</g, '&lt;');
+      const desc = (z.description || '').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+      this.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:180px;">
+        <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${z.couleur || '#e53935'};opacity:0.7;"></span>${nom}
+        </div>
+        ${desc ? `<div style="font-size:0.74rem;color:#374151;white-space:pre-wrap;">${desc}</div>` : ''}
+      </div>`, { maxWidth: 300 }).openPopup();
+    });
+    zonesLayer.addLayer(poly);
+    if (z.nom) {
+      const center = L.polygon(coords).getBounds().getCenter();
+      L.marker(center, { icon: L.divIcon({ className: '', html: `<div style="font-size:0.65rem;font-weight:700;color:#1a1a1a;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff;pointer-events:none;">${z.nom.replace(/</g,'&lt;')}</div>`, iconSize: [0,0], iconAnchor: [0,0] }), interactive: false }).addTo(zonesLayer);
+    }
+  });
+  zonesLayer.addTo(map);
+}
+
+function toggleRoads(show) {
+  if (show) roadsLayer.addTo(map); else map.removeLayer(roadsLayer);
+}
+
+function toggleZones(show) {
+  if (!zonesLayer) return;
+  if (show) zonesLayer.addTo(map); else map.removeLayer(zonesLayer);
+}
+
+let _filterTimer;
+function filterMarkers() {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => {
+    const q = (document.getElementById('eds-search')?.value || '').toLowerCase();
+    if (!q) { renderMarkers(allData); return; }
+    const filtered = allData.filter(r =>
+      (r.nom || '').toLowerCase().includes(q) ||
+      (r.ville || '').toLowerCase().includes(q) ||
+      (r.adresse || '').toLowerCase().includes(q) ||
+      (r.reference || '').toLowerCase().includes(q) ||
+      (r.notes || '').toLowerCase().includes(q)
+    );
+    renderMarkers(filtered);
+  }, 300);
+}
+
+// Lancer
+loadData();
+</script>
+</body>
+</html>
