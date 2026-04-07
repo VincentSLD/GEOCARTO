@@ -4685,6 +4685,47 @@ function setupMaps(lat, lng) {
   northControl.addTo(window.cadastreMap);
 
   addMeasureTool(window.cadastreMap);
+
+  // Affichage altitude au survol de la souris
+  const altiCtrl = L.control({ position: 'bottomright' });
+  altiCtrl.onAdd = function() {
+    const div = L.DomUtil.create('div');
+    div.id = 'cadastre-alti-display';
+    div.style.cssText = 'background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);padding:4px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;color:#795548;font-family:"Bricolage Grotesque",sans-serif;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;';
+    div.textContent = '⛰ —';
+    return div;
+  };
+  altiCtrl.addTo(window.cadastreMap);
+
+  let _altiTimer = null;
+  let _altiCache = {};
+  window.cadastreMap.on('mousemove', function(e) {
+    clearTimeout(_altiTimer);
+    const lat = e.latlng.lat.toFixed(4);
+    const lng = e.latlng.lng.toFixed(4);
+    const key = lat + ',' + lng;
+    const el = document.getElementById('cadastre-alti-display');
+    if (!el) return;
+    // Vérifier le cache
+    if (_altiCache[key] !== undefined) {
+      el.textContent = '⛰ ' + _altiCache[key] + ' m NGF';
+      return;
+    }
+    _altiTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch(`https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false&zonly=true`, { signal: AbortSignal.timeout(3000) });
+        const data = await resp.json();
+        const z = data.elevations?.[0] ?? null;
+        if (z !== null && z !== -99999) {
+          _altiCache[key] = z.toFixed(1);
+          el.textContent = '⛰ ' + z.toFixed(1) + ' m NGF';
+        } else {
+          el.textContent = '⛰ —';
+        }
+      } catch(e) { /* silencieux */ }
+    }, 200);
+  });
+
   [300, 600, 1000, 1500].forEach(d => setTimeout(() => { window.cadastreMap?.invalidateSize(); }, d));
 
   // ====== Liens Permis de Construire SITADEL (supprimés du HTML) ======
