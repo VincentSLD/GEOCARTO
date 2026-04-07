@@ -204,6 +204,10 @@ function filterMarkers() {
       (r.notes || '').toLowerCase().includes(q)
     );
     renderMarkers(filtered);
+    // Zoomer sur les résultats
+    if (filtered.length && markerGroup.getLayers().length) {
+      map.fitBounds(markerGroup.getBounds(), { padding: [50, 50], maxZoom: 15 });
+    }
   }, 300);
 }
 
