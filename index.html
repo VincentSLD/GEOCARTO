@@ -4307,7 +4307,7 @@ function setupMaps(lat, lng) {
   if (window.geologieMap) { window.geologieMap.remove(); window.geologieMap = null; }
   window.geologieMap = L.map('map-geologie', {
     center: [lat, lng],
-    zoom: 15, // ~1/25000
+    zoom: 12,
     zoomControl: false,
   });
   L.control.zoom({ position: 'bottomleft' }).addTo(window.geologieMap);
