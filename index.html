@@ -8031,8 +8031,10 @@ async function downloadIgnGeol(btn) {
         lmap.setView(lmap.getCenter(), lmap.getZoom(), { animate: false, reset: true });
       }
       lmap.invalidateSize();
+      // Forcer le rechargement des couches WMS
+      lmap.eachLayer(l => { try { if (l.redraw) l.redraw(); } catch(e){} });
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, forceZoom ? 2000 : 1500));
+      await new Promise(r => setTimeout(r, forceZoom ? 4000 : 1500));
     }
 
     const canvas = await html2canvas(el, {
