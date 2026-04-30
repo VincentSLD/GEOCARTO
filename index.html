@@ -1581,6 +1581,10 @@
               <input type="checkbox" id="eds-zones-toggle" checked onchange="edsToggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
               Zones sensibles <span id="eds-zones-count" style="font-size:0.68rem;color:#6b7280;font-weight:600;"></span>
             </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.75rem;font-weight:700;color:#1a1a1a;font-family:'Bricolage Grotesque',sans-serif;user-select:none;background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);padding:6px 10px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.2);">
+              <input type="checkbox" id="eds-pegman-toggle" checked onchange="edsTogglePegman(this.checked)" style="accent-color:#f9a825;width:15px;height:15px;cursor:pointer;">
+              Bonhomme
+            </label>
           </div>
         </div>
 
@@ -8240,6 +8244,35 @@ function _invalidateAllMaps() {
 
 // Vignettes Street View + Google Maps satellite pour le plein écran de la carte EDS
 let _edsMiniSat = null, _edsMiniSv = null, _edsMiniPegman = null, _edsMiniSyncing = false;
+let _edsLeafletPegman = null, _edsPegmanVisible = true;
+
+// Icône Pegman pour la carte Leaflet EDS
+const _edsPegmanIcon = L.divIcon({
+  html: `<div style="position:relative;width:28px;height:34px;">
+    <svg viewBox="0 0 28 34" width="28" height="34" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">
+      <circle cx="14" cy="6" r="5" fill="#f9a825" stroke="#e65100" stroke-width="1.5"/>
+      <path d="M14 12 C7 12 5 17 5 21 L9 21 L11 30 L17 30 L19 21 L23 21 C23 17 21 12 14 12z" fill="#f9a825" stroke="#e65100" stroke-width="1"/>
+    </svg>
+  </div>`,
+  className: '', iconSize: [28, 34], iconAnchor: [14, 30],
+});
+
+function edsTogglePegman(show) {
+  _edsPegmanVisible = show;
+  if (!_edsLeafletPegman || !window.edsMap) return;
+  if (show) _edsLeafletPegman.addTo(window.edsMap);
+  else window.edsMap.removeLayer(_edsLeafletPegman);
+}
+
+function _updateEdsLeafletPegman(lat, lng) {
+  if (!window.edsMap) return;
+  if (_edsLeafletPegman) {
+    _edsLeafletPegman.setLatLng([lat, lng]);
+  } else {
+    _edsLeafletPegman = L.marker([lat, lng], { icon: _edsPegmanIcon, zIndexOffset: 1500, interactive: false });
+    if (_edsPegmanVisible) _edsLeafletPegman.addTo(window.edsMap);
+  }
+}
 
 function _initEdsMiniViews() {
   if (typeof google === 'undefined' || !google.maps) {
@@ -8291,17 +8324,21 @@ function _initEdsMiniViews() {
     content: typeof _createPegmanElement === 'function' ? _createPegmanElement() : undefined,
   });
 
-  // Drag bonhomme → met à jour Street View
+  // Pegman initial sur la carte Leaflet
+  _updateEdsLeafletPegman(center.lat, center.lng);
+
+  // Drag bonhomme → met à jour Street View + pegman Leaflet
   _edsMiniPegman.addListener('dragend', () => {
     if (_edsMiniSyncing) return;
     _edsMiniSyncing = true;
     const p = _edsMiniPegman.position;
     _edsMiniSv.setPosition({ lat: p.lat, lng: p.lng });
     _edsMiniSat.setCenter({ lat: p.lat, lng: p.lng });
+    _updateEdsLeafletPegman(p.lat, p.lng);
     setTimeout(() => { _edsMiniSyncing = false; }, 100);
   });
 
-  // Navigation Street View → met à jour le bonhomme
+  // Navigation Street View → met à jour le bonhomme + pegman Leaflet
   _edsMiniSv.addListener('position_changed', () => {
     if (_edsMiniSyncing) return;
     _edsMiniSyncing = true;
@@ -8309,8 +8346,16 @@ function _initEdsMiniViews() {
     if (p && _edsMiniPegman) {
       _edsMiniPegman.position = { lat: p.lat(), lng: p.lng() };
       _edsMiniSat.setCenter({ lat: p.lat(), lng: p.lng() });
+      _updateEdsLeafletPegman(p.lat(), p.lng());
     }
     setTimeout(() => { _edsMiniSyncing = false; }, 100);
+  });
+
+  // Mouvement de la carte satellite Google → met à jour le pegman Leaflet
+  _edsMiniSat.addListener('center_changed', () => {
+    if (_edsMiniSyncing) return;
+    const c = _edsMiniSat.getCenter();
+    if (c) _updateEdsLeafletPegman(c.lat(), c.lng());
   });
 
   // Cône de direction sur le bonhomme suivant le heading Street View
@@ -8329,6 +8374,7 @@ function _initEdsMiniViews() {
       _edsMiniSv.setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
       _edsMiniSat.setCenter({ lat: e.latlng.lat, lng: e.latlng.lng });
       _edsMiniPegman.position = { lat: e.latlng.lat, lng: e.latlng.lng };
+      _updateEdsLeafletPegman(e.latlng.lat, e.latlng.lng);
       setTimeout(() => { _edsMiniSyncing = false; }, 200);
     });
   }
