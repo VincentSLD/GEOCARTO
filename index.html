@@ -477,6 +477,12 @@
   .map-embed:fullscreen #eds-checkboxes,
   .map-embed:-webkit-full-screen #eds-checkboxes,
   .map-embed.fs-manual #eds-checkboxes { bottom: 70px !important; }
+  .map-embed:fullscreen #eds-streetview-mini,
+  .map-embed:-webkit-full-screen #eds-streetview-mini,
+  .map-embed.fs-manual #eds-streetview-mini,
+  .map-embed:fullscreen #eds-gsat-mini,
+  .map-embed:-webkit-full-screen #eds-gsat-mini,
+  .map-embed.fs-manual #eds-gsat-mini { display: block !important; }
   .btn-map-fs-close {
     position: fixed;
     top: 12px; right: 12px;
@@ -1551,6 +1557,9 @@
         <div class="map-embed" style="position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
           <div id="map-eds" style="width:100%;height:100%;background:#f0f4f0;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+          <!-- Vignettes Street View + Google Maps (visibles en plein écran) -->
+          <div id="eds-streetview-mini" style="display:none;position:absolute;top:10px;left:10px;width:300px;height:240px;z-index:500;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;background:#000;"></div>
+          <div id="eds-gsat-mini" style="display:none;position:absolute;top:10px;right:10px;width:300px;height:240px;z-index:500;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
           <div id="eds-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.95);gap:0.7rem;">
             <span style="font-size:2.2rem;">📍</span>
             <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;">Points d'intérêt EDS GPH<br><span style="font-size:0.7rem;color:var(--text-muted);">Chargement automatique au lancement d'une investigation…</span></div>
@@ -8229,14 +8238,113 @@ function _invalidateAllMaps() {
     .forEach(function(m) { if (m) m.invalidateSize(); });
 }
 
+// Vignettes Street View + Google Maps satellite pour le plein écran de la carte EDS
+let _edsMiniSat = null, _edsMiniSv = null, _edsMiniPegman = null, _edsMiniSyncing = false;
+
+function _initEdsMiniViews() {
+  if (typeof google === 'undefined' || !google.maps) {
+    console.warn('Google Maps API non chargée pour les vignettes EDS');
+    return;
+  }
+  if (_edsMiniSat && _edsMiniSv) {
+    // Déjà initialisées : juste forcer le redraw
+    setTimeout(() => {
+      google.maps.event.trigger(_edsMiniSat, 'resize');
+      google.maps.event.trigger(_edsMiniSv, 'resize');
+    }, 200);
+    return;
+  }
+
+  // Centre initial : marqueur d'investigation EDS ou centre de la carte
+  let center = { lat: 46.8, lng: 2.2 };
+  if (_edsPendingInv) {
+    center = { lat: _edsPendingInv[0], lng: _edsPendingInv[1] };
+  } else if (window.edsMap) {
+    const c = window.edsMap.getCenter();
+    center = { lat: c.lat, lng: c.lng };
+  }
+
+  // Street View (haut gauche)
+  _edsMiniSv = new google.maps.StreetViewPanorama(
+    document.getElementById('eds-streetview-mini'), {
+      position: center, pov: { heading: 0, pitch: 0 }, zoom: 1,
+      addressControl: false, fullscreenControl: false, motionTrackingControl: false,
+    }
+  );
+
+  // Mini carte satellite (haut droit) avec bonhomme draggable
+  _edsMiniSat = new google.maps.Map(
+    document.getElementById('eds-gsat-mini'), {
+      center: center, zoom: 17, mapTypeId: 'satellite',
+      mapId: '8f2dca683cc436c7a55d0d6d',
+      disableDefaultUI: true, zoomControl: true, gestureHandling: 'greedy',
+    }
+  );
+
+  // Couverture Street View en bleu
+  const svLayer = new google.maps.StreetViewCoverageLayer();
+  svLayer.setMap(_edsMiniSat);
+
+  // Bonhomme Pegman draggable
+  _edsMiniPegman = new google.maps.marker.AdvancedMarkerElement({
+    position: center, map: _edsMiniSat, gmpDraggable: true,
+    content: typeof _createPegmanElement === 'function' ? _createPegmanElement() : undefined,
+  });
+
+  // Drag bonhomme → met à jour Street View
+  _edsMiniPegman.addListener('dragend', () => {
+    if (_edsMiniSyncing) return;
+    _edsMiniSyncing = true;
+    const p = _edsMiniPegman.position;
+    _edsMiniSv.setPosition({ lat: p.lat, lng: p.lng });
+    _edsMiniSat.setCenter({ lat: p.lat, lng: p.lng });
+    setTimeout(() => { _edsMiniSyncing = false; }, 100);
+  });
+
+  // Navigation Street View → met à jour le bonhomme
+  _edsMiniSv.addListener('position_changed', () => {
+    if (_edsMiniSyncing) return;
+    _edsMiniSyncing = true;
+    const p = _edsMiniSv.getPosition();
+    if (p && _edsMiniPegman) {
+      _edsMiniPegman.position = { lat: p.lat(), lng: p.lng() };
+      _edsMiniSat.setCenter({ lat: p.lat(), lng: p.lng() });
+    }
+    setTimeout(() => { _edsMiniSyncing = false; }, 100);
+  });
+
+  // Cône de direction sur le bonhomme suivant le heading Street View
+  _edsMiniSv.addListener('pov_changed', () => {
+    if (typeof _updatePegmanHeading === 'function') {
+      const pov = _edsMiniSv.getPov();
+      _updatePegmanHeading(pov.heading);
+    }
+  });
+
+  // Clic sur la carte EDS Leaflet → déplace le bonhomme/Street View
+  if (window.edsMap) {
+    window.edsMap.on('click', function(e) {
+      if (!document.fullscreenElement && !document.querySelector('.map-embed.fs-manual')) return;
+      _edsMiniSyncing = true;
+      _edsMiniSv.setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      _edsMiniSat.setCenter({ lat: e.latlng.lat, lng: e.latlng.lng });
+      _edsMiniPegman.position = { lat: e.latlng.lat, lng: e.latlng.lng };
+      setTimeout(() => { _edsMiniSyncing = false; }, 200);
+    });
+  }
+}
+
 function openFullscreen(btn) {
   const container = btn.closest('.map-embed');
   if (!container) return;
+
+  const isEds = container.querySelector('#map-eds');
 
   // Essayer l'API Fullscreen native (Android Chrome, desktop)
   const req = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen;
   if (req) {
     req.call(container);
+    if (isEds) setTimeout(() => _initEdsMiniViews(), 400);
     return;
   }
 
@@ -8250,6 +8358,7 @@ function openFullscreen(btn) {
   closeBtn.onclick = function() { _closeManualFullscreen(container, closeBtn); };
   document.body.appendChild(closeBtn);
 
+  if (isEds) setTimeout(() => _initEdsMiniViews(), 400);
   [200, 500, 1000].forEach(d => setTimeout(_invalidateAllMaps, d));
 }
 
