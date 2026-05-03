@@ -126,8 +126,6 @@ function updateLeafletPegman(lat, lng) {
 }
 
 function showGoogleMinis(lat, lng) {
-  // Affiche les vignettes uniquement si une recherche a été faite
-  if (!_hasSearched) return;
   if (typeof google === 'undefined' || !google.maps) return;
 
   document.getElementById('streetview-mini').style.display = 'block';
@@ -293,14 +291,9 @@ function filterMarkers() {
   _filterTimer = setTimeout(() => {
     const q = (document.getElementById('eds-search')?.value || '').toLowerCase();
     if (!q) {
-      _hasSearched = false;
-      // Cacher les vignettes si la recherche est vide
-      document.getElementById('streetview-mini').style.display = 'none';
-      document.getElementById('gsat-mini').style.display = 'none';
       renderMarkers(allData);
       return;
     }
-    _hasSearched = true;
     const filtered = allData.filter(r =>
       (r.nom || '').toLowerCase().includes(q) ||
       (r.ville || '').toLowerCase().includes(q) ||
