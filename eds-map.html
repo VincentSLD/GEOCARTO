@@ -54,6 +54,14 @@
 
 <div id="map"></div>
 
+<!-- Sablier de chargement -->
+<div id="eds-loader" style="position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);font-family:'Bricolage Grotesque',sans-serif;">
+  <div style="font-size:3rem;animation:spin 1.5s linear infinite;">⏳</div>
+  <div style="margin-top:14px;font-size:0.95rem;font-weight:700;color:#388e3c;">Chargement de la carte EDS…</div>
+  <div id="eds-loader-progress" style="margin-top:6px;font-size:0.78rem;color:#6b7280;">Récupération des points</div>
+  <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
+</div>
+
 <!-- Vignettes Google (apparaissent après clic sur un marqueur) -->
 <div id="streetview-mini" style="display:none;position:absolute;top:60px;left:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;background:#000;"></div>
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
@@ -182,6 +190,8 @@ function showGoogleMinis(lat, lng) {
 async function loadData() {
   document.getElementById('count').textContent = '⏳ Chargement…';
 
+  const progress = document.getElementById('eds-loader-progress');
+
   // Points EDS
   const PAGE = 1000;
   let from = 0, hasMore = true;
@@ -194,16 +204,23 @@ async function loadData() {
     allData = allData.concat(data);
     from += data.length;
     hasMore = data.length === PAGE;
+    if (progress) progress.textContent = `${allData.length} points chargés…`;
   }
 
   // Zones sensibles
+  if (progress) progress.textContent = 'Chargement des zones sensibles…';
   const { data: zd } = await sb.from('geocarto_eds_zones')
     .select('id,nom,description,couleur,opacite,geometry').order('created_at', { ascending: false });
   zonesData = zd || [];
 
+  if (progress) progress.textContent = 'Affichage des marqueurs…';
   renderMarkers(allData);
   renderZones();
   document.getElementById('count').textContent = `${allData.length} points · ${zonesData.length} zones`;
+
+  // Masquer le sablier
+  const loader = document.getElementById('eds-loader');
+  if (loader) loader.style.display = 'none';
 }
 
 function renderMarkers(data) {
