@@ -6153,9 +6153,12 @@ function edsShowNearbyDossiers() {
   });
   nearby.sort((a, b) => a._dist - b._dist);
 
-  // Extraire les numéros de dossier (priorité Référence > Dossier > Nom)
+  // Extraire uniquement les numéros (chiffres) depuis Référence, Dossier ou Nom
   const dossiers = nearby.map(p => {
-    return (p['Référence'] || p.Référence || p.Dossier || p.Nom || '').toString().trim();
+    const raw = (p['Référence'] || p.Référence || p.Dossier || p.Nom || '').toString();
+    // Extraire la première séquence de chiffres (>= 4 chiffres pour exclure les petits nombres parasites)
+    const m = raw.match(/\d{4,}/);
+    return m ? m[0] : '';
   }).filter(Boolean);
 
   document.getElementById('eds-dossiers-overlay')?.remove();
