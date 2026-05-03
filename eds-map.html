@@ -214,16 +214,20 @@ async function loadData() {
   zonesData = zd || [];
 
   if (progress) progress.textContent = 'Affichage des marqueurs…';
-  renderMarkers(allData);
   renderZones();
   document.getElementById('count').textContent = `${allData.length} points · ${zonesData.length} zones`;
 
-  // Masquer le sablier
-  const loader = document.getElementById('eds-loader');
-  if (loader) loader.style.display = 'none';
+  let _loaderHidden = false;
+  const hideLoader = () => {
+    if (_loaderHidden) return;
+    _loaderHidden = true;
+    const loader = document.getElementById('eds-loader');
+    if (loader) loader.style.display = 'none';
+  };
+  renderMarkers(allData, hideLoader);
 }
 
-function renderMarkers(data) {
+function renderMarkers(data, onComplete) {
   if (markerGroup) map.removeLayer(markerGroup);
   markerGroup = L.markerClusterGroup({
     chunkedLoading: true, maxClusterRadius: 55,
@@ -238,6 +242,7 @@ function renderMarkers(data) {
     }
   });
 
+  const markers = [];
   data.forEach(r => {
     const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
     if (isNaN(lat) || isNaN(lng)) return;
@@ -259,9 +264,17 @@ function renderMarkers(data) {
       // Afficher les vignettes Google centrées sur ce point (uniquement après recherche)
       showGoogleMinis(lat, lng);
     });
-    markerGroup.addLayer(m);
+    markers.push(m);
   });
+  // Callback à la fin du chargement chunké
+  if (onComplete) markerGroup.on('animationend', function _onEnd() {
+    markerGroup.off('animationend', _onEnd);
+    onComplete();
+  });
+  markerGroup.addLayers(markers, { chunkedLoading: true });
   map.addLayer(markerGroup);
+  // Fallback si animationend ne se déclenche pas (peu de marqueurs)
+  if (onComplete) setTimeout(() => onComplete && onComplete(), Math.min(5000, markers.length * 2));
 }
 
 function renderZones() {
