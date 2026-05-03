@@ -1584,14 +1584,17 @@
 
 
         <!-- Accordéon : Liste des études répertoriées à moins d'1km -->
-        <div style="margin-top:0.6rem;">
-          <div onclick="toggleEdsNearbyAccordion()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;user-select:none;transition:background 0.2s;">
+        <div style="margin-top:0.6rem;display:flex;gap:0.5rem;align-items:stretch;">
+          <div onclick="toggleEdsNearbyAccordion()" style="flex:1;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;user-select:none;transition:background 0.2s;">
             <div style="display:flex;align-items:center;gap:0.5rem;">
               <span style="font-size:0.95rem;">📌</span>
               <span style="font-weight:700;font-size:0.82rem;font-family:'Space Grotesk',sans-serif;color:var(--text-primary);">Liste des études répertoriées à moins de 1km</span>
             </div>
             <span id="eds-nearby-arrow" style="color:var(--text-secondary);font-size:0.8rem;transition:transform 0.3s;">▼</span>
           </div>
+          <button onclick="edsShowNearbyDossiers()" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;white-space:nowrap;" title="Liste des numéros de dossier">📋 Liste</button>
+        </div>
+        <div>
           <div id="eds-nearby-content" style="display:none;padding-top:0.5rem;">
             <div id="eds-nearby-list">
               <div class="empty-state">En attente du chargement des données EDS…</div>
@@ -6128,6 +6131,64 @@ function edsUpdateNearbyList() {
   });
   html += '</div>';
   container.innerHTML = html;
+}
+
+// Popup avec la liste des numéros de dossier proches + bouton Copier
+function edsShowNearbyDossiers() {
+  if (typeof currentLat !== 'number' || typeof currentLng !== 'number') {
+    alert('Lancez une investigation pour voir les points EDS à proximité.');
+    return;
+  }
+  if (!_edsData.length) {
+    alert('Données EDS non chargées.');
+    return;
+  }
+  const nearby = [];
+  _edsData.forEach(r => {
+    const lat = parseFloat((r.Latitude || '').toString().replace(',', '.'));
+    const lng = parseFloat((r.Longitude || '').toString().replace(',', '.'));
+    if (isNaN(lat) || isNaN(lng)) return;
+    const dist = haversineKm(currentLat, currentLng, lat, lng);
+    if (dist <= 1) nearby.push({ ...r, _dist: dist });
+  });
+  nearby.sort((a, b) => a._dist - b._dist);
+
+  const dossiers = nearby.map(p => p['Référence'] || p.Référence || '').filter(Boolean);
+
+  document.getElementById('eds-dossiers-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'eds-dossiers-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  const list = dossiers.length ? dossiers.join('\n') : 'Aucun numéro de dossier dans ce rayon.';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:500px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:'Bricolage Grotesque',sans-serif;max-height:85vh;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:700;color:#1a1a1a;">📋 Numéros de dossier (rayon 1 km)</div>
+        <button onclick="document.getElementById('eds-dossiers-overlay').remove()" style="background:transparent;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280;">✕</button>
+      </div>
+      <div style="font-size:0.75rem;color:#6b7280;margin-bottom:8px;">${dossiers.length} dossier${dossiers.length > 1 ? 's' : ''} trouvé${dossiers.length > 1 ? 's' : ''}</div>
+      <textarea id="eds-dossiers-text" readonly style="flex:1;min-height:200px;width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:'DM Mono',monospace;font-size:0.85rem;resize:vertical;box-sizing:border-box;background:#f9fafb;">${list}</textarea>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+        <button onclick="document.getElementById('eds-dossiers-overlay').remove()" style="padding:10px 22px;background:transparent;border:2px solid #9ca3af;border-radius:10px;font-size:0.82rem;font-weight:700;color:#6b7280;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Fermer</button>
+        <button id="eds-dossiers-copy-btn" onclick="edsCopyDossiers()" style="padding:10px 24px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;color:#f5c518;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">📋 Copier</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function edsCopyDossiers() {
+  const ta = document.getElementById('eds-dossiers-text');
+  if (!ta) return;
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('eds-dossiers-copy-btn');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✅ Copié !';
+      setTimeout(() => { btn.innerHTML = orig; }, 1500);
+    }
+  });
 }
 
 let _edsFilterTimer = null;
