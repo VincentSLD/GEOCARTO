@@ -5961,19 +5961,26 @@ async function initEdsMap() {
 
   // Attendre la fin du chargement des données
   await dataPromise;
-  // Si les données ont été chargées avant la carte, render maintenant
-  if (_edsData.length && !_edsMarkerGroup) {
-    _edsRenderMarkers(_edsData);
-    edsUpdateNearbyList();
-  }
   // Afficher les zones sensibles
   _edsZonesRender();
-
   // Double-clic molette pour recentrer
   _addMiddleClickRecenter(window.edsMap);
 
-  const loader2 = document.getElementById('eds-loader');
-  if (loader2) loader2.style.display = 'none';
+  let _edsLoaderHidden = false;
+  const _hideEdsLoader = () => {
+    if (_edsLoaderHidden) return;
+    _edsLoaderHidden = true;
+    const l = document.getElementById('eds-loader');
+    if (l) l.style.display = 'none';
+  };
+
+  // Si les données ont été chargées avant la carte, render maintenant + masquer le sablier après
+  if (_edsData.length && !_edsMarkerGroup) {
+    _edsRenderMarkers(_edsData, _hideEdsLoader);
+    edsUpdateNearbyList();
+  } else {
+    _hideEdsLoader();
+  }
 
   setTimeout(() => window.edsMap?.invalidateSize(), 350);
 }
@@ -6022,8 +6029,8 @@ function _edsColorIcon(color) {
 const _edsDotIcon = _edsColorIcon('jaune');
 const _edsDotIconRouge = _edsColorIcon('rouge');
 
-function _edsRenderMarkers(data) {
-  if (!window.edsMap) return;
+function _edsRenderMarkers(data, onComplete) {
+  if (!window.edsMap) { if (onComplete) onComplete(); return; }
   if (_edsMarkerGroup) { window.edsMap.removeLayer(_edsMarkerGroup); _edsMarkerGroup = null; }
 
   _edsMarkerGroup = L.markerClusterGroup({
@@ -6064,9 +6071,14 @@ function _edsRenderMarkers(data) {
     markers.push(m);
   });
 
+  if (onComplete) _edsMarkerGroup.on('animationend', function _onEnd() {
+    _edsMarkerGroup.off('animationend', _onEnd);
+    onComplete();
+  });
   _edsMarkerGroup.addLayers(markers);
   window.edsMap.addLayer(_edsMarkerGroup);
-
+  // Fallback si peu de marqueurs
+  if (onComplete) setTimeout(() => onComplete(), Math.min(5000, markers.length * 2));
 }
 
 function toggleEdsNearbyAccordion() {
