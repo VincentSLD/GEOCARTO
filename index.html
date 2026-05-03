@@ -6153,7 +6153,10 @@ function edsShowNearbyDossiers() {
   });
   nearby.sort((a, b) => a._dist - b._dist);
 
-  const dossiers = nearby.map(p => p['Référence'] || p.Référence || '').filter(Boolean);
+  // Extraire les numéros de dossier (priorité Référence > Dossier > Nom)
+  const dossiers = nearby.map(p => {
+    return (p['Référence'] || p.Référence || p.Dossier || p.Nom || '').toString().trim();
+  }).filter(Boolean);
 
   document.getElementById('eds-dossiers-overlay')?.remove();
   const overlay = document.createElement('div');
