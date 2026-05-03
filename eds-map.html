@@ -49,10 +49,6 @@
     <input type="checkbox" id="toggle-zones" onchange="toggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
     Zones sensibles
   </label>
-  <label>
-    <input type="checkbox" id="toggle-pegman" onchange="togglePegman(this.checked)" style="accent-color:#f9a825;width:15px;height:15px;cursor:pointer;">
-    Bonhomme
-  </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
 </div>
 
@@ -97,32 +93,35 @@ map.createPane('roadsPane');
 map.getPane('roadsPane').style.zIndex = 400;
 roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.55, pane: 'roadsPane' }).addTo(map);
 
-// Bonhomme Pegman sur la carte Leaflet
-let leafletPegman = null, pegmanVisible = false, _hasSearched = false;
 let _gMiniSat = null, _gMiniSv = null, _gMiniPegman = null, _miniSyncing = false;
 
-const pegmanIcon = L.divIcon({
-  html: `<div style="position:relative;width:28px;height:34px;">
-    <svg viewBox="0 0 28 34" width="28" height="34" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">
-      <circle cx="14" cy="6" r="5" fill="#f9a825" stroke="#e65100" stroke-width="1.5"/>
-      <path d="M14 12 C7 12 5 17 5 21 L9 21 L11 30 L17 30 L19 21 L23 21 C23 17 21 12 14 12z" fill="#f9a825" stroke="#e65100" stroke-width="1"/>
-    </svg>
-  </div>`,
-  className: '', iconSize: [28, 34], iconAnchor: [14, 30],
-});
-
-function togglePegman(show) {
-  pegmanVisible = show;
-  if (!leafletPegman) return;
-  if (show) leafletPegman.addTo(map); else map.removeLayer(leafletPegman);
+// Bonhomme avec cône de vision pour la mini Google Maps
+function createPegmanElement() {
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:relative;width:60px;height:60px;';
+  const cone = document.createElement('div');
+  cone.className = 'pegman-cone-eds';
+  cone.style.cssText = 'position:absolute;top:50%;left:50%;width:60px;height:60px;transform:translate(-50%,-50%) rotate(0deg);pointer-events:none;';
+  cone.innerHTML = `<svg viewBox="0 0 60 60" width="60" height="60">
+    <path d="M30 30 L15 0 A30 30 0 0 1 45 0 Z" fill="rgba(33,150,243,0.35)" stroke="rgba(33,150,243,0.6)" stroke-width="1"/>
+  </svg>`;
+  wrapper.appendChild(cone);
+  const pegman = document.createElement('div');
+  pegman.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);';
+  pegman.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 48" width="28" height="44" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));">
+    <circle cx="16" cy="7" r="6" fill="#f9a825" stroke="#e65100" stroke-width="1.5"/>
+    <path d="M16 14 C8 14 6 20 6 24 L10 24 L12 34 L16 48 L20 34 L22 24 L26 24 C26 20 24 14 16 14z" fill="#f9a825" stroke="#e65100" stroke-width="1"/>
+    <line x1="6" y1="20" x2="2" y2="28" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="26" y1="20" x2="30" y2="28" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`;
+  wrapper.appendChild(pegman);
+  return wrapper;
 }
 
-function updateLeafletPegman(lat, lng) {
-  if (leafletPegman) leafletPegman.setLatLng([lat, lng]);
-  else {
-    leafletPegman = L.marker([lat, lng], { icon: pegmanIcon, zIndexOffset: 1500, interactive: false });
-    if (pegmanVisible) leafletPegman.addTo(map);
-  }
+function updatePegmanHeading(heading) {
+  document.querySelectorAll('.pegman-cone-eds').forEach(cone => {
+    cone.style.transform = `translate(-50%,-50%) rotate(${heading}deg)`;
+  });
 }
 
 function showGoogleMinis(lat, lng) {
@@ -146,13 +145,13 @@ function showGoogleMinis(lat, lng) {
     new google.maps.StreetViewCoverageLayer().setMap(_gMiniSat);
     _gMiniPegman = new google.maps.marker.AdvancedMarkerElement({
       position: { lat, lng }, map: _gMiniSat, gmpDraggable: true,
+      content: createPegmanElement(),
     });
     _gMiniPegman.addListener('dragend', () => {
       if (_miniSyncing) return; _miniSyncing = true;
       const p = _gMiniPegman.position;
       _gMiniSv.setPosition({ lat: p.lat, lng: p.lng });
       _gMiniSat.setCenter({ lat: p.lat, lng: p.lng });
-      updateLeafletPegman(p.lat, p.lng);
       setTimeout(() => { _miniSyncing = false; }, 100);
     });
     _gMiniSv.addListener('position_changed', () => {
@@ -161,14 +160,13 @@ function showGoogleMinis(lat, lng) {
       if (p && _gMiniPegman) {
         _gMiniPegman.position = { lat: p.lat(), lng: p.lng() };
         _gMiniSat.setCenter({ lat: p.lat(), lng: p.lng() });
-        updateLeafletPegman(p.lat(), p.lng());
       }
       setTimeout(() => { _miniSyncing = false; }, 100);
     });
-    _gMiniSat.addListener('center_changed', () => {
-      if (_miniSyncing) return;
-      const c = _gMiniSat.getCenter();
-      if (c) updateLeafletPegman(c.lat(), c.lng());
+    // Cône de direction synchronisé avec le heading Street View
+    _gMiniSv.addListener('pov_changed', () => {
+      const pov = _gMiniSv.getPov();
+      updatePegmanHeading(pov.heading);
     });
   } else {
     // Mettre à jour la position
@@ -178,7 +176,6 @@ function showGoogleMinis(lat, lng) {
     _gMiniPegman.position = { lat, lng };
     setTimeout(() => { _miniSyncing = false; }, 200);
   }
-  updateLeafletPegman(lat, lng);
 }
 
 // Charger les données
