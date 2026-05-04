@@ -45,10 +45,6 @@
     <input type="checkbox" id="toggle-roads" checked onchange="toggleRoads(this.checked)" style="accent-color:#1976d2;width:15px;height:15px;cursor:pointer;">
     Routes
   </label>
-  <label>
-    <input type="checkbox" id="toggle-zones" onchange="toggleZones(this.checked)" style="accent-color:#e53935;width:15px;height:15px;cursor:pointer;">
-    Zones sensibles
-  </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
 </div>
 
@@ -71,8 +67,8 @@ const SUPABASE_URL = 'https://asuccniyofzvwgooxjah.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzdWNjbml5b2Z6dndnb294amFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDQyNjgsImV4cCI6MjA4ODQ4MDI2OH0.dPerW1BApAxe26xzv9i7oWIubgGuzO5RibMvs-MFm88';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let map, markerGroup, roadsLayer, zonesLayer;
-let allData = [], zonesData = [];
+let map, markerGroup, roadsLayer;
+let allData = [];
 
 // Icônes
 function colorIcon(color) {
@@ -207,15 +203,8 @@ async function loadData() {
     if (progress) progress.textContent = `${allData.length} points chargés…`;
   }
 
-  // Zones sensibles
-  if (progress) progress.textContent = 'Chargement des zones sensibles…';
-  const { data: zd } = await sb.from('geocarto_eds_zones')
-    .select('id,nom,description,couleur,opacite,geometry').order('created_at', { ascending: false });
-  zonesData = zd || [];
-
   if (progress) progress.textContent = 'Affichage des marqueurs…';
-  renderZones();
-  document.getElementById('count').textContent = `${allData.length} points · ${zonesData.length} zones`;
+  document.getElementById('count').textContent = `${allData.length} points`;
 
   let _loaderHidden = false;
   const hideLoader = () => {
@@ -277,39 +266,8 @@ function renderMarkers(data, onComplete) {
   if (onComplete) setTimeout(() => onComplete && onComplete(), Math.min(5000, markers.length * 2));
 }
 
-function renderZones() {
-  if (zonesLayer) map.removeLayer(zonesLayer);
-  zonesLayer = L.featureGroup();
-  zonesData.forEach(z => {
-    if (!z.geometry?.coordinates) return;
-    const coords = z.geometry.coordinates[0].map(c => [c[1], c[0]]);
-    const poly = L.polygon(coords, { color: z.couleur || '#e53935', weight: 3, fillColor: z.couleur || '#e53935', fillOpacity: z.opacite ?? 0.5 });
-    poly.on('click', function() {
-      const nom = (z.nom || '').replace(/</g, '&lt;');
-      const desc = (z.description || '').replace(/</g, '&lt;').replace(/\n/g, '<br>');
-      this.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:180px;">
-        <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${z.couleur || '#e53935'};opacity:0.7;"></span>${nom}
-        </div>
-        ${desc ? `<div style="font-size:0.74rem;color:#374151;white-space:pre-wrap;">${desc}</div>` : ''}
-      </div>`, { maxWidth: 300 }).openPopup();
-    });
-    zonesLayer.addLayer(poly);
-    if (z.nom) {
-      const center = L.polygon(coords).getBounds().getCenter();
-      L.marker(center, { icon: L.divIcon({ className: '', html: `<div style="font-size:0.65rem;font-weight:700;color:#1a1a1a;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff;pointer-events:none;">${z.nom.replace(/</g,'&lt;')}</div>`, iconSize: [0,0], iconAnchor: [0,0] }), interactive: false }).addTo(zonesLayer);
-    }
-  });
-  // Masqué par défaut
-}
-
 function toggleRoads(show) {
   if (show) roadsLayer.addTo(map); else map.removeLayer(roadsLayer);
-}
-
-function toggleZones(show) {
-  if (!zonesLayer) return;
-  if (show) zonesLayer.addTo(map); else map.removeLayer(zonesLayer);
 }
 
 let _filterTimer;
