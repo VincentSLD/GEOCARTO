@@ -3095,6 +3095,70 @@ async function investigate() {
   currentLng = lng;
   currentInsee = null; // reset pour éviter d'utiliser l'ancienne commune
 
+  // ===== NETTOYAGE des anciennes données avant nouvelle investigation =====
+  // Réinitialiser les variables de cache
+  _lastRisques = []; _lastCatNat = []; _lastICPE = [];
+  _lastCavites = []; _lastMvt = []; _lastBSS = [];
+  _lastGeolFormations = [];
+  _currentParcelFeature = null;
+
+  // Réinitialiser les statistiques
+  ['stat-risques','stat-catnat','stat-sismique','stat-cavites','stat-icpe','stat-mvt','stat-bss','stat-argiles'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = ''; }
+  });
+
+  // Vider les listes de résultats
+  ['risk-grid','catnat-list','cavites-list','icpe-list','mvt-list','bss-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+
+  // Réinitialiser les zones textuelles (adresse, géologie, nappes, PPRN, cadastre, argiles)
+  ['addr-label','addr-city','addr-postcode','addr-insee','addr-dept'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+
+  // Géologie
+  const _geoLoading = document.getElementById('geol-info-loading');
+  const _geoError = document.getElementById('geol-info-error');
+  const _geoContent = document.getElementById('geol-info-content');
+  if (_geoLoading) _geoLoading.style.display = 'block';
+  if (_geoError) _geoError.style.display = 'none';
+  if (_geoContent) _geoContent.style.display = 'none';
+  ['geol-num-carte','geol-nom-carte','geol-notation','geol-description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  const _geolNot1km = document.getElementById('geol-notation-1km');
+  if (_geolNot1km) _geolNot1km.textContent = '—';
+
+  // Nappes
+  const _nappesDisplay = document.getElementById('nappes-zone-display');
+  const _nappesText = document.getElementById('nappes-zone-text');
+  if (_nappesDisplay) _nappesDisplay.style.display = 'none';
+  if (_nappesText) { _nappesText.textContent = '⏳ Chargement…'; _nappesText.style.color = 'var(--text-muted)'; _nappesText.style.border = '1px solid var(--border)'; }
+
+  // PPRN
+  const _pprnDisplay = document.getElementById('pprn-info-display');
+  const _pprnText = document.getElementById('pprn-info-text');
+  if (_pprnDisplay) _pprnDisplay.style.display = 'none';
+  if (_pprnText) { _pprnText.textContent = '⏳ Chargement…'; _pprnText.style.color = 'var(--text-muted)'; _pprnText.style.border = '1px solid var(--border)'; }
+
+  // Cadastre
+  const _cadastreInfo = document.getElementById('cadastre-info');
+  if (_cadastreInfo) _cadastreInfo.textContent = '';
+
+  // Argiles
+  const _argilesLevel = document.getElementById('argiles-level-text');
+  if (_argilesLevel) _argilesLevel.textContent = '';
+
+  // EDS liste proximité
+  const _edsNearby = document.getElementById('eds-nearby-list');
+  if (_edsNearby) _edsNearby.innerHTML = '<div class="empty-state">Lancez une investigation pour voir les points EDS à proximité.</div>';
+  // ===== FIN NETTOYAGE =====
+
   document.getElementById('btn-go').disabled = true;
   document.getElementById('altitude').value = '…';
   setLoading(true, 'Récupération de l\'adresse en cours…');
@@ -8166,7 +8230,27 @@ async function downloadIgnGeol(btn) {
       // Forcer le rechargement des couches WMS
       lmap.eachLayer(l => { try { if (l.redraw) l.redraw(); } catch(e){} });
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, forceZoom ? 4000 : 1500));
+      // Attendre que toutes les tuiles soient chargées (au lieu d'un délai fixe)
+      await new Promise(resolve => {
+        const MAX_WAIT = 15000; // timeout max 15s pour éviter de bloquer
+        const MIN_WAIT = 1500;  // attente minimum pour laisser les tuiles démarrer
+        let tileLayers = [];
+        lmap.eachLayer(l => { if (l._url || l.wmsParams || l._wmsUrl) tileLayers.push(l); });
+        if (!tileLayers.length) { setTimeout(resolve, MIN_WAIT); return; }
+        let pending = 0;
+        let settled = false;
+        const done = () => { if (!settled) { settled = true; resolve(); } };
+        const maxTimer = setTimeout(done, MAX_WAIT);
+        tileLayers.forEach(tl => {
+          if (tl.isLoading?.() || tl._loading) {
+            pending++;
+            const onLoad = () => { tl.off('load', onLoad); pending--; if (pending <= 0) { clearTimeout(maxTimer); setTimeout(done, 300); } };
+            tl.on('load', onLoad);
+          }
+        });
+        // Si aucune tuile n'est en cours de chargement, attendre un minimum
+        if (pending === 0) { clearTimeout(maxTimer); setTimeout(done, MIN_WAIT); }
+      });
     }
 
     const canvas = await html2canvas(el, {
