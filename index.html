@@ -3157,6 +3157,14 @@ async function investigate() {
   // EDS liste proximité
   const _edsNearby = document.getElementById('eds-nearby-list');
   if (_edsNearby) _edsNearby.innerHTML = '<div class="empty-state">Lancez une investigation pour voir les points EDS à proximité.</div>';
+
+  // Griser le bouton téléchargement pendant le chargement des cartes
+  const _dlBar = document.getElementById('dl-ign-geol-bar');
+  if (_dlBar) {
+    _dlBar.style.opacity = '0.45';
+    _dlBar.style.pointerEvents = 'none';
+    _dlBar.style.filter = 'grayscale(1)';
+  }
   // ===== FIN NETTOYAGE =====
 
   document.getElementById('btn-go').disabled = true;
@@ -4983,6 +4991,33 @@ function setupMaps(lat, lng) {
   setTimeout(() => { window.photoMap.invalidateSize(); }, 300);
 
   // ====== Cartes Historiques IGN (supprimées du HTML) ======
+
+  // ====== Réactiver le bouton téléchargement quand les cartes sont chargées ======
+  const _dlBarEnd = document.getElementById('dl-ign-geol-bar');
+  if (_dlBarEnd) {
+    // Cartes concernées par la capture
+    const _captureMaps = [window.ignMap, window.geologieMap, window.argilesMap, window.cavitesMap, window.mvtMap].filter(Boolean);
+    let _pendingMaps = _captureMaps.length;
+    const _enableDlBar = () => {
+      _pendingMaps--;
+      if (_pendingMaps <= 0) {
+        _dlBarEnd.style.opacity = '';
+        _dlBarEnd.style.pointerEvents = '';
+        _dlBarEnd.style.filter = '';
+      }
+    };
+    // Chaque carte Leaflet émet 'load' quand toutes ses tuiles visibles sont chargées
+    _captureMaps.forEach(m => {
+      const _onLoad = () => { m.off('load', _onLoad); _enableDlBar(); };
+      m.on('load', _onLoad);
+    });
+    // Timeout de sécurité : toujours réactiver après 20s
+    setTimeout(() => {
+      _dlBarEnd.style.opacity = '';
+      _dlBarEnd.style.pointerEvents = '';
+      _dlBarEnd.style.filter = '';
+    }, 20000);
+  }
 }
 
 // Fetch argiles data from API, draw on Leaflet map, and update text
