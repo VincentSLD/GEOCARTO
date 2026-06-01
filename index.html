@@ -1295,9 +1295,12 @@
           </div>
         </div>
       </div>
-      <div id="btn-copy-gmaps" style="display:none;margin-top:6px;">
+      <div id="btn-copy-gmaps" style="display:none;margin-top:6px;gap:8px;flex-wrap:wrap;">
         <button onclick="copyGoogleMapsLink(this)" style="padding:6px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.78rem;font-family:'Bricolage Grotesque',sans-serif;color:var(--text-secondary);transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;" onmouseover="this.style.background='var(--gph-green-light)';this.style.borderColor='var(--gph-green)'" onmouseout="this.style.background='var(--bg-secondary)';this.style.borderColor='var(--border)'">
           <span style="font-size:1rem;">📍</span> Copier le lien Google Maps
+        </button>
+        <button onclick="copyLatLng(this)" style="padding:6px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.78rem;font-family:'Bricolage Grotesque',sans-serif;color:var(--text-secondary);transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;" onmouseover="this.style.background='var(--gph-green-light)';this.style.borderColor='var(--gph-green)'" onmouseout="this.style.background='var(--bg-secondary)';this.style.borderColor='var(--border)'">
+          <span style="font-size:1rem;">📋</span> Copier Latitude, Longitude
         </button>
       </div>
       <div class="error-msg" id="error-msg"></div>
@@ -3176,7 +3179,7 @@ async function investigate() {
   document.getElementById('altitude').value = '…';
   // Afficher le bouton copie Google Maps
   const _btnGmaps = document.getElementById('btn-copy-gmaps');
-  if (_btnGmaps) _btnGmaps.style.display = '';
+  if (_btnGmaps) _btnGmaps.style.display = 'flex';
   setLoading(true, 'Récupération de l\'adresse en cours…');
 
   try {
@@ -7583,6 +7586,19 @@ function copyGoogleMapsLink(btn) {
   const origHTML = btn.innerHTML;
   navigator.clipboard.writeText(url).then(() => {
     btn.innerHTML = '<span style="font-size:1rem;">✅</span> Lien copié !';
+    btn.style.background = 'var(--gph-green-light)';
+    btn.style.borderColor = 'var(--gph-green)';
+    setTimeout(() => { btn.innerHTML = origHTML; btn.style.background = ''; btn.style.borderColor = ''; }, 2000);
+  });
+}
+
+// Copy Latitude, Longitude to clipboard
+function copyLatLng(btn) {
+  if (!currentLat || !currentLng) return;
+  const text = `${currentLat}, ${currentLng}`;
+  const origHTML = btn.innerHTML;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = '<span style="font-size:1rem;">✅</span> Coordonnées copiées !';
     btn.style.background = 'var(--gph-green-light)';
     btn.style.borderColor = 'var(--gph-green)';
     setTimeout(() => { btn.innerHTML = origHTML; btn.style.background = ''; btn.style.borderColor = ''; }, 2000);
