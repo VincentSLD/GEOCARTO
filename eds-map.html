@@ -61,8 +61,8 @@
 <!-- Vignettes Google (apparaissent après clic sur un marqueur) -->
 <div id="streetview-mini" style="display:none;position:absolute;top:60px;left:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;background:#000;"></div>
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
-<!-- Bouton fermer centré entre les deux vignettes -->
-<button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:8px 22px;background:rgba(229,57,53,0.92);backdrop-filter:blur(6px);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:10px;cursor:pointer;font-size:0.88rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.5);transition:all 0.2s;letter-spacing:0.3px;" onmouseover="this.style.background='rgba(198,40,40,1)';this.style.transform='translateX(-50%) scale(1.05)'" onmouseout="this.style.background='rgba(229,57,53,0.92)';this.style.transform='translateX(-50%)'">✖ Fermer les vues Google</button>
+<!-- Bouton fermer les vues Google -->
+<button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
 
 <script>
 const SUPABASE_URL = 'https://asuccniyofzvwgooxjah.supabase.co';
