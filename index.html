@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="lib/leaflet-rotate.js"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype&loading=async" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1191,10 +1191,10 @@
   <div id="admin-list"></div>
   <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
   <div class="admin-title" style="font-size:13px;">Mot de passe suppression EDS</div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <input type="password" id="admin-delete-pwd" placeholder="Définir le mot de passe" style="flex:1;padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;" value="">
-    <button onclick="saveDeletePwd()" style="padding:8px 16px;background:#1a1a1a;color:#f5c518;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Enregistrer</button>
-  </div>
+  <form onsubmit="event.preventDefault();saveDeletePwd();" style="display:flex;gap:8px;align-items:center;">
+    <input type="password" id="admin-delete-pwd" placeholder="Définir le mot de passe" style="flex:1;padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;" value="" autocomplete="new-password">
+    <button type="submit" style="padding:8px 16px;background:#1a1a1a;color:#f5c518;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Enregistrer</button>
+  </form>
   <div id="admin-pwd-status" style="font-size:11px;color:#888;margin-top:6px;"></div>
 </div>
 
@@ -4375,7 +4375,6 @@ function setupMaps(lat, lng) {
     { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques HTTPS' },
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG', label: 'mapsref ALEARG' },
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEAARG', label: 'mapsref ALEAARG' },
-    { url: 'https://georisques.gouv.fr/services', layers: 'ARGILES_EXPO', label: 'georisques ARGILES_EXPO' },
   ];
 
   // Sources pour la carte 2026 — pas encore disponible via WMS
@@ -4605,8 +4604,6 @@ function setupMaps(lat, lng) {
   window.sismiqueMap.getPane('sismPane').style.zIndex = 450;
   const sismWmsSources = [
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'risq_zonage_sismique' },
-    { url: 'http://mapsref.brgm.fr/wxs/georisques/risques', layers: 'risq_zonage_sismique' },
-    { url: 'https://georisques.gouv.fr/services', layers: 'risq_zonage_sismique' },
   ];
   sismWmsSources.forEach(src => {
     try {
@@ -4710,8 +4707,6 @@ function setupMaps(lat, lng) {
   window.nappesMap.getPane('nappesPane').style.zIndex = 450;
   const nappesWmsSources = [
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'REMNAPPE_FIAB' },
-    { url: 'http://mapsref.brgm.fr/wxs/georisques/risques', layers: 'REMNAPPE_FIAB' },
-    { url: 'https://georisques.gouv.fr/services', layers: 'REMNAPPE_FIAB' },
   ];
   nappesWmsSources.forEach(src => {
     try {
