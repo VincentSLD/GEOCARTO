@@ -334,6 +334,16 @@ let _gedPanelOpen = false;
 let _gedClickLat = null, _gedClickLng = null;
 let _gedCircle = null;
 let _gedMarker = null;
+let _gedStudyMarkers = []; // marqueurs des études trouvées
+
+const _gedStudyIcon = L.divIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="30" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35));">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 18 12 18s12-9 12-18C24 5.4 18.6 0 12 0z" fill="#795548"/>
+    <circle cx="12" cy="11" r="6" fill="#fff" opacity="0.9"/>
+    <text x="12" y="14.5" text-anchor="middle" font-size="10" font-weight="700" fill="#795548" font-family="sans-serif">📄</text>
+  </svg>`,
+  className: '', iconSize: [24, 30], iconAnchor: [12, 30], popupAnchor: [0, -28]
+});
 
 function toggleGedPanel() {
   _gedPanelOpen = !_gedPanelOpen;
@@ -344,6 +354,15 @@ function toggleGedPanel() {
   if (_gedPanelOpen && !_gedClickLat) {
     document.getElementById('ged-results').innerHTML = '<div style="padding:30px 18px;text-align:center;color:#9ca3af;font-size:0.78rem;">Cliquez n\'importe où sur la carte pour définir le point de recherche.</div>';
   }
+  // Nettoyer les marqueurs si on ferme le panneau
+  if (!_gedPanelOpen) {
+    _gedStudyMarkers.forEach(m => map.removeLayer(m));
+    _gedStudyMarkers = [];
+    if (_gedCircle) { map.removeLayer(_gedCircle); _gedCircle = null; }
+    if (_gedMarker) { map.removeLayer(_gedMarker); _gedMarker = null; }
+  }
+  // Curseur de la carte en mode crosshair quand le panneau est ouvert
+  document.getElementById('map').style.cursor = _gedPanelOpen ? 'crosshair' : '';
 }
 
 map.on('click', function(e) {
@@ -369,6 +388,10 @@ async function gedSearchFromMap() {
   searchBtn.textContent = '⏳ Recherche…';
   results.innerHTML = '<div style="padding:30px 18px;text-align:center;color:#9ca3af;font-size:0.82rem;">⏳ Recherche en cours…</div>';
 
+  // Nettoyer les marqueurs d'études précédents
+  _gedStudyMarkers.forEach(m => map.removeLayer(m));
+  _gedStudyMarkers = [];
+
   // Cercle de rayon
   if (_gedCircle) map.removeLayer(_gedCircle);
   _gedCircle = L.circle([_gedClickLat, _gedClickLng], {
@@ -389,7 +412,7 @@ async function gedSearchFromMap() {
 
     results.innerHTML = `<div style="padding:10px 18px;font-size:0.75rem;font-weight:700;color:#795548;border-bottom:1px solid #e5e7eb;">${data.length} étude${data.length > 1 ? 's' : ''} dans un rayon de ${radius} m</div>` +
       data.map((d, i) => `
-        <div class="ged-item" id="ged-item-${i}" style="padding:12px 18px;border-bottom:1px solid #f3f4f6;transition:background 0.15s;" onmouseover="this.style.background='#faf6f3'" onmouseout="this.style.background=''">
+        <div class="ged-item" id="ged-item-${i}" style="padding:12px 18px;border-bottom:1px solid #f3f4f6;transition:background 0.15s;cursor:pointer;" onmouseover="this.style.background='#faf6f3';gedHighlightMarker(${i},true)" onmouseout="this.style.background='';gedHighlightMarker(${i},false)" onclick="gedZoomToStudy(${i})">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
             <div style="font-weight:700;font-size:0.78rem;color:#1a1a1a;flex:1;word-break:break-word;">${d.name || '—'}</div>
             <div style="font-size:0.68rem;font-weight:700;color:#795548;white-space:nowrap;">${Math.round(d.distance_m)} m</div>
@@ -404,6 +427,19 @@ async function gedSearchFromMap() {
 
     searchBtn.disabled = false;
     searchBtn.textContent = '🔍 Chercher autour du point';
+
+    // Placer les marqueurs des études sur la carte
+    data.forEach((d, i) => {
+      if (!d.lat || !d.lon) return;
+      const m = L.marker([d.lat, d.lon], { icon: _gedStudyIcon });
+      m.bindTooltip(`📄 ${d.name || '—'} (${Math.round(d.distance_m)} m)`, { sticky: false, opacity: 0.95 });
+      m.on('click', () => {
+        const el = document.getElementById('ged-item-' + i);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = '#f0e8e0'; setTimeout(() => el.style.background = '', 2000); }
+      });
+      m.addTo(map);
+      _gedStudyMarkers.push(m);
+    });
 
     // Charger les résumés IA séquentiellement (max 15)
     const MAX_SUM = 15;
@@ -435,6 +471,20 @@ async function gedSearchFromMap() {
     searchBtn.disabled = false;
     searchBtn.textContent = '🔍 Chercher autour du point';
   }
+}
+
+function gedHighlightMarker(i, on) {
+  const m = _gedStudyMarkers[i];
+  if (!m) return;
+  if (on) { m.openTooltip(); }
+  else { m.closeTooltip(); }
+}
+
+function gedZoomToStudy(i) {
+  const m = _gedStudyMarkers[i];
+  if (!m) return;
+  map.setView(m.getLatLng(), 16, { animate: true });
+  m.openTooltip();
 }
 
 // Lancer
