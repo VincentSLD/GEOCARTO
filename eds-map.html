@@ -124,6 +124,8 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 
 map.createPane('roadsPane');
 map.getPane('roadsPane').style.zIndex = 400;
+map.createPane('gedPane');
+map.getPane('gedPane').style.zIndex = 650;
 roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.55, pane: 'roadsPane' }).addTo(map);
 
 let _gMiniSat = null, _gMiniSv = null, _gMiniPegman = null, _miniSyncing = false;
@@ -436,7 +438,7 @@ async function gedSearchFromMap() {
     // Placer les marqueurs des études sur la carte
     data.forEach((d, i) => {
       if (!d.lat || !d.lon) return;
-      const m = L.marker([d.lat, d.lon], { icon: _gedStudyIcon });
+      const m = L.marker([d.lat, d.lon], { icon: _gedStudyIcon, pane: 'gedPane' });
       m.bindTooltip(`📄 ${d.name || '—'} (${Math.round(d.distance_m)} m)`, { sticky: false, opacity: 0.95 });
       m.on('click', () => {
         const el = document.getElementById('ged-item-' + i);
