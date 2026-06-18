@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype&loading=async" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -81,7 +82,7 @@
     <div style="font-size:0.72rem;color:#6b7280;margin-bottom:10px;">Cliquez sur la carte pour rechercher les études de sol indexées autour d'un point.</div>
     <div style="display:flex;gap:8px;align-items:center;">
       <label style="font-size:0.72rem;font-weight:600;color:#374151;white-space:nowrap;">Rayon</label>
-      <input type="number" id="ged-radius" value="2000" min="100" max="20000" step="100" style="width:80px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.78rem;font-family:inherit;text-align:center;">
+      <input type="number" id="ged-radius" value="1000" min="100" max="20000" step="100" style="width:80px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.78rem;font-family:inherit;text-align:center;">
       <span style="font-size:0.72rem;color:#6b7280;">m</span>
       <button id="ged-search-btn" onclick="gedSearchFromMap()" style="flex:1;padding:6px 12px;background:#795548;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#5d4037'" onmouseout="this.style.background='#795548'">🔍 Chercher autour du point</button>
     </div>
@@ -381,7 +382,7 @@ map.on('click', function(e) {
 
 async function gedSearchFromMap() {
   if (!_gedClickLat || !_gedClickLng) return;
-  const radius = parseInt(document.getElementById('ged-radius').value) || 2000;
+  const radius = parseInt(document.getElementById('ged-radius').value) || 1000;
   const results = document.getElementById('ged-results');
   const searchBtn = document.getElementById('ged-search-btn');
   searchBtn.disabled = true;
@@ -457,8 +458,9 @@ async function gedLaunchSummaries() {
   const data = window._gedLastData;
   if (!data || !data.length) return;
   const btn = document.getElementById('ged-btn-ai');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Génération…'; btn.style.opacity = '0.6'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Génération des résumés…'; btn.style.opacity = '0.6'; }
   const MAX_SUM = 15;
+  const collectedSummaries = [];
   for (let i = 0; i < data.length; i++) {
     const el = document.getElementById('ged-summary-' + i);
     if (!el) continue;
@@ -479,11 +481,90 @@ async function gedLaunchSummaries() {
       if (json.resume) html += `<div style="color:#374151;line-height:1.5;">${json.resume}</div>`;
       if (json.conclusion) html += `<div style="margin-top:6px;padding:6px 10px;border-left:3px solid #795548;background:rgba(121,85,72,0.06);border-radius:0 6px 6px 0;font-size:0.7rem;color:#5d4037;line-height:1.5;">${json.conclusion}</div>`;
       el.innerHTML = html || '<span style="color:#b8a07e;font-style:italic;">Aucun contenu résumable.</span>';
+      if (json.resume || json.conclusion) collectedSummaries.push({ resume: json.resume || '', conclusion: json.conclusion || '', name: data[i].name || '' });
     } catch (e) {
       el.innerHTML = `<span style="color:#d32f2f;font-size:0.65rem;">⚠ ${e.message}</span>`;
     }
   }
+
+  // Synthèse géotechnique globale
+  if (collectedSummaries.length >= 2) {
+    if (btn) btn.textContent = '⏳ Synthèse globale…';
+    let synthBlock = document.getElementById('ged-synthesis-block');
+    if (!synthBlock) {
+      const results = document.getElementById('ged-results');
+      const firstChild = results.firstChild;
+      synthBlock = document.createElement('div');
+      synthBlock.id = 'ged-synthesis-block';
+      if (firstChild && firstChild.nextSibling) results.insertBefore(synthBlock, firstChild.nextSibling);
+      else results.appendChild(synthBlock);
+    }
+    synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
+      <div style="font-size:0.72rem;font-weight:700;color:#795548;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
+      <div style="color:#b8a07e;font-size:0.75rem;">⏳ Analyse en cours…</div></div>`;
+    try {
+      const radius = parseInt(document.getElementById('ged-radius').value) || 1000;
+      const resp = await fetch('/api/ged-synthesis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summaries: collectedSummaries, lat: _gedClickLat, lon: _gedClickLng, radius })
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || 'Erreur serveur');
+      let ptsHtml = '';
+      if (json.points_cles && json.points_cles.length) {
+        ptsHtml = `<div style="margin-top:10px;padding:8px 12px;background:rgba(121,85,72,0.06);border-radius:6px;font-size:0.7rem;color:#5d4037;line-height:1.6;">
+          <b>Points clés :</b><br>${json.points_cles.map(p => '• ' + p).join('<br>')}</div>`;
+      }
+      const synthText = (json.synthese || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        + (json.points_cles && json.points_cles.length ? '\n\nPoints clés :\n' + json.points_cles.map(p => '• ' + p).join('\n') : '');
+      synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:0.72rem;font-weight:700;color:#795548;">🧭 Tendance géotechnique globale</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="gedCopySynthesis()" style="padding:4px 10px;background:#795548;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#5d4037'" onmouseout="this.style.background='#795548'">📋 Copier</button>
+            <button onclick="gedCaptureMap()" style="padding:4px 10px;background:#795548;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#5d4037'" onmouseout="this.style.background='#795548'">📸 Capture carte</button>
+          </div>
+        </div>
+        <div id="ged-synthesis-text" style="font-size:0.75rem;color:#374151;line-height:1.6;">${json.synthese || ''}</div>
+        ${ptsHtml}
+      </div>`;
+      window._gedSynthesisText = synthText;
+    } catch (e) {
+      synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
+        <div style="font-size:0.72rem;font-weight:700;color:#795548;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
+        <div style="color:#d32f2f;font-size:0.7rem;">⚠ ${e.message}</div></div>`;
+    }
+  }
+
   if (btn) { btn.textContent = '✅ Terminé'; btn.style.opacity = ''; setTimeout(() => { btn.textContent = '🤖 Résumés IA'; btn.disabled = false; }, 2000); }
+}
+
+function gedCopySynthesis() {
+  const text = window._gedSynthesisText;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('#ged-synthesis-block button');
+    const copyBtn = btns[0];
+    if (copyBtn) { const prev = copyBtn.textContent; copyBtn.textContent = '✅ Copié'; setTimeout(() => copyBtn.textContent = prev, 1500); }
+  });
+}
+
+function gedCaptureMap() {
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
+  const captureBtn = document.querySelectorAll('#ged-synthesis-block button')[1];
+  if (captureBtn) { captureBtn.disabled = true; captureBtn.textContent = '⏳ Capture…'; }
+  html2canvas(mapEl, { useCORS: true, allowTaint: true, scale: 2, logging: false }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `carte-etudes-sol-${new Date().toISOString().slice(0,10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    if (captureBtn) { captureBtn.textContent = '✅ Téléchargé'; captureBtn.disabled = false; setTimeout(() => captureBtn.textContent = '📸 Capture carte', 2000); }
+  }).catch(e => {
+    console.error('Capture error:', e);
+    if (captureBtn) { captureBtn.textContent = '⚠ Erreur'; captureBtn.disabled = false; setTimeout(() => captureBtn.textContent = '📸 Capture carte', 2000); }
+  });
 }
 
 function gedHighlightMarker(i, on) {
