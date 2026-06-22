@@ -395,7 +395,7 @@ function toggleGedPanel() {
   if (_gedPanelOpen && !_gedClickLat) {
     document.getElementById('ged-results').innerHTML = '<div style="padding:30px 18px;text-align:center;color:#9ca3af;font-size:0.78rem;">Cliquez n\'importe où sur la carte pour définir le point de recherche.</div>';
   }
-  // Nettoyer les marqueurs si on ferme le panneau
+  // Nettoyer les marqueurs GED si on ferme le panneau
   if (!_gedPanelOpen) {
     _gedStudyMarkers.forEach(m => map.removeLayer(m));
     _gedStudyMarkers = [];
@@ -404,6 +404,11 @@ function toggleGedPanel() {
   }
   // Curseur de la carte en mode crosshair quand le panneau est ouvert
   document.getElementById('map').style.cursor = _gedPanelOpen ? 'crosshair' : '';
+  // Recalculer la taille de la carte et forcer le rafraîchissement des clusters
+  setTimeout(() => {
+    map.invalidateSize({ animate: false });
+    if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
+  }, 50);
 }
 
 map.on('click', function(e) {
@@ -781,6 +786,8 @@ async function gedConfirmGeoPosition() {
   _gedPendingIndex = null;
   _gedIndexing = false;
   document.getElementById('ged-file-input').value = '';
+  if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
+  map.invalidateSize({ animate: false });
 }
 
 function gedSkipGeoPosition() {
@@ -844,6 +851,9 @@ async function gedDoIndex(f, hash, text, lat, lon) {
   if (progWrap) setTimeout(() => { progWrap.style.display = 'none'; }, 2000);
   _gedIndexing = false;
   document.getElementById('ged-file-input').value = '';
+  // S'assurer que les marqueurs jaunes (EDS) sont toujours visibles
+  if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
+  map.invalidateSize({ animate: false });
 }
 
 function gedIndexStatus(msg) {
