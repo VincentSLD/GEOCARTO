@@ -1,7 +1,24 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asuccniyofzvwgooxjah.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzdWNjbml5b2Z6dndnb294amFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDQyNjgsImV4cCI6MjA4ODQ4MDI2OH0.dPerW1BApAxe26xzv9i7oWIubgGuzO5RibMvs-MFm88';
 
-const SYS = "Tu es un ingénieur géotechnicien. À partir des extraits d'un rapport d'étude de sol, produis un résumé synthétique et les conclusions/recommandations clés (type de fondations préconisé, contraintes de sol, risques : retrait-gonflement argiles, liquéfaction, nappe, etc.). Base-toi uniquement sur le texte fourni. Réponds en JSON strict sans Markdown : {\"resume\": string (3 à 5 phrases, HTML simple <b>/<br> autorisé), \"conclusion\": string (conclusions et recommandations clés ; chaîne vide si absentes)}.";
+const SYS = `Tu es un ingénieur géotechnicien. À partir des extraits d'un rapport d'étude de sol, produis DEUX résumés et une fiche simplifiée. Base-toi uniquement sur le texte fourni. Réponds en JSON strict sans Markdown :
+{
+  "resume": string (3 à 5 phrases, HTML simple <b>/<br> autorisé),
+  "conclusion": string (conclusions et recommandations clés ; chaîne vide si absentes),
+  "fiche": {
+    "type_mission": string (ex: G2 AVP, G2 PRO, G1 ES, G1 PGC, G5… chaîne vide si non trouvé),
+    "client": string (nom du client/maître d'ouvrage ; chaîne vide si non trouvé),
+    "type_fondation": string (superficielles, semi-profondes, profondes, radier… chaîne vide si non trouvé),
+    "sol_fondation": string (nature du sol de fondation : argile, marne, calcaire, sable… chaîne vide si non trouvé),
+    "profondeur_encastrement": string (profondeur d'encastrement préconisée ex: "1.20 m" ; chaîne vide si non trouvé),
+    "susceptibilite_sol": string (retrait-gonflement, liquéfaction, dissolution… chaîne vide si non trouvé),
+    "contrainte_sol": string (valeur de la contrainte admissible ou ELS/ELU ex: "0.15 MPa" ; chaîne vide si non trouvé),
+    "essais_labo": string ("Oui" ou "Non" ou détail si mentionné),
+    "profondeur_refus": string (profondeur de refus ou arrêt des pénétromètres ex: "3.5 m" ; chaîne vide si non trouvé),
+    "classe_sismique": string (classe de sol sismique ex: "B", "C"… chaîne vide si non trouvé),
+    "essais_pressio": boolean (true si des essais pressiométriques ont été réalisés, false sinon)
+  }
+}`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,7 +48,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 1500,
         system: SYS,
         messages: [{ role: 'user', content: 'RAPPORT (extraits) :\n' + text }]
       })
@@ -42,7 +59,7 @@ export default async function handler(req, res) {
     const cleaned = txt.replace(/```json|```/g, '').trim();
     let o;
     try { o = JSON.parse(cleaned); }
-    catch (e) { o = { resume: txt || '(résumé indisponible)', conclusion: '' }; }
+    catch (e) { o = { resume: txt || '(résumé indisponible)', conclusion: '', fiche: null }; }
     return res.status(200).json(o);
   } catch (e) {
     console.error('ged-summary error:', e.message);

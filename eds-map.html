@@ -479,11 +479,42 @@ async function gedLaunchSummaries() {
       });
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error || 'Erreur serveur');
-      let html = '';
-      if (json.resume) html += `<div style="color:#374151;line-height:1.5;">${json.resume}</div>`;
-      if (json.conclusion) html += `<div style="margin-top:6px;padding:6px 10px;border-left:3px solid #795548;background:rgba(121,85,72,0.06);border-radius:0 6px 6px 0;font-size:0.7rem;color:#5d4037;line-height:1.5;">${json.conclusion}</div>`;
-      el.innerHTML = html || '<span style="color:#b8a07e;font-style:italic;">Aucun contenu résumable.</span>';
-      if (json.resume || json.conclusion) collectedSummaries.push({ resume: json.resume || '', conclusion: json.conclusion || '', name: data[i].name || '' });
+      const hasPressio = json.fiche && json.fiche.essais_pressio;
+      const accentColor = hasPressio ? '#1565c0' : '#795548';
+      const accentBg = hasPressio ? 'rgba(21,101,192,0.06)' : 'rgba(121,85,72,0.06)';
+      const badgePressio = hasPressio ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#1565c0;color:#fff;border-radius:3px;font-size:0.58rem;font-weight:700;letter-spacing:0.3px;">PRESSIO</span>` : '';
+      let ficheHtml = '';
+      if (json.fiche) {
+        const f = json.fiche;
+        const fields = [
+          ['Type de mission', f.type_mission],
+          ['Client', f.client],
+          ['Type de fondation', f.type_fondation],
+          ['Sol de fondation', f.sol_fondation],
+          ['Prof. d\'encastrement', f.profondeur_encastrement],
+          ['Susceptibilité du sol', f.susceptibilite_sol],
+          ['Contrainte de sol', f.contrainte_sol],
+          ['Essais laboratoire', f.essais_labo],
+          ['Prof. refus/arrêt pénétro.', f.profondeur_refus],
+          ['Classe sismique', f.classe_sismique],
+        ];
+        ficheHtml = `<div style="margin-top:6px;padding:8px 10px;border-left:3px solid ${accentColor};background:${accentBg};border-radius:0 6px 6px 0;font-size:0.68rem;line-height:1.7;color:#374151;">` +
+          fields.map(([label, val]) => `<div><b style="color:${accentColor};">${label} :</b> ${val || '<span style="color:#bbb;">—</span>'}</div>`).join('') +
+          `</div>`;
+      }
+      let completeHtml = '';
+      if (json.resume) completeHtml += `<div style="color:#374151;line-height:1.5;">${json.resume}</div>`;
+      if (json.conclusion) completeHtml += `<div style="margin-top:6px;padding:6px 10px;border-left:3px solid ${accentColor};background:${accentBg};border-radius:0 6px 6px 0;font-size:0.7rem;color:#5d4037;line-height:1.5;">${json.conclusion}</div>`;
+      const tabStyle = (active) => `padding:3px 8px;border:none;border-radius:4px;cursor:pointer;font-size:0.62rem;font-weight:700;font-family:inherit;transition:all 0.15s;` +
+        (active ? `background:${accentColor};color:#fff;` : `background:transparent;color:${accentColor};`);
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;" data-accent="${accentColor}">
+          <button onclick="gedToggleTab(${i},'simple')" id="ged-tab-simple-${i}" style="${tabStyle(true)}">Résumé Simple</button>
+          <button onclick="gedToggleTab(${i},'complet')" id="ged-tab-complet-${i}" style="${tabStyle(false)}">Résumé Complet</button>
+          ${badgePressio}
+        </div>
+        <div id="ged-view-simple-${i}">${ficheHtml || '<span style="color:#b8a07e;font-style:italic;">Fiche non disponible.</span>'}</div>
+        <div id="ged-view-complet-${i}" style="display:none;">${completeHtml || '<span style="color:#b8a07e;font-style:italic;">Aucun contenu résumable.</span>'}</div>`;
+      if (json.resume || json.conclusion) collectedSummaries.push({ resume: json.resume || '', conclusion: json.conclusion || '', name: data[i].name || '', fiche: json.fiche || null });
     } catch (e) {
       el.innerHTML = `<span style="color:#d32f2f;font-size:0.65rem;">⚠ ${e.message}</span>`;
     }
@@ -566,6 +597,23 @@ function gedCaptureMap() {
   }).catch(e => {
     console.error('Capture error:', e);
     if (captureBtn) { captureBtn.textContent = '⚠ Erreur'; captureBtn.disabled = false; setTimeout(() => captureBtn.textContent = '📸 Capture carte', 2000); }
+  });
+}
+
+function gedToggleTab(i, tab) {
+  const simple = document.getElementById('ged-view-simple-' + i);
+  const complet = document.getElementById('ged-view-complet-' + i);
+  const btnSimple = document.getElementById('ged-tab-simple-' + i);
+  const btnComplet = document.getElementById('ged-tab-complet-' + i);
+  if (!simple || !complet) return;
+  const isSimple = tab === 'simple';
+  simple.style.display = isSimple ? '' : 'none';
+  complet.style.display = isSimple ? 'none' : '';
+  const accent = btnSimple.parentElement.dataset.accent || '#795548';
+  [btnSimple, btnComplet].forEach((b, idx) => {
+    const active = (idx === 0) === isSimple;
+    b.style.background = active ? accent : 'transparent';
+    b.style.color = active ? '#fff' : accent;
   });
 }
 
