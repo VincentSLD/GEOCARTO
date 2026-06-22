@@ -520,21 +520,19 @@ async function gedLaunchSummaries() {
     }
   }
 
-  // Synthèse géotechnique globale
+  // Synthèse géotechnique globale (à la fin de la liste)
   if (collectedSummaries.length >= 2) {
     if (btn) btn.textContent = '⏳ Synthèse globale…';
     let synthBlock = document.getElementById('ged-synthesis-block');
     if (!synthBlock) {
-      const results = document.getElementById('ged-results');
-      const firstChild = results.firstChild;
       synthBlock = document.createElement('div');
       synthBlock.id = 'ged-synthesis-block';
-      if (firstChild && firstChild.nextSibling) results.insertBefore(synthBlock, firstChild.nextSibling);
-      else results.appendChild(synthBlock);
+      document.getElementById('ged-results').appendChild(synthBlock);
     }
-    synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
-      <div style="font-size:0.72rem;font-weight:700;color:#795548;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
-      <div style="color:#b8a07e;font-size:0.75rem;">⏳ Analyse en cours…</div></div>`;
+    synthBlock.innerHTML = `<div style="padding:14px 18px;border-top:3px solid #00897b;background:rgba(0,137,123,0.05);">
+      <div style="font-size:0.72rem;font-weight:700;color:#00897b;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
+      <div style="color:#80cbc4;font-size:0.75rem;">⏳ Analyse en cours…</div></div>`;
+    synthBlock.scrollIntoView({ behavior: 'smooth', block: 'end' });
     try {
       const radius = parseInt(document.getElementById('ged-radius').value) || 1000;
       const resp = await fetch('/api/ged-synthesis', {
@@ -546,26 +544,27 @@ async function gedLaunchSummaries() {
       if (!resp.ok) throw new Error(json.error || 'Erreur serveur');
       let ptsHtml = '';
       if (json.points_cles && json.points_cles.length) {
-        ptsHtml = `<div style="margin-top:10px;padding:8px 12px;background:rgba(121,85,72,0.06);border-radius:6px;font-size:0.7rem;color:#5d4037;line-height:1.6;">
+        ptsHtml = `<div style="margin-top:10px;padding:8px 12px;background:rgba(0,137,123,0.08);border-radius:6px;font-size:0.7rem;color:#00695c;line-height:1.6;">
           <b>Points clés :</b><br>${json.points_cles.map(p => '• ' + p).join('<br>')}</div>`;
       }
       const synthText = (json.synthese || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
         + (json.points_cles && json.points_cles.length ? '\n\nPoints clés :\n' + json.points_cles.map(p => '• ' + p).join('\n') : '');
-      synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
+      synthBlock.innerHTML = `<div style="padding:14px 18px;border-top:3px solid #00897b;background:rgba(0,137,123,0.05);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-size:0.72rem;font-weight:700;color:#795548;">🧭 Tendance géotechnique globale</div>
+          <div style="font-size:0.72rem;font-weight:700;color:#00897b;">🧭 Tendance géotechnique globale</div>
           <div style="display:flex;gap:6px;">
-            <button onclick="gedCopySynthesis()" style="padding:4px 10px;background:#795548;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#5d4037'" onmouseout="this.style.background='#795548'">📋 Copier</button>
-            <button onclick="gedCaptureMap()" style="padding:4px 10px;background:#795548;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#5d4037'" onmouseout="this.style.background='#795548'">📸 Capture carte</button>
+            <button onclick="gedCopySynthesis()" style="padding:4px 10px;background:#00897b;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#00695c'" onmouseout="this.style.background='#00897b'">📋 Copier</button>
+            <button onclick="gedCaptureMap()" style="padding:4px 10px;background:#00897b;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.65rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#00695c'" onmouseout="this.style.background='#00897b'">📸 Capture carte</button>
           </div>
         </div>
         <div id="ged-synthesis-text" style="font-size:0.75rem;color:#374151;line-height:1.6;">${json.synthese || ''}</div>
         ${ptsHtml}
       </div>`;
       window._gedSynthesisText = synthText;
+      synthBlock.scrollIntoView({ behavior: 'smooth', block: 'end' });
     } catch (e) {
-      synthBlock.innerHTML = `<div style="padding:14px 18px;border-bottom:2px solid #795548;background:rgba(121,85,72,0.04);">
-        <div style="font-size:0.72rem;font-weight:700;color:#795548;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
+      synthBlock.innerHTML = `<div style="padding:14px 18px;border-top:3px solid #00897b;background:rgba(0,137,123,0.05);">
+        <div style="font-size:0.72rem;font-weight:700;color:#00897b;margin-bottom:8px;">🧭 Tendance géotechnique globale</div>
         <div style="color:#d32f2f;font-size:0.7rem;">⚠ ${e.message}</div></div>`;
     }
   }
