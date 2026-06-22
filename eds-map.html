@@ -102,12 +102,21 @@
       </div>
       <input type="file" id="ged-file-input" accept=".pdf,.docx,.txt,.csv,.eml" style="display:none;" onchange="gedHandleFiles(this.files)">
       <div id="ged-index-geo-prompt" style="display:none;margin-top:8px;padding:10px 12px;border:2px solid #e65100;border-radius:8px;background:rgba(230,81,0,0.06);">
-        <div style="font-size:0.72rem;font-weight:700;color:#e65100;margin-bottom:4px;">📍 Position GPS non trouvée dans le fichier</div>
-        <div style="font-size:0.68rem;color:#6b7280;line-height:1.4;">Cliquez sur la carte pour positionner ce rapport, puis validez.</div>
-        <div id="ged-index-geo-coords" style="font-size:0.72rem;font-weight:700;color:#374151;margin-top:6px;"></div>
-        <div style="display:flex;gap:6px;margin-top:8px;">
+        <div style="font-size:0.72rem;font-weight:700;color:#e65100;margin-bottom:6px;">📍 Position GPS non trouvée automatiquement</div>
+        <div id="ged-index-addr-found" style="display:none;font-size:0.68rem;color:#374151;margin-bottom:8px;padding:6px 8px;background:rgba(230,81,0,0.06);border-radius:5px;line-height:1.4;"></div>
+        <div style="font-size:0.68rem;color:#6b7280;margin-bottom:6px;">Saisissez l'adresse du rapport ou cliquez directement sur la carte :</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input type="text" id="ged-index-addr-input" placeholder="ex: 12 rue des Halles, Nantes" style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.72rem;font-family:inherit;" onkeydown="if(event.key==='Enter')gedGeocodeAddr()">
+          <button onclick="gedGeocodeAddr()" style="padding:5px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:inherit;white-space:nowrap;">Localiser</button>
+        </div>
+        <div id="ged-index-geo-coords" style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:6px;"></div>
+        <details style="margin-bottom:8px;">
+          <summary style="font-size:0.65rem;color:#9ca3af;cursor:pointer;">Lire un extrait du rapport</summary>
+          <div id="ged-index-text-preview" style="max-height:150px;overflow-y:auto;font-size:0.62rem;color:#6b7280;line-height:1.5;margin-top:4px;padding:6px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:5px;white-space:pre-wrap;word-break:break-word;"></div>
+        </details>
+        <div style="display:flex;gap:6px;">
           <button id="ged-index-geo-ok" onclick="gedConfirmGeoPosition()" disabled style="flex:1;padding:5px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;opacity:0.5;">✓ Valider cette position</button>
-          <button onclick="gedSkipGeoPosition()" style="padding:5px 10px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;">Ignorer</button>
+          <button onclick="gedSkipGeoPosition()" style="padding:5px 10px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;">Indexer sans position</button>
         </div>
       </div>
       <div id="ged-index-status" style="font-size:0.68rem;color:#6b7280;margin-top:8px;min-height:16px;"></div>
@@ -707,13 +716,28 @@ async function gedHandleFiles(fileList) {
       gedIndexStatus(`📍 Position trouvée : ${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)} — Indexation…`);
       await gedDoIndex(f, hash, text, geo.lat, geo.lon);
     } else {
-      // Pas de GPS trouvé → demander un clic sur la carte
+      // Pas de GPS trouvé → afficher adresse + extrait + demander position
       _gedPendingIndex = { f, hash, text };
       gedIndexStatus('');
-      document.getElementById('ged-index-geo-prompt').style.display = '';
+      const geoPrompt = document.getElementById('ged-index-geo-prompt');
+      geoPrompt.style.display = '';
       document.getElementById('ged-index-geo-coords').textContent = '';
       document.getElementById('ged-index-geo-ok').disabled = true;
       document.getElementById('ged-index-geo-ok').style.opacity = '0.5';
+      document.getElementById('ged-index-addr-input').value = '';
+      // Afficher l'adresse extraite du texte si trouvée
+      const addrFound = document.getElementById('ged-index-addr-found');
+      const extractedAddr = gedExtractAddress(text);
+      if (extractedAddr) {
+        addrFound.style.display = '';
+        addrFound.innerHTML = `<b>Adresse trouvée dans le rapport :</b><br>${extractedAddr}`;
+        document.getElementById('ged-index-addr-input').value = extractedAddr;
+      } else {
+        addrFound.style.display = 'none';
+      }
+      // Afficher un extrait du texte pour consultation manuelle
+      const preview = document.getElementById('ged-index-text-preview');
+      if (preview) preview.textContent = text.slice(0, 3000);
       document.getElementById('map').style.cursor = 'crosshair';
       // Écouter les clics carte pour positionner le document
       if (_gedIndexGeoClickHandler) map.off('click', _gedIndexGeoClickHandler);
@@ -723,7 +747,6 @@ async function gedHandleFiles(fileList) {
         document.getElementById('ged-index-geo-coords').textContent = `📍 ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
         document.getElementById('ged-index-geo-ok').disabled = false;
         document.getElementById('ged-index-geo-ok').style.opacity = '';
-        // Marqueur temporaire
         if (_gedPendingIndex._tempMarker) map.removeLayer(_gedPendingIndex._tempMarker);
         _gedPendingIndex._tempMarker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
           radius: 8, color: '#e65100', fillColor: '#e65100', fillOpacity: 0.7, weight: 2
@@ -882,9 +905,10 @@ function _gedNum(s) { return parseFloat(String(s).replace(',', '.')); }
 function _gedValidFR(lat, lon) { return lat >= 41 && lat <= 51.7 && lon >= -5.6 && lon <= 10; }
 function gedExtractLatLon(text) {
   if (!text) return null;
+  let m;
+  // A) DMS classique : 47°13'06"N 1°33'12"O
   const dmsRe = /(\d{1,3})\s*[°º]\s*(\d{1,2})\s*['′′\s]\s*(\d{1,2}(?:[.,]\d+)?)\s*["″″]?\s*([NSEOW])/gi;
   const dms = [];
-  let m;
   while ((m = dmsRe.exec(text))) {
     let dd = parseInt(m[1], 10) + parseInt(m[2], 10) / 60 + _gedNum(m[3]) / 3600;
     const dir = m[4].toUpperCase();
@@ -893,19 +917,87 @@ function gedExtractLatLon(text) {
   }
   const dmsLat = dms.find(v => v.axis === 'lat'), dmsLon = dms.find(v => v.axis === 'lon');
   if (dmsLat && dmsLon && _gedValidFR(dmsLat.dd, dmsLon.dd)) return { lat: +dmsLat.dd.toFixed(6), lon: +dmsLon.dd.toFixed(6) };
-  const latLab = text.match(/lat(?:itude)?\s*[:=]?\s*(-?\d{1,2}[.,]\d{3,})/i);
-  const lonLab = text.match(/long?(?:itude)?\s*[:=]?\s*(-?\d{1,3}[.,]\d{3,})/i);
+  // B) Décimal avec direction : 47.2184°N ou N 47.2184° ou 47.2184 N
+  const ddDirRe = /([NSEOW])\s*[:=]?\s*(-?\d{1,3}[.,]\d+)\s*[°]?|(-?\d{1,3}[.,]\d+)\s*[°]?\s*([NSEOW])/gi;
+  const ddDir = [];
+  while ((m = ddDirRe.exec(text))) {
+    const dir = (m[1] || m[4] || '').toUpperCase();
+    const val = _gedNum(m[2] || m[3]);
+    if (!dir || isNaN(val)) continue;
+    let dd = Math.abs(val);
+    if (dir === 'S' || dir === 'W' || dir === 'O') dd = -dd;
+    ddDir.push({ dd, axis: (dir === 'N' || dir === 'S') ? 'lat' : 'lon' });
+  }
+  const ddLat = ddDir.find(v => v.axis === 'lat'), ddLon = ddDir.find(v => v.axis === 'lon');
+  if (ddLat && ddLon && _gedValidFR(ddLat.dd, ddLon.dd)) return { lat: +ddLat.dd.toFixed(6), lon: +ddLon.dd.toFixed(6) };
+  // C) Décimal avec libellés (lat/latitude, lon/longitude) — 2+ décimales
+  const latLab = text.match(/lat(?:itude)?\s*[:=]?\s*(-?\d{1,2}[.,]\d{2,})/i);
+  const lonLab = text.match(/long?(?:itude)?\s*[:=]?\s*(-?\d{1,3}[.,]\d{2,})/i);
   if (latLab && lonLab) {
     const lat = _gedNum(latLab[1]), lon = _gedNum(lonLab[1]);
     if (_gedValidFR(lat, lon)) return { lat: +lat.toFixed(6), lon: +lon.toFixed(6) };
   }
-  const pairRe = /(-?\d{2}[.,]\d{3,})\s*[,;/]\s*(-?\d{1,3}[.,]\d{3,})/g;
+  // D) Libellés Y/X (Lambert → souvent grands chiffres, on ignore) ou lat/lon courts
+  const yLab = text.match(/[YN]\s*[:=]\s*(-?\d{1,3}[.,]\d{2,})/i);
+  const xLab = text.match(/[XE]\s*[:=]\s*(-?\d{1,3}[.,]\d{2,})/i);
+  if (yLab && xLab) {
+    const y = _gedNum(yLab[1]), x = _gedNum(xLab[1]);
+    if (_gedValidFR(y, x)) return { lat: +y.toFixed(6), lon: +x.toFixed(6) };
+  }
+  // E) Paire décimale générique : 47.2184, -1.5536 (2+ décimales)
+  const pairRe = /(-?\d{2}[.,]\d{2,})\s*[,;/\s]\s*(-?\d{1,3}[.,]\d{2,})/g;
   while ((m = pairRe.exec(text))) {
     const a = _gedNum(m[1]), b = _gedNum(m[2]);
     if (_gedValidFR(a, b)) return { lat: +a.toFixed(6), lon: +b.toFixed(6) };
     if (_gedValidFR(b, a)) return { lat: +b.toFixed(6), lon: +a.toFixed(6) };
   }
   return null;
+}
+
+function gedExtractAddress(text) {
+  if (!text) return null;
+  // Chercher des patterns d'adresse français courants dans les premières 5000 chars
+  const head = text.slice(0, 5000);
+  // "situé(e) (au) ... à VILLE" / "sis(e) ... à VILLE" / "à l'adresse ..."
+  const patterns = [
+    /(?:situ[ée]{1,2}s?\s+(?:au\s+)?|sis(?:e)?\s+)(.{10,80}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+    /(?:adresse|localisation|implantation)\s*[:]\s*(.{10,100}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+    /(\d{1,4}[\s,]+(?:rue|avenue|av\.|boulevard|bd|chemin|route|impasse|allée|place|lieu[\s-]dit|lotissement|ZA|ZI|ZAC)[^.;\n]{5,60}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+    /(\d{5}\s+[A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s]{2,30})/,
+  ];
+  for (const re of patterns) {
+    const m = head.match(re);
+    if (m && m[1]) return m[1].replace(/\s+/g, ' ').trim();
+  }
+  return null;
+}
+
+async function gedGeocodeAddr() {
+  const input = document.getElementById('ged-index-addr-input');
+  const addr = (input?.value || '').trim();
+  if (!addr || addr.length < 5) return;
+  try {
+    const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(addr) + '&limit=1');
+    const j = await r.json();
+    if (j.features && j.features.length) {
+      const [lon, lat] = j.features[0].geometry.coordinates;
+      const label = j.features[0].properties.label || addr;
+      if (_gedPendingIndex) {
+        _gedPendingIndex._geoLat = lat;
+        _gedPendingIndex._geoLng = lon;
+        document.getElementById('ged-index-geo-coords').textContent = `📍 ${label} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+        document.getElementById('ged-index-geo-ok').disabled = false;
+        document.getElementById('ged-index-geo-ok').style.opacity = '';
+        if (_gedPendingIndex._tempMarker) map.removeLayer(_gedPendingIndex._tempMarker);
+        _gedPendingIndex._tempMarker = L.circleMarker([lat, lon], { radius: 8, color: '#e65100', fillColor: '#e65100', fillOpacity: 0.7, weight: 2 }).addTo(map);
+        map.setView([lat, lon], 15, { animate: true });
+      }
+    } else {
+      document.getElementById('ged-index-geo-coords').innerHTML = '<span style="color:#d32f2f;font-size:0.68rem;">Adresse non trouvée.</span>';
+    }
+  } catch (e) {
+    document.getElementById('ged-index-geo-coords').innerHTML = `<span style="color:#d32f2f;font-size:0.68rem;">Erreur : ${e.message}</span>`;
+  }
 }
 
 function gedHighlightMarker(i, on) {
