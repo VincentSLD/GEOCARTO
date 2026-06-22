@@ -421,7 +421,7 @@ map.on('click', function(e) {
   // Marqueur de recherche
   if (_gedMarker) map.removeLayer(_gedMarker);
   _gedMarker = L.circleMarker([_gedClickLat, _gedClickLng], {
-    radius: 7, color: '#795548', fillColor: '#795548', fillOpacity: 0.8, weight: 2,
+    radius: 10, color: '#fff', fillColor: '#e65100', fillOpacity: 1, weight: 3,
   }).addTo(map);
   gedSearchFromMap();
 });
