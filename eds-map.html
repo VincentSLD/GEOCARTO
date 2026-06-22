@@ -854,6 +854,8 @@ async function gedDoIndex(f, hash, text, lat, lon) {
   // S'assurer que les marqueurs jaunes (EDS) sont toujours visibles
   if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
   map.invalidateSize({ animate: false });
+  // Zoomer sur le point indexé
+  if (lat != null && lon != null) map.setView([lat, lon], 15, { animate: true });
 }
 
 function gedIndexStatus(msg) {
