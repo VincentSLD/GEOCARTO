@@ -6,6 +6,7 @@ const SYS = `Tu es un ingénieur géotechnicien. À partir des extraits d'un rap
   "resume": string (3 à 5 phrases, HTML simple <b>/<br> autorisé),
   "conclusion": string (conclusions et recommandations clés ; chaîne vide si absentes),
   "fiche": {
+    "societe": string (nom du bureau d'études ou société qui a réalisé le rapport ; chaîne vide si non trouvé),
     "type_mission": string (ex: G2 AVP, G2 PRO, G1 ES, G1 PGC, G5… chaîne vide si non trouvé),
     "client": string (nom du client/maître d'ouvrage ; chaîne vide si non trouvé),
     "type_fondation": string (superficielles, semi-profondes, profondes, radier… chaîne vide si non trouvé),

@@ -531,6 +531,7 @@ async function gedLaunchSummaries() {
       if (json.fiche) {
         const f = json.fiche;
         const fields = [
+          ['Société', f.societe],
           ['Type de mission', f.type_mission],
           ['Client', f.client],
           ['Type de fondation', f.type_fondation],
