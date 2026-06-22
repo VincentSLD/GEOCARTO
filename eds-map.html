@@ -88,7 +88,31 @@
     </div>
     <div id="ged-coords" style="font-size:0.68rem;color:#9ca3af;margin-top:6px;"></div>
   </div>
-  <div id="ged-results" style="overflow-y:auto;height:calc(100% - 160px);padding:0;"></div>
+  <!-- Zone d'indexation drag-and-drop -->
+  <div style="padding:10px 18px;border-bottom:1px solid #e5e7eb;">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="document.getElementById('ged-index-section').style.display=document.getElementById('ged-index-section').style.display==='none'?'':'none';this.querySelector('span:last-child').textContent=document.getElementById('ged-index-section').style.display==='none'?'▸':'▾'">
+      <span style="font-size:0.72rem;font-weight:700;color:#e65100;">📥 Indexer de nouvelles études</span>
+      <span style="font-size:0.72rem;color:#9ca3af;">▸</span>
+    </div>
+    <div id="ged-index-section" style="display:none;margin-top:10px;">
+      <div id="ged-dropzone" style="border:2px dashed #e0c8a8;border-radius:8px;padding:20px 14px;text-align:center;background:rgba(230,81,0,0.03);transition:all 0.2s;cursor:pointer;" onclick="document.getElementById('ged-file-input').click()">
+        <div style="font-size:1.3rem;margin-bottom:6px;">📄</div>
+        <div style="font-size:0.72rem;color:#6b7280;line-height:1.5;">Glissez-déposez vos fichiers ici<br>ou <b style="color:#e65100;">cliquez pour sélectionner</b></div>
+        <div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;">PDF, DOCX, TXT — max 50 fichiers</div>
+      </div>
+      <input type="file" id="ged-file-input" multiple accept=".pdf,.docx,.txt,.csv,.eml" style="display:none;" onchange="gedHandleFiles(this.files)">
+      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+        <input type="checkbox" id="ged-use-map-pos" checked style="accent-color:#e65100;width:14px;height:14px;">
+        <label for="ged-use-map-pos" style="font-size:0.65rem;color:#6b7280;cursor:pointer;">Utiliser la position cliquée sur la carte si aucune coord. GPS trouvée dans le fichier</label>
+      </div>
+      <div id="ged-index-status" style="font-size:0.68rem;color:#6b7280;margin-top:8px;min-height:16px;"></div>
+      <div id="ged-index-progress" style="display:none;height:5px;background:#f3f4f6;border-radius:3px;overflow:hidden;margin-top:6px;">
+        <div id="ged-index-bar" style="height:100%;width:0;background:#e65100;transition:width 0.2s;border-radius:3px;"></div>
+      </div>
+      <div id="ged-index-report" style="display:none;margin-top:8px;max-height:120px;overflow-y:auto;font-size:0.62rem;border:1px solid #f3f4f6;border-radius:6px;padding:6px 10px;background:#fafafa;"></div>
+    </div>
+  </div>
+  <div id="ged-results" style="overflow-y:auto;height:calc(100% - 260px);padding:0;"></div>
 </div>
 
 <script>
@@ -614,6 +638,181 @@ function gedToggleTab(i, tab) {
     b.style.background = active ? accent : 'transparent';
     b.style.color = active ? '#fff' : accent;
   });
+}
+
+// ====== Indexation drag-and-drop ======
+const GED_EXTS = ['pdf', 'docx', 'txt', 'csv', 'eml'];
+const GED_MAX_CHUNKS = 300;
+let _gedIndexing = false;
+
+// Drag-and-drop events
+(function() {
+  const dz = document.getElementById('ged-dropzone');
+  if (!dz) return;
+  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.style.borderColor = '#e65100'; dz.style.background = 'rgba(230,81,0,0.08)'; }));
+  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.style.borderColor = '#e0c8a8'; dz.style.background = 'rgba(230,81,0,0.03)'; }));
+  dz.addEventListener('drop', e => { if (e.dataTransfer.files.length) gedHandleFiles(e.dataTransfer.files); });
+})();
+
+async function gedHandleFiles(fileList) {
+  if (_gedIndexing) return;
+  const files = [];
+  for (const f of fileList) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (GED_EXTS.includes(ext)) files.push({ file: f, name: f.name, path: f.name, ext, size: f.size, lastModified: f.lastModified });
+  }
+  if (!files.length) { gedIndexStatus('Aucun fichier supporté (PDF, DOCX, TXT, CSV, EML).'); return; }
+  if (files.length > 50) { gedIndexStatus('Maximum 50 fichiers à la fois.'); return; }
+  _gedIndexing = true;
+  const progWrap = document.getElementById('ged-index-progress');
+  const progBar = document.getElementById('ged-index-bar');
+  if (progWrap) progWrap.style.display = '';
+  if (progBar) progBar.style.width = '0%';
+
+  const existing = {};
+  { let off = 0; while (true) { const { data, error } = await sb.from('ged_documents').select('path,file_hash').range(off, off + 999); if (error || !data || !data.length) break; data.forEach(d => { existing[d.path] = d.file_hash; }); if (data.length < 1000) break; off += 1000; } }
+
+  let done = 0, indexed = 0, skipped = 0, failed = 0;
+  const issues = [];
+  const useMapPos = document.getElementById('ged-use-map-pos')?.checked && _gedClickLat && _gedClickLng;
+
+  for (const f of files) {
+    done++;
+    const hash = f.size + '-' + f.lastModified;
+    if (existing[f.path] === hash) { skipped++; }
+    else {
+      let docId = null;
+      try {
+        const text = await gedExtractText(f.file, f.ext);
+        if (!text || text.length < 20) throw new Error(f.ext === 'pdf' ? 'aucun texte extrait (PDF scanné ?)' : 'aucun texte extrait');
+        const allChunks = gedChunkText(text);
+        const partial = allChunks.length > GED_MAX_CHUNKS;
+        const chunks = allChunks.slice(0, GED_MAX_CHUNKS);
+        const rows = [];
+        for (let b = 0; b < chunks.length; b += 50) {
+          const batch = chunks.slice(b, b + 50);
+          const er = await fetch('/api/embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texts: batch }) });
+          if (!er.ok) { const e = await er.json().catch(() => ({})); throw new Error(e.details || e.error || ('embed ' + er.status)); }
+          const ej = await er.json();
+          if (!ej.embeddings || ej.embeddings.length !== batch.length) throw new Error('embeddings incomplets');
+          ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k], embedding: '[' + emb.join(',') + ']' }));
+        }
+        if (!rows.length) throw new Error('aucun passage généré');
+        { const { error: delErr } = await sb.from('ged_documents').delete().eq('path', f.path); if (delErr) throw new Error('suppression : ' + delErr.message); }
+        const geo = gedExtractLatLon(text);
+        const lat = geo ? geo.lat : (useMapPos ? _gedClickLat : null);
+        const lon = geo ? geo.lon : (useMapPos ? _gedClickLng : null);
+        const ins = await sb.from('ged_documents').insert({ path: f.path, name: f.name, ext: f.ext, size: f.size, file_hash: hash, char_count: text.length, lat, lon }).select('id').single();
+        if (ins.error) throw new Error(ins.error.message);
+        docId = ins.data.id;
+        for (let b = 0; b < rows.length; b += 50) {
+          const slice = rows.slice(b, b + 50).map(r => ({ ...r, document_id: docId }));
+          const { error } = await sb.from('ged_chunks').insert(slice);
+          if (error) throw new Error(error.message);
+        }
+        existing[f.path] = hash;
+        indexed++;
+        if (partial) issues.push({ name: f.name, type: 'warn', msg: `tronqué à ${GED_MAX_CHUNKS} passages` });
+      } catch (e) {
+        failed++;
+        if (docId) { try { await sb.from('ged_documents').delete().eq('id', docId); } catch (x) {} }
+        issues.push({ name: f.name, type: 'error', msg: e.message });
+        console.warn('GED index fail', f.name, e);
+      }
+    }
+    if (progBar) progBar.style.width = (done / files.length * 100).toFixed(0) + '%';
+    gedIndexStatus(`(${done}/${files.length}) ${indexed} indexés · ${skipped} existants · ${failed} échecs`);
+  }
+
+  if (progWrap) setTimeout(() => { progWrap.style.display = 'none'; }, 2000);
+  gedIndexReport(issues, { indexed, skipped, failed, total: files.length });
+  _gedIndexing = false;
+  document.getElementById('ged-file-input').value = '';
+}
+
+function gedIndexStatus(msg) {
+  const el = document.getElementById('ged-index-status');
+  if (el) el.textContent = msg;
+}
+
+function gedIndexReport(issues, summary) {
+  const el = document.getElementById('ged-index-report');
+  if (!el) return;
+  if (!issues.length) {
+    el.style.display = '';
+    el.innerHTML = `<div style="color:#2e7d32;font-weight:700;">✅ ${summary.indexed} fichier(s) indexé(s)${summary.skipped ? `, ${summary.skipped} déjà présent(s)` : ''}</div>`;
+    return;
+  }
+  el.style.display = '';
+  el.innerHTML = issues.map(i => `<div style="color:${i.type === 'error' ? '#d32f2f' : '#e65100'};padding:2px 0;">${i.type === 'error' ? '✗' : '⚠'} <b>${i.name}</b> — ${i.msg}</div>`).join('')
+    + `<div style="margin-top:4px;color:#374151;font-weight:700;">${summary.indexed} indexé(s), ${summary.skipped} existant(s), ${summary.failed} échec(s)</div>`;
+}
+
+async function gedExtractText(file, ext) {
+  const MAX = 600000;
+  if (ext === 'txt' || ext === 'csv') return (await file.text()).slice(0, MAX);
+  if (ext === 'eml') { const raw = await file.text(); const bs = raw.indexOf('\n\n'); return (bs > 0 ? raw.slice(bs + 2) : raw).slice(0, MAX); }
+  if (ext === 'pdf') {
+    if (!window._pdfjsLib) {
+      window._pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+      window._pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+    }
+    const buf = await file.arrayBuffer();
+    const doc = await window._pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    let text = '';
+    for (let p = 1; p <= doc.numPages; p++) {
+      const pg = await doc.getPage(p);
+      const c = await pg.getTextContent();
+      text += c.items.map(it => it.str).join(' ') + '\n';
+      if (text.length > MAX) break;
+    }
+    return text.trim();
+  }
+  if (ext === 'docx') {
+    if (!window._mammoth) window._mammoth = await import('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/+esm');
+    const buf = await file.arrayBuffer();
+    const r = await window._mammoth.extractRawText({ arrayBuffer: buf });
+    return (r.value || '').trim().slice(0, MAX);
+  }
+  return '';
+}
+
+function gedChunkText(text, size = 3000, overlap = 300) {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  const chunks = [];
+  let i = 0;
+  while (i < clean.length) { chunks.push(clean.slice(i, i + size)); i += (size - overlap); }
+  return chunks;
+}
+
+function _gedNum(s) { return parseFloat(String(s).replace(',', '.')); }
+function _gedValidFR(lat, lon) { return lat >= 41 && lat <= 51.7 && lon >= -5.6 && lon <= 10; }
+function gedExtractLatLon(text) {
+  if (!text) return null;
+  const dmsRe = /(\d{1,3})\s*[°º]\s*(\d{1,2})\s*['′′\s]\s*(\d{1,2}(?:[.,]\d+)?)\s*["″″]?\s*([NSEOW])/gi;
+  const dms = [];
+  let m;
+  while ((m = dmsRe.exec(text))) {
+    let dd = parseInt(m[1], 10) + parseInt(m[2], 10) / 60 + _gedNum(m[3]) / 3600;
+    const dir = m[4].toUpperCase();
+    if (dir === 'S' || dir === 'W' || dir === 'O') dd = -dd;
+    dms.push({ dd, axis: (dir === 'N' || dir === 'S') ? 'lat' : 'lon' });
+  }
+  const dmsLat = dms.find(v => v.axis === 'lat'), dmsLon = dms.find(v => v.axis === 'lon');
+  if (dmsLat && dmsLon && _gedValidFR(dmsLat.dd, dmsLon.dd)) return { lat: +dmsLat.dd.toFixed(6), lon: +dmsLon.dd.toFixed(6) };
+  const latLab = text.match(/lat(?:itude)?\s*[:=]?\s*(-?\d{1,2}[.,]\d{3,})/i);
+  const lonLab = text.match(/long?(?:itude)?\s*[:=]?\s*(-?\d{1,3}[.,]\d{3,})/i);
+  if (latLab && lonLab) {
+    const lat = _gedNum(latLab[1]), lon = _gedNum(lonLab[1]);
+    if (_gedValidFR(lat, lon)) return { lat: +lat.toFixed(6), lon: +lon.toFixed(6) };
+  }
+  const pairRe = /(-?\d{2}[.,]\d{3,})\s*[,;/]\s*(-?\d{1,3}[.,]\d{3,})/g;
+  while ((m = pairRe.exec(text))) {
+    const a = _gedNum(m[1]), b = _gedNum(m[2]);
+    if (_gedValidFR(a, b)) return { lat: +a.toFixed(6), lon: +b.toFixed(6) };
+    if (_gedValidFR(b, a)) return { lat: +b.toFixed(6), lon: +a.toFixed(6) };
+  }
+  return null;
 }
 
 function gedHighlightMarker(i, on) {
