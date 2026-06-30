@@ -12,6 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype&loading=async" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -47,6 +49,11 @@
     Routes
   </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
+  <label>
+    <input type="checkbox" id="toggle-zones" checked onchange="toggleZones(this.checked)" style="accent-color:#2563eb;width:15px;height:15px;cursor:pointer;">
+    <span>🔷 Zones (<span id="zones-count">0</span>)</span>
+  </label>
+  <button id="btn-draw-zone" onclick="startDrawZone()" style="padding:6px 12px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#2563eb;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">✏️ Tracer une zone</button>
   <button id="btn-ged" onclick="toggleGedPanel()" style="padding:6px 12px;background:rgba(121,85,72,0.1);border:1px solid rgba(121,85,72,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#795548;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.2s;" onmouseover="this.style.background='rgba(121,85,72,0.2)'" onmouseout="this.style.background='rgba(121,85,72,0.1)'">
     📄 Documentation Études de sol <span style="font-size:0.6rem;padding:1px 5px;background:#795548;color:#fff;border-radius:4px;font-weight:700;letter-spacing:0.5px;">BETA</span>
   </button>
@@ -67,6 +74,33 @@
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
 <!-- Bouton fermer les vues Google -->
 <button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
+
+<!-- Modal formulaire zone d'opportunité -->
+<div id="zone-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.4);backdrop-filter:blur(3px);align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;">
+  <div style="background:#fff;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.25);width:380px;max-width:90vw;padding:24px;">
+    <div style="font-weight:700;font-size:0.95rem;color:#1a1a1a;margin-bottom:16px;" id="zone-modal-title">Nouvelle zone d'opportunité</div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:0.72rem;font-weight:600;color:#374151;">Titre</label>
+      <input type="text" id="zone-titre" placeholder="Nom de la zone" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-top:3px;">
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:0.72rem;font-weight:600;color:#374151;">Commentaire</label>
+      <textarea id="zone-commentaire" rows="3" placeholder="Description, contexte…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-top:3px;resize:vertical;"></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:0.72rem;font-weight:600;color:#374151;">Couleur</label>
+      <div id="zone-colors" style="display:flex;gap:8px;margin-top:5px;"></div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:0.72rem;font-weight:600;color:#374151;">Opacité : <span id="zone-opacite-val">0.35</span></label>
+      <input type="range" id="zone-opacite" min="0.05" max="0.80" step="0.05" value="0.35" oninput="document.getElementById('zone-opacite-val').textContent=this.value" style="width:100%;margin-top:3px;accent-color:#2563eb;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeZoneModal()" style="padding:7px 16px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;font-family:inherit;">Annuler</button>
+      <button id="zone-save-btn" onclick="saveZone()" style="padding:7px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <!-- Panneau Études de sol (GED) -->
 <div id="ged-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:420px;z-index:900;background:rgba(255,255,255,0.97);backdrop-filter:blur(8px);box-shadow:-4px 0 20px rgba(0,0,0,0.15);font-family:'Bricolage Grotesque',sans-serif;overflow:hidden;transition:transform 0.3s ease;">
@@ -1039,8 +1073,151 @@ function gedZoomToStudy(i) {
   m.openTooltip();
 }
 
+// ====== Zones d'opportunité (carte_zones) ======
+const ZONE_COLORS = ['#ef4444', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6'];
+let _zonesLayer = L.layerGroup().addTo(map);
+let _zonesData = [];
+let _zoneDrawer = null;
+let _zonePendingLayer = null;
+let _zoneEditId = null;
+let _zoneSelectedColor = '#2563eb';
+
+async function loadZones() {
+  _zonesData = [];
+  let off = 0;
+  while (true) {
+    const { data, error } = await sb.from('carte_zones').select('*').order('created_at', { ascending: false }).range(off, off + 999);
+    if (error || !data || !data.length) break;
+    _zonesData = _zonesData.concat(data);
+    if (data.length < 1000) break;
+    off += 1000;
+  }
+  renderZones();
+}
+
+function renderZones() {
+  _zonesLayer.clearLayers();
+  _zonesData.forEach(z => {
+    if (!z.geojson) return;
+    const layer = L.geoJSON(z.geojson, {
+      style: { color: z.couleur || '#2563eb', weight: 2, fillColor: z.couleur || '#2563eb', fillOpacity: z.opacite ?? 0.35 }
+    });
+    layer.bindPopup(() => {
+      const div = document.createElement('div');
+      div.style.cssText = 'font-family:Bricolage Grotesque,sans-serif;min-width:180px;max-width:260px;';
+      div.innerHTML = `<div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:4px;">${z.titre || '(sans titre)'}</div>
+        ${z.commentaire ? `<div style="font-size:0.72rem;color:#6b7280;margin-bottom:8px;white-space:pre-wrap;">${z.commentaire}</div>` : ''}
+        <div style="display:flex;gap:6px;">
+          <button style="flex:1;padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:inherit;">Modifier</button>
+          <button style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:5px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:inherit;">Supprimer</button>
+        </div>`;
+      div.querySelector('button:first-of-type').onclick = () => { map.closePopup(); editZone(z); };
+      div.querySelector('button:last-of-type').onclick = () => { map.closePopup(); deleteZone(z); };
+      return div;
+    });
+    layer.addTo(_zonesLayer);
+  });
+  document.getElementById('zones-count').textContent = _zonesData.length;
+}
+
+function toggleZones(show) {
+  if (show) _zonesLayer.addTo(map); else map.removeLayer(_zonesLayer);
+}
+
+function startDrawZone() {
+  if (_zoneDrawer) { _zoneDrawer.disable(); _zoneDrawer = null; }
+  _zoneEditId = null;
+  _zonePendingLayer = null;
+  _zoneDrawer = new L.Draw.Polygon(map, { shapeOptions: { color: '#2563eb', weight: 2, fillOpacity: 0.35 } });
+  _zoneDrawer.enable();
+  document.getElementById('btn-draw-zone').textContent = '⏳ Tracez le polygone…';
+  document.getElementById('btn-draw-zone').style.background = 'rgba(37,99,235,0.3)';
+}
+
+map.on('draw:created', function(e) {
+  _zonePendingLayer = e.layer;
+  _zoneDrawer = null;
+  document.getElementById('btn-draw-zone').textContent = '✏️ Tracer une zone';
+  document.getElementById('btn-draw-zone').style.background = 'rgba(37,99,235,0.1)';
+  openZoneModal();
+});
+
+function openZoneModal(zone) {
+  const modal = document.getElementById('zone-modal');
+  modal.style.display = 'flex';
+  document.getElementById('zone-modal-title').textContent = zone ? 'Modifier la zone' : 'Nouvelle zone d\'opportunité';
+  document.getElementById('zone-titre').value = zone ? (zone.titre || '') : '';
+  document.getElementById('zone-commentaire').value = zone ? (zone.commentaire || '') : '';
+  document.getElementById('zone-opacite').value = zone ? (zone.opacite ?? 0.35) : 0.35;
+  document.getElementById('zone-opacite-val').textContent = zone ? (zone.opacite ?? 0.35) : 0.35;
+  _zoneSelectedColor = zone ? (zone.couleur || '#2563eb') : '#2563eb';
+  const colorsDiv = document.getElementById('zone-colors');
+  colorsDiv.innerHTML = ZONE_COLORS.map(c => `<div onclick="selectZoneColor('${c}')" style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c === _zoneSelectedColor ? '#1a1a1a' : 'transparent'};transition:border 0.15s;" data-color="${c}"></div>`).join('');
+}
+
+function selectZoneColor(c) {
+  _zoneSelectedColor = c;
+  document.querySelectorAll('#zone-colors div').forEach(el => {
+    el.style.border = `3px solid ${el.dataset.color === c ? '#1a1a1a' : 'transparent'}`;
+  });
+}
+
+function closeZoneModal() {
+  document.getElementById('zone-modal').style.display = 'none';
+  if (_zonePendingLayer) { map.removeLayer(_zonePendingLayer); _zonePendingLayer = null; }
+  _zoneEditId = null;
+}
+
+async function saveZone() {
+  const titre = document.getElementById('zone-titre').value.trim();
+  const commentaire = document.getElementById('zone-commentaire').value.trim();
+  const opacite = parseFloat(document.getElementById('zone-opacite').value) || 0.35;
+  const couleur = _zoneSelectedColor;
+  const btn = document.getElementById('zone-save-btn');
+  btn.disabled = true; btn.textContent = '⏳…';
+
+  try {
+    if (_zoneEditId) {
+      const { error } = await sb.from('carte_zones').update({ titre, commentaire, couleur, opacite, updated_at: new Date().toISOString() }).eq('id', _zoneEditId);
+      if (error) throw new Error(error.message);
+    } else {
+      if (!_zonePendingLayer) throw new Error('Aucun polygone tracé');
+      const gj = _zonePendingLayer.toGeoJSON();
+      const { error } = await sb.from('carte_zones').insert({ titre, commentaire, couleur, opacite, geojson: gj, created_by: 'vsalaud@be-gph.fr' });
+      if (error) throw new Error(error.message);
+      map.removeLayer(_zonePendingLayer);
+      _zonePendingLayer = null;
+    }
+    document.getElementById('zone-modal').style.display = 'none';
+    _zoneEditId = null;
+    await loadZones();
+  } catch (e) {
+    alert('Erreur : ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enregistrer';
+  }
+}
+
+function editZone(z) {
+  _zoneEditId = z.id;
+  _zonePendingLayer = null;
+  openZoneModal(z);
+}
+
+async function deleteZone(z) {
+  if (!confirm(`Supprimer la zone "${z.titre || '(sans titre)'}" ?`)) return;
+  try {
+    const { error } = await sb.from('carte_zones').delete().eq('id', z.id);
+    if (error) throw new Error(error.message);
+    await loadZones();
+  } catch (e) {
+    alert('Erreur : ' + e.message);
+  }
+}
+
 // Lancer
 loadData();
+loadZones();
 </script>
 </body>
 </html>
