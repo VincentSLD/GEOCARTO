@@ -475,6 +475,9 @@
   .map-embed:fullscreen #btn-geol-query-fs,
   .map-embed:-webkit-full-screen #btn-geol-query-fs,
   .map-embed.fs-manual #btn-geol-query-fs { display: flex !important; }
+  .map-embed:fullscreen #btn-nappes-query-fs,
+  .map-embed:-webkit-full-screen #btn-nappes-query-fs,
+  .map-embed.fs-manual #btn-nappes-query-fs { display: flex !important; }
   .map-embed:fullscreen #eds-checkboxes,
   .map-embed:-webkit-full-screen #eds-checkboxes,
   .map-embed.fs-manual #eds-checkboxes { bottom: 70px !important; }
@@ -1496,7 +1499,7 @@
           <div id="map-street" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
           <!-- Badge date de prise de vue Street View -->
-          <div id="sv-date-badge" style="position:absolute;bottom:30px;right:10px;z-index:1000;padding:4px 10px;background:rgba(0,0,0,0.65);color:#fff;border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.3px;pointer-events:none;display:none;">📅 —</div>
+          <div id="sv-date-badge" style="position:absolute;top:10px;left:10px;z-index:1000;padding:4px 10px;background:rgba(0,0,0,0.65);color:#fff;border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.3px;pointer-events:none;display:none;">📅 —</div>
           <!-- Mini carte satellite incrustée en plein écran -->
           <div id="map-satellite-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:440px;height:440px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
@@ -1853,6 +1856,22 @@
       <div class="map-embed full-map" style="margin-bottom:0.5rem;">
         <div id="map-nappes" style="width:100%;height:100%;"></div>
         <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+        <!-- Bouton interroger visible en plein écran -->
+        <button id="btn-nappes-query-fs" onclick="toggleNappesQuery()"
+          style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:1000;align-items:center;justify-content:center;gap:6px;padding:10px 18px;font-size:0.8rem;font-weight:700;border:2px solid #0277bd;border-radius:10px;background:rgba(255,255,255,0.93);backdrop-filter:blur(4px);color:#0277bd;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;font-family:'Bricolage Grotesque',sans-serif;"
+          title="Cliquez puis cliquez sur la carte pour interroger un point">
+          <svg width="18" height="16" viewBox="0 0 26 24" style="flex-shrink:0;"><polygon points="1,2 1,16 5,12 9,12" fill="#29b6f6" stroke="#0277bd" stroke-width="1.5" stroke-linejoin="round"/><circle cx="18.5" cy="12" r="7" fill="#29b6f6" stroke="#0277bd" stroke-width="1.5"/><text x="18.5" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="serif" font-style="italic">i</text></svg> Interroger un point
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;margin-top:6px;margin-bottom:4px;">
+        <button id="btn-nappes-query" onclick="toggleNappesQuery()"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 14px;font-size:0.78rem;font-weight:600;border:1px solid rgba(2,119,189,0.35);border-radius:7px;background:#fff;color:#0277bd;cursor:pointer;transition:all 0.2s;text-align:center;"
+          onmouseover="this.style.background='rgba(2,119,189,0.08)'"
+          onmouseout="if(!window._nappesQueryActive)this.style.background='#fff'"
+          title="Cliquez puis cliquez sur la carte pour interroger un point">
+          <svg width="20" height="18" viewBox="0 0 26 24" style="flex-shrink:0;"><polygon points="1,2 1,16 5,12 9,12" fill="#29b6f6" stroke="#0277bd" stroke-width="1.5" stroke-linejoin="round"/><circle cx="18.5" cy="12" r="7" fill="#29b6f6" stroke="#0277bd" stroke-width="1.5"/><text x="18.5" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="serif" font-style="italic">i</text></svg> Interroger un point sur la carte
+        </button>
+        <span id="nappes-query-hint" style="font-size:0.72rem;color:#0277bd;opacity:0;transition:opacity 0.3s;text-align:center;width:100%;">← Cliquez sur la carte des nappes</span>
       </div>
       <div style="margin:0.5rem 0 1.5rem;">
         <div style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Légende — Source : BRGM / Géorisques</div>
@@ -3606,6 +3625,94 @@ async function fetchNappes(lat, lng) {
   }
 }
 
+// Interrogation cliquable sur la carte des nappes
+window._nappesQueryActive = false;
+function toggleNappesQuery() {
+  window._nappesQueryActive = !window._nappesQueryActive;
+  const btn = document.getElementById('btn-nappes-query');
+  const btnFs = document.getElementById('btn-nappes-query-fs');
+  const hint = document.getElementById('nappes-query-hint');
+  if (window._nappesQueryActive) {
+    if (btn) { btn.style.background = '#0277bd'; btn.style.color = '#fff'; btn.style.borderColor = '#0277bd'; }
+    if (btnFs) { btnFs.style.background = '#0277bd'; btnFs.style.color = '#fff'; }
+    if (hint) hint.style.opacity = '1';
+    if (window.nappesMap) window.nappesMap.getContainer().style.cursor = 'crosshair';
+  } else {
+    if (btn) { btn.style.background = '#fff'; btn.style.color = '#0277bd'; btn.style.borderColor = 'rgba(2,119,189,0.35)'; }
+    if (btnFs) { btnFs.style.background = 'rgba(255,255,255,0.93)'; btnFs.style.color = '#0277bd'; }
+    if (hint) hint.style.opacity = '0';
+    if (window.nappesMap) window.nappesMap.getContainer().style.cursor = '';
+  }
+}
+
+const _nappesSld = [
+  { label: 'Débordement de nappe — fiabilité forte',    color: '#bd0026', r: 189, g: 0,   b: 38  },
+  { label: 'Débordement de nappe — fiabilité moyenne',  color: '#e32d30', r: 227, g: 45,  b: 48  },
+  { label: 'Débordement de nappe — fiabilité faible',   color: '#e35b5d', r: 227, g: 91,  b: 93  },
+  { label: 'Débordement de nappe — fiabilité inconnue', color: '#fee0d2', r: 254, g: 224, b: 210 },
+  { label: 'Inondation de cave — fiabilité forte',      color: '#f4661b', r: 244, g: 102, b: 27  },
+  { label: 'Inondation de cave — fiabilité moyenne',    color: '#ff9632', r: 255, g: 150, b: 50  },
+  { label: 'Inondation de cave — fiabilité faible',     color: '#ffb066', r: 255, g: 176, b: 102 },
+  { label: 'Inondation de cave — fiabilité inconnue',   color: '#ffcb99', r: 255, g: 203, b: 153 },
+  { label: 'Pas de risque — fiabilité forte',           color: '#555555', r: 85,  g: 85,  b: 85  },
+  { label: 'Pas de risque — fiabilité moyenne',         color: '#888888', r: 136, g: 136, b: 136 },
+  { label: 'Pas de risque — fiabilité faible',          color: '#aaaaaa', r: 170, g: 170, b: 170 },
+  { label: 'Pas de risque — fiabilité inconnue',        color: '#cccccc', r: 204, g: 204, b: 204 },
+];
+
+async function onNappesMapClick(e) {
+  if (!window._nappesQueryActive) return;
+  const { lat, lng } = e.latlng;
+  const d = 0.002;
+  const wmsUrl = `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+    `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(6)},${(lat-d).toFixed(6)},${(lng+d).toFixed(6)},${(lat+d).toFixed(6)}` +
+    `&WIDTH=5&HEIGHT=5&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=`;
+
+  const popup = L.popup({ maxWidth: 320 })
+    .setLatLng([lat, lng])
+    .setContent('<div style="font-size:0.8rem;color:#0277bd;padding:4px;">⏳ Interrogation…</div>')
+    .openOn(window.nappesMap);
+
+  try {
+    const resp = await fetch(wmsUrl, { signal: AbortSignal.timeout(10000) });
+    const buffer = await resp.arrayBuffer();
+    const blobUrl = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = blobUrl; });
+    URL.revokeObjectURL(blobUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = 5; canvas.height = 5;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const [r, g, b, a] = ctx.getImageData(2, 2, 1, 1).data;
+
+    if (a < 30) {
+      popup.setContent('<div style="font-size:0.8rem;color:#78909c;padding:6px;">💧 Non concerné par les remontées de nappes</div>');
+      return;
+    }
+
+    let best = null, bestDist = Infinity;
+    for (const c of _nappesSld) {
+      const dist = Math.sqrt((r - c.r) ** 2 + (g - c.g) ** 2 + (b - c.b) ** 2);
+      if (dist < bestDist) { bestDist = dist; best = c; }
+    }
+
+    if (best && bestDist < 60) {
+      popup.setContent(`<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:260px;line-height:1.6;padding:4px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${best.color};border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></span>
+          <strong style="color:${best.color};">${best.label}</strong>
+        </div>
+        <div style="font-size:0.7rem;color:#888;">Lat : ${lat.toFixed(5)} — Lng : ${lng.toFixed(5)}</div>
+      </div>`);
+    } else {
+      popup.setContent('<div style="font-size:0.8rem;color:#78909c;padding:6px;">Zone non identifiée</div>');
+    }
+  } catch (err) {
+    popup.setContent(`<div style="font-size:0.8rem;color:#c62828;padding:4px;">⚠️ Erreur : ${err.message}</div>`);
+  }
+}
+
 // Cavités
 async function fetchCavites(lat, lng) {
   try {
@@ -4766,6 +4873,7 @@ function setupMaps(lat, lng) {
   L.marker([lat, lng], { icon: _invIcon }).addTo(window.nappesMap);
 
   addMeasureTool(window.nappesMap);
+  window.nappesMap.on('click', onNappesMapClick);
   setTimeout(() => { window.nappesMap.invalidateSize(); }, 300);
 
   // ====== Carte PPRN ======
