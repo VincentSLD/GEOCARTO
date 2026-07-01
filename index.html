@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 <script src="lib/leaflet-rotate.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype&loading=async" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1677,10 +1678,11 @@
         <button class="btn-screenshot" onclick="captureLeaflet('map-argiles','ARGILES', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
       </div>
 
-      <!-- Badge version carte RGA -->
-      <div id="argiles-version-bar" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-        <span style="padding:4px 10px;background:#e65100;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.3px;">Version 2026</span>
-        <span style="font-size:0.68rem;color:var(--text-secondary);font-style:italic;">Mise à jour BRGM — en vigueur depuis le 01/07/2026</span>
+      <!-- Sélecteur version carte RGA -->
+      <div id="argiles-version-bar" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;align-items:center;">
+        <button class="argiles-version-btn" data-version="2026" onclick="switchArgilesVersion('2026')" style="padding:5px 12px;background:#e65100;border:1.5px solid #e65100;border-radius:6px;color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Version 2026 ✓</button>
+        <button class="argiles-version-btn" data-version="2020" onclick="switchArgilesVersion('2020')" style="padding:5px 12px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;">Version 2020</button>
+        <span style="font-size:0.62rem;color:var(--text-secondary);font-style:italic;margin-left:0.3rem;">En vigueur depuis le 01/07/2026</span>
       </div>
 
       <!-- Carte Leaflet avec WMS Argiles BRGM + niveau d'exposition -->
@@ -4064,8 +4066,8 @@ async function onBssMapClick(e) {
 // Maps setup
 let argilesMap = null;
 let _argilesWmsCurrent = [];
-// _argilesWms2026 supprimé — depuis le 01/07/2026 le BRGM sert les données 2026 via la couche ALEARG existante
-let _argilesVersion = 'current';
+let _argilesFeatureLayer2026 = null;
+let _argilesVersion = '2026';
 
 // Double-clic molette pour recentrer sur le point d'investigation
 function _addMiddleClickRecenter(map) {
@@ -4377,12 +4379,13 @@ function setupMaps(lat, lng) {
     { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEAARG', label: 'mapsref ALEAARG' },
   ];
 
-  // Depuis le 01/07/2026, le BRGM a mis à jour la couche ALEARG avec les données 2026
-  // (même nom de layer, données sous-jacentes remplacées)
-
   // Create a pane above tiles but below markers
   argilesMap.createPane('wmsPane');
   argilesMap.getPane('wmsPane').style.zIndex = 450;
+
+  // Pane pour la couche vectorielle 2026 (au-dessus du WMS)
+  argilesMap.createPane('argiles2026Pane');
+  argilesMap.getPane('argiles2026Pane').style.zIndex = 455;
 
   function _addArgilesWmsLayers(sources) {
     const layers = [];
@@ -4408,6 +4411,20 @@ function setupMaps(lat, lng) {
   }
 
   _argilesWmsCurrent = _addArgilesWmsLayers(wmsSourcesCurrent);
+  // Masquer les WMS 2020 par défaut (on affiche la 2026)
+  _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
+
+  // Couche vectorielle 2026 via ArcGIS FeatureServer (Géorisques / Esri France)
+  const _aleaColors = { 'Fort': 'rgba(153,0,0,0.6)', 'Moyen': 'rgba(253,143,60,0.6)', 'Faible': 'rgba(255,255,181,0.6)' };
+  _argilesFeatureLayer2026 = L.esri.featureLayer({
+    url: 'https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2',
+    pane: 'argiles2026Pane',
+    style: function(feature) {
+      const alea = feature.properties.ALEA || '';
+      return { color: '#666', weight: 0.3, fillColor: _aleaColors[alea] || '#ccc', fillOpacity: 0.65 };
+    },
+    attribution: '© Géorisques / BRGM / Esri France — Version 2026',
+  }).addTo(argilesMap);
   _argilesVersion = '2026';
 
   // Calque parcellaire cadastral
@@ -5048,9 +5065,26 @@ async function fetchArgilesAndDraw(lat, lng) {
   let mainLevel = null;
   let mainColor = null;
 
-  // === STRATEGY 1: WMS GetFeatureInfo on the BRGM layer ===
-  // This queries the actual WMS tile at the exact point — most reliable
+  // === STRATEGY 0: ArcGIS FeatureServer 2026 (prioritaire) ===
   try {
+    const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA,NIVEAU&returnGeometry=false&f=json`;
+    const esriResp = await fetch(esriUrl, { signal: AbortSignal.timeout(8000) });
+    if (esriResp.ok) {
+      const esriJson = await esriResp.json();
+      if (esriJson.features && esriJson.features.length > 0) {
+        const attrs = esriJson.features[0].attributes;
+        const alea = attrs.ALEA || '';
+        if (alea) {
+          mainLevel = alea === 'Fort' ? 'Exposition forte' : alea === 'Moyen' ? 'Exposition moyenne' : 'Exposition faible';
+          mainColor = getColorForLevel(mainLevel);
+          console.log('Argiles ArcGIS 2026 success:', mainLevel);
+        }
+      }
+    }
+  } catch (e) { console.warn('ArcGIS 2026 query failed:', e); }
+
+  // === STRATEGY 1: WMS GetFeatureInfo on the BRGM layer (fallback) ===
+  if (!mainLevel) try {
     const bbox = `${lng - 0.0001},${lat - 0.0001},${lng + 0.0001},${lat + 0.0001}`;
     const gfiUrls = [
       `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
@@ -5101,53 +5135,44 @@ async function fetchArgilesAndDraw(lat, lng) {
       const offsets = [
         [0.001, 0], [-0.001, 0], [0, 0.001], [0, -0.001] // N, S, E, W ~100m
       ];
-      const parseArgileLevel = (text) => {
-        const lower = text.toLowerCase();
-        const niveauMatch = text.match(/niveau\s*=\s*'(\d)'/i);
-        if (niveauMatch) {
-          const n = niveauMatch[1];
-          return n === '3' ? 'forte' : n === '2' ? 'moyenne' : 'faible';
-        }
-        if (lower.includes('fort')) return 'forte';
-        if (lower.includes('moyen')) return 'moyenne';
-        if (lower.includes('faible')) return 'faible';
-        return null;
-      };
-      const neighborLevels = await Promise.all(offsets.map(async ([dLat, dLng]) => {
-        const nLat = lat + dLat, nLng = lng + dLng;
+      const queryNeighborAlea = async (nLat, nLng) => {
+        // ArcGIS FeatureServer 2026 (prioritaire)
+        try {
+          const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${nLng},${nLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA&returnGeometry=false&f=json`;
+          const r = await fetch(esriUrl, { signal: AbortSignal.timeout(5000) });
+          if (r.ok) {
+            const j = await r.json();
+            if (j.features && j.features.length > 0) {
+              const a = j.features[0].attributes.ALEA || '';
+              if (a === 'Fort') return 'forte';
+              if (a === 'Moyen') return 'moyenne';
+              if (a === 'Faible') return 'faible';
+            }
+          }
+        } catch { /* fallback WMS */ }
+        // Fallback WMS BRGM
         const nBbox = `${nLng - 0.0001},${nLat - 0.0001},${nLng + 0.0001},${nLat + 0.0001}`;
         const urls = [
-          `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
-          `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
           `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`,
         ];
         for (const nUrl of urls) {
           try {
             const r = await fetch(nUrl, { signal: AbortSignal.timeout(5000) });
             if (!r.ok) continue;
-            const ct = r.headers.get('content-type') || '';
-            if (ct.includes('json')) {
-              const json = await r.json();
-              const features = json.features || json.data || [];
-              if (features.length > 0) {
-                const p = features[0].properties || features[0];
-                const val = p.NIVEAU || p.niveau || p.EXPOSITION || p.exposition || p.ALEA || p.alea
-                  || p.lib_alea || p.LIB_ALEA || p.DESCR || p.descr || p.NATURE || p.nature;
-                if (val) { const lvl = parseArgileLevel(String(val)); if (lvl) return lvl; }
-              }
-            } else {
-              const t = await r.text();
-              const lvl = parseArgileLevel(t);
-              if (lvl) return lvl;
-            }
+            const t = await r.text();
+            const lower = t.toLowerCase();
+            if (lower.includes('fort')) return 'forte';
+            if (lower.includes('moyen')) return 'moyenne';
+            if (lower.includes('faible')) return 'faible';
           } catch { /* try next */ }
         }
         return null;
-      }));
+      };
+      const neighborLevels = await Promise.all(offsets.map(([dLat, dLng]) => queryNeighborAlea(lat + dLat, lng + dLng)));
       const mainShort = mainLevel.toLowerCase().includes('fort') ? 'forte'
         : mainLevel.toLowerCase().includes('moyen') ? 'moyenne' : 'faible';
       console.log('Argiles border check — main:', mainShort, 'neighbors:', neighborLevels);
-      borderWarning = neighborLevels.some(l => l !== mainShort);
+      borderWarning = neighborLevels.some(l => l !== null && l !== mainShort);
     } catch (e) { console.warn('Argiles border check failed:', e); }
   }
 
@@ -5173,7 +5198,31 @@ async function fetchArgilesAndDraw(lat, lng) {
   }
 }
 
-// Depuis le 01/07/2026, la couche ALEARG du BRGM contient directement les donn\u00e9es version 2026
+// Bascule version carte argiles 2020 (WMS BRGM) / 2026 (ArcGIS FeatureServer)
+function switchArgilesVersion(version) {
+  if (!argilesMap) return;
+  if (version === '2026') {
+    _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
+    if (_argilesFeatureLayer2026) _argilesFeatureLayer2026.addTo(argilesMap);
+  } else {
+    if (_argilesFeatureLayer2026) argilesMap.removeLayer(_argilesFeatureLayer2026);
+    _argilesWmsCurrent.forEach(l => l.addTo(argilesMap));
+  }
+  _argilesVersion = version;
+  document.querySelectorAll('.argiles-version-btn').forEach(btn => {
+    if (btn.dataset.version === version) {
+      btn.style.background = '#e65100';
+      btn.style.borderColor = '#e65100';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '700';
+    } else {
+      btn.style.background = 'var(--bg-secondary)';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text-primary)';
+      btn.style.fontWeight = '600';
+    }
+  });
+}
 
 
 // Parse WKT geometry string to GeoJSON
