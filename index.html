@@ -4415,13 +4415,14 @@ function setupMaps(lat, lng) {
   _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
 
   // Couche vectorielle 2026 via ArcGIS FeatureServer (Géorisques / Esri France)
-  const _aleaColors = { 'Fort': 'rgba(153,0,0,0.6)', 'Moyen': 'rgba(253,143,60,0.6)', 'Faible': 'rgba(255,255,181,0.6)' };
+  // Couleurs calquées sur la légende WMS BRGM ALEARG + même opacité 0.70
+  const _aleaColors = { 'Fort': '#D88080', 'Moyen': '#E8C090', 'Faible': '#F0E8C0' };
   _argilesFeatureLayer2026 = L.esri.featureLayer({
     url: 'https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2',
     pane: 'argiles2026Pane',
     style: function(feature) {
       const alea = feature.properties.ALEA || '';
-      return { color: '#666', weight: 0.3, fillColor: _aleaColors[alea] || '#ccc', fillOpacity: 0.65 };
+      return { color: '#999', weight: 0.3, fillColor: _aleaColors[alea] || '#ccc', fillOpacity: 0.70, opacity: 0.70 };
     },
     attribution: '© Géorisques / BRGM / Esri France — Version 2026',
   }).addTo(argilesMap);
