@@ -1495,6 +1495,8 @@
         <div class="map-embed" style="position:relative;">
           <div id="map-street" style="width:100%;height:100%;"></div>
           <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+          <!-- Badge date de prise de vue Street View -->
+          <div id="sv-date-badge" style="position:absolute;bottom:30px;right:10px;z-index:1000;padding:4px 10px;background:rgba(0,0,0,0.65);color:#fff;border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.3px;pointer-events:none;display:none;">📅 —</div>
           <!-- Mini carte satellite incrustée en plein écran -->
           <div id="map-satellite-mini" style="display:none;position:absolute;bottom:12px;left:12px;width:440px;height:440px;z-index:1000;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
         </div>
@@ -4233,7 +4235,27 @@ function _initGoogleMaps(lat, lng) {
     _gStreetView.setPosition({ lat: p.lat, lng: p.lng });
   });
 
-  // Navigation dans Street View → met à jour la position du bonhomme
+  // Navigation dans Street View → met à jour la position du bonhomme + date
+  const _svService = new google.maps.StreetViewService();
+  const _svDateBadge = document.getElementById('sv-date-badge');
+  function _updateSvDate(panoId) {
+    if (!panoId || !_svDateBadge) return;
+    _svService.getPanorama({ pano: panoId }, (data, status) => {
+      if (status === 'OK' && data && data.imageDate) {
+        const parts = data.imageDate.split('-');
+        const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+        const label = parts.length >= 2 ? `${mois[parseInt(parts[1],10)-1] || parts[1]} ${parts[0]}` : data.imageDate;
+        _svDateBadge.textContent = '\u{1F4C5} ' + label;
+        _svDateBadge.style.display = '';
+      } else {
+        _svDateBadge.style.display = 'none';
+      }
+    });
+  }
+  _gStreetView.addListener('pano_changed', () => { _updateSvDate(_gStreetView.getPano()); });
+  // Date initiale
+  setTimeout(() => { _updateSvDate(_gStreetView.getPano()); }, 1500);
+
   _gStreetView.addListener('position_changed', () => {
     const p = _gStreetView.getPosition();
     if (_gPegman && p) {
