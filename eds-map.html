@@ -53,7 +53,7 @@
     <input type="checkbox" id="toggle-zones" checked onchange="toggleZones(this.checked)" style="accent-color:#2563eb;width:15px;height:15px;cursor:pointer;">
     <span>🔷 Zones (<span id="zones-count">0</span>)</span>
   </label>
-  <button id="btn-draw-zone" onclick="startDrawZone()" style="padding:6px 12px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#2563eb;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">✏️ Tracer une Opportunité</button>
+  <button id="btn-draw-zone" onclick="startDrawZone()" style="padding:6px 12px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#2563eb;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">✏️ Tracer une opportunité de lotiss.</button>
   <button id="btn-ged" onclick="toggleGedPanel()" style="padding:6px 12px;background:rgba(121,85,72,0.1);border:1px solid rgba(121,85,72,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#795548;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.2s;" onmouseover="this.style.background='rgba(121,85,72,0.2)'" onmouseout="this.style.background='rgba(121,85,72,0.1)'">
     📄 Documentation Études de sol <span style="font-size:0.6rem;padding:1px 5px;background:#795548;color:#fff;border-radius:4px;font-weight:700;letter-spacing:0.5px;">BETA</span>
   </button>
@@ -70,7 +70,9 @@
 </div>
 
 <!-- Vignettes Google (apparaissent après clic sur un marqueur) -->
-<div id="streetview-mini" style="display:none;position:absolute;top:60px;left:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;background:#000;"></div>
+<div id="streetview-mini" style="display:none;position:absolute;top:60px;left:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;background:#000;">
+  <div id="sv-date-badge-eds" style="position:absolute;top:10px;left:10px;z-index:1000;padding:4px 10px;background:rgba(0,0,0,0.65);color:#fff;border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.3px;pointer-events:none;display:none;">📅 —</div>
+</div>
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
 <!-- Bouton fermer les vues Google -->
 <button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
@@ -282,6 +284,25 @@ function showGoogleMinis(lat, lng) {
       const pov = _gMiniSv.getPov();
       updatePegmanHeading(pov.heading);
     });
+    // Date de prise de vue
+    const _edsSvService = new google.maps.StreetViewService();
+    const _edsSvBadge = document.getElementById('sv-date-badge-eds');
+    function _updateEdsSvDate(panoId) {
+      if (!panoId || !_edsSvBadge) return;
+      _edsSvService.getPanorama({ pano: panoId }, (data, status) => {
+        if (status === 'OK' && data && data.imageDate) {
+          const parts = data.imageDate.split('-');
+          const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+          const label = parts.length >= 2 ? `${mois[parseInt(parts[1],10)-1] || parts[1]} ${parts[0]}` : data.imageDate;
+          _edsSvBadge.textContent = '\u{1F4C5} ' + label;
+          _edsSvBadge.style.display = '';
+        } else {
+          _edsSvBadge.style.display = 'none';
+        }
+      });
+    }
+    _gMiniSv.addListener('pano_changed', () => { _updateEdsSvDate(_gMiniSv.getPano()); });
+    setTimeout(() => { _updateEdsSvDate(_gMiniSv.getPano()); }, 1500);
   } else {
     // Mettre à jour la position
     _miniSyncing = true;
@@ -1137,7 +1158,7 @@ function startDrawZone() {
 map.on('draw:created', function(e) {
   _zonePendingLayer = e.layer;
   _zoneDrawer = null;
-  document.getElementById('btn-draw-zone').textContent = '✏️ Tracer une Opportunité';
+  document.getElementById('btn-draw-zone').textContent = '✏️ Tracer une opportunité de lotiss.';
   document.getElementById('btn-draw-zone').style.background = 'rgba(37,99,235,0.1)';
   openZoneModal();
 });
