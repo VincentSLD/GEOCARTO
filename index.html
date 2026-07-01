@@ -4068,6 +4068,7 @@ let argilesMap = null;
 let _argilesWmsCurrent = [];
 let _argilesFeatureLayer2026 = null;
 let _argilesVersion = '2026';
+let _argilesLastLat = null, _argilesLastLng = null;
 
 // Double-clic molette pour recentrer sur le point d'investigation
 function _addMiddleClickRecenter(map) {
@@ -4448,6 +4449,7 @@ function setupMaps(lat, lng) {
   setTimeout(() => { argilesMap.invalidateSize(); }, 300);
 
   // Fetch argiles exposure via API and draw on map
+  _argilesLastLat = lat; _argilesLastLng = lng;
   fetchArgilesAndDraw(lat, lng);
 
   // Link to Georisques interactive map with argile layer
@@ -5066,25 +5068,28 @@ async function fetchArgilesAndDraw(lat, lng) {
   let mainLevel = null;
   let mainColor = null;
 
-  // === STRATEGY 0: ArcGIS FeatureServer 2026 (prioritaire) ===
-  try {
-    const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA,NIVEAU&returnGeometry=false&f=json`;
-    const esriResp = await fetch(esriUrl, { signal: AbortSignal.timeout(8000) });
-    if (esriResp.ok) {
-      const esriJson = await esriResp.json();
-      if (esriJson.features && esriJson.features.length > 0) {
-        const attrs = esriJson.features[0].attributes;
-        const alea = attrs.ALEA || '';
-        if (alea) {
-          mainLevel = alea === 'Fort' ? 'Exposition forte' : alea === 'Moyen' ? 'Exposition moyenne' : 'Exposition faible';
-          mainColor = getColorForLevel(mainLevel);
-          console.log('Argiles ArcGIS 2026 success:', mainLevel);
+  // === STRATEGY selon version sélectionnée ===
+  if (_argilesVersion === '2026') {
+    // ArcGIS FeatureServer 2026
+    try {
+      const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA,NIVEAU&returnGeometry=false&f=json`;
+      const esriResp = await fetch(esriUrl, { signal: AbortSignal.timeout(8000) });
+      if (esriResp.ok) {
+        const esriJson = await esriResp.json();
+        if (esriJson.features && esriJson.features.length > 0) {
+          const attrs = esriJson.features[0].attributes;
+          const alea = attrs.ALEA || '';
+          if (alea) {
+            mainLevel = alea === 'Fort' ? 'Exposition forte' : alea === 'Moyen' ? 'Exposition moyenne' : 'Exposition faible';
+            mainColor = getColorForLevel(mainLevel);
+            console.log('Argiles ArcGIS 2026 success:', mainLevel);
+          }
         }
       }
-    }
-  } catch (e) { console.warn('ArcGIS 2026 query failed:', e); }
+    } catch (e) { console.warn('ArcGIS 2026 query failed:', e); }
+  }
 
-  // === STRATEGY 1: WMS GetFeatureInfo on the BRGM layer (fallback) ===
+  // WMS BRGM (source 2020, ou fallback si 2026 échoue)
   if (!mainLevel) try {
     const bbox = `${lng - 0.0001},${lat - 0.0001},${lng + 0.0001},${lat + 0.0001}`;
     const gfiUrls = [
@@ -5223,6 +5228,10 @@ function switchArgilesVersion(version) {
       btn.style.fontWeight = '600';
     }
   });
+  // Re-interroger l'exposition pour la version sélectionnée
+  if (_argilesLastLat !== null && _argilesLastLng !== null) {
+    fetchArgilesAndDraw(_argilesLastLat, _argilesLastLng);
+  }
 }
 
 
