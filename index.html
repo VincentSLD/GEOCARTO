@@ -4286,8 +4286,8 @@ async function onBssMapClick(e) {
 
 // Maps setup
 let argilesMap = null;
-let _argilesWmsCurrent = [];
 let _argilesFeatureLayer2026 = null;
+let _argilesFeatureLayer2020 = null;
 let _argilesVersion = '2026';
 let _argilesLastLat = null, _argilesLastLng = null;
 
@@ -4612,53 +4612,26 @@ function setupMaps(lat, lng) {
     maxZoom: 22, maxNativeZoom: 19,
   }).addTo(argilesMap);
 
-  // *** WMS Argiles - multiple URLs and layer names to maximize chances ***
-  // Leaflet WMS uses <img> tags internally = no CORS blocking
-  // Key: use EPSG:3857 (Leaflet default), not EPSG:4326
-  const wmsSourcesCurrent = [
-    { url: 'https://geoservices.brgm.fr/risques', layers: 'ALEARG', label: 'BRGM risques HTTPS' },
-    { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEARG', label: 'mapsref ALEARG' },
-    { url: 'https://mapsref.brgm.fr/wxs/georisques/risques', layers: 'ALEAARG', label: 'mapsref ALEAARG' },
-  ];
-
-  // Create a pane above tiles but below markers
-  argilesMap.createPane('wmsPane');
-  argilesMap.getPane('wmsPane').style.zIndex = 450;
-
-  // Pane pour la couche vectorielle 2026 (au-dessus du WMS)
+  // Pane pour les couches vectorielles argiles
+  argilesMap.createPane('argiles2020Pane');
+  argilesMap.getPane('argiles2020Pane').style.zIndex = 450;
   argilesMap.createPane('argiles2026Pane');
   argilesMap.getPane('argiles2026Pane').style.zIndex = 455;
 
-  function _addArgilesWmsLayers(sources) {
-    const layers = [];
-    sources.forEach(src => {
-      try {
-        const wmsLayer = L.tileLayer.wms(src.url, {
-          layers: src.layers,
-          format: 'image/png',
-          transparent: true,
-          opacity: 0.70,
-          version: '1.1.1',
-          attribution: '© BRGM / Géorisques',
-          pane: 'wmsPane',
-          maxZoom: 22, maxNativeZoom: 20,
-        });
-        wmsLayer.addTo(argilesMap);
-        layers.push(wmsLayer);
-      } catch (e) {
-        console.warn(`WMS ${src.label}: init error`, e);
-      }
-    });
-    return layers;
-  }
-
-  _argilesWmsCurrent = _addArgilesWmsLayers(wmsSourcesCurrent);
-  // Masquer les WMS 2020 par défaut (on affiche la 2026)
-  _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
-
-  // Couche vectorielle 2026 via ArcGIS FeatureServer (Géorisques / Esri France)
-  // Couleurs calquées sur la légende WMS BRGM ALEARG + même opacité 0.70
   const _aleaColors = { 'Fort': '#D88080', 'Moyen': '#E8C090', 'Faible': '#F0E8C0' };
+
+  // Couche vectorielle 2020 via ArcGIS FeatureServer
+  _argilesFeatureLayer2020 = L.esri.featureLayer({
+    url: 'https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles/FeatureServer/2',
+    pane: 'argiles2020Pane',
+    style: function(feature) {
+      const alea = feature.properties.ALEA || '';
+      return { color: '#999', weight: 0.3, fillColor: _aleaColors[alea] || '#ccc', fillOpacity: 0.70, opacity: 0.70 };
+    },
+    attribution: '© Géorisques / BRGM / Esri France — Version 2020',
+  });
+
+  // Couche vectorielle 2026 via ArcGIS FeatureServer
   _argilesFeatureLayer2026 = L.esri.featureLayer({
     url: 'https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2',
     pane: 'argiles2026Pane',
@@ -5310,70 +5283,25 @@ async function fetchArgilesAndDraw(lat, lng) {
   let mainColor = null;
 
   // === STRATEGY selon version sélectionnée ===
-  if (_argilesVersion === '2026') {
-    // ArcGIS FeatureServer 2026
-    try {
-      const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA,NIVEAU&returnGeometry=false&f=json`;
-      const esriResp = await fetch(esriUrl, { signal: AbortSignal.timeout(8000) });
-      if (esriResp.ok) {
-        const esriJson = await esriResp.json();
-        if (esriJson.features && esriJson.features.length > 0) {
-          const attrs = esriJson.features[0].attributes;
-          const alea = attrs.ALEA || '';
-          if (alea) {
-            mainLevel = alea === 'Fort' ? 'Exposition forte' : alea === 'Moyen' ? 'Exposition moyenne' : 'Exposition faible';
-            mainColor = getColorForLevel(mainLevel);
-            console.log('Argiles ArcGIS 2026 success:', mainLevel);
-          }
+  const _argilesServiceName = _argilesVersion === '2026'
+    ? 'G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026'
+    : 'G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles';
+  try {
+    const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/${_argilesServiceName}/FeatureServer/2/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA,NIVEAU&returnGeometry=false&f=json`;
+    const esriResp = await fetch(esriUrl, { signal: AbortSignal.timeout(8000) });
+    if (esriResp.ok) {
+      const esriJson = await esriResp.json();
+      if (esriJson.features && esriJson.features.length > 0) {
+        const attrs = esriJson.features[0].attributes;
+        const alea = attrs.ALEA || '';
+        if (alea) {
+          mainLevel = alea === 'Fort' ? 'Exposition forte' : alea === 'Moyen' ? 'Exposition moyenne' : 'Exposition faible';
+          mainColor = getColorForLevel(mainLevel);
+          console.log('Argiles ArcGIS ' + _argilesVersion + ' success:', mainLevel);
         }
       }
-    } catch (e) { console.warn('ArcGIS 2026 query failed:', e); }
-  }
-
-  // WMS BRGM (source 2020, ou fallback si 2026 échoue)
-  if (!mainLevel) try {
-    const bbox = `${lng - 0.0001},${lat - 0.0001},${lng + 0.0001},${lat + 0.0001}`;
-    const gfiUrls = [
-      `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
-      `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/json`,
-      `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`,
-    ];
-    for (const gfiUrl of gfiUrls) {
-      try {
-        const resp = await fetch(gfiUrl, { signal: AbortSignal.timeout(8000) });
-        if (!resp.ok) continue;
-        const contentType = resp.headers.get('content-type') || '';
-        let found = null;
-        if (contentType.includes('json')) {
-          const json = await resp.json();
-          // GeoJSON FeatureCollection or similar
-          const features = json.features || json.data || [];
-          if (features.length > 0) {
-            const p = features[0].properties || features[0];
-            found = p.NIVEAU || p.niveau || p.EXPOSITION || p.exposition || p.ALEA || p.alea 
-              || p.lib_alea || p.LIB_ALEA || p.DESCR || p.descr || p.NATURE || p.nature;
-          }
-        } else {
-          // text/plain — WMS retourne niveau = '1'|'2'|'3'
-          const text = await resp.text();
-          const lower = text.toLowerCase();
-          const niveauMatch = text.match(/niveau\s*=\s*'(\d)'/i);
-          if (niveauMatch) {
-            const n = niveauMatch[1];
-            found = n === '3' ? 'Exposition forte' : n === '2' ? 'Exposition moyenne' : 'Exposition faible';
-          } else if (lower.includes('fort'))   { found = 'Exposition forte'; }
-          else if (lower.includes('moyen'))    { found = 'Exposition moyenne'; }
-          else if (lower.includes('faible'))   { found = 'Exposition faible'; }
-        }
-        if (found) {
-          mainLevel = String(found);
-          mainColor = getColorForLevel(mainLevel);
-          console.log('Argiles WMS GetFeatureInfo success:', mainLevel);
-          break;
-        }
-      } catch (e) { /* try next */ }
     }
-  } catch (e) { console.warn('WMS GFI strategy failed:', e); }
+  } catch (e) { console.warn('ArcGIS ' + _argilesVersion + ' query failed:', e); }
 
   // === DÉTECTION LIMITE DE ZONE : requête élargie (~100m) sur les 4 coins ===
   let borderWarning = false;
@@ -5383,9 +5311,11 @@ async function fetchArgilesAndDraw(lat, lng) {
         [0.001, 0], [-0.001, 0], [0, 0.001], [0, -0.001] // N, S, E, W ~100m
       ];
       const queryNeighborAlea = async (nLat, nLng) => {
-        // ArcGIS FeatureServer 2026 (prioritaire)
+        const svcName = _argilesVersion === '2026'
+          ? 'G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026'
+          : 'G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles';
         try {
-          const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/G%C3%A9orisques_Exposition_retrait_gonflement_des_argiles_2026/FeatureServer/2/query?geometry=${nLng},${nLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA&returnGeometry=false&f=json`;
+          const esriUrl = `https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/${svcName}/FeatureServer/2/query?geometry=${nLng},${nLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ALEA&returnGeometry=false&f=json`;
           const r = await fetch(esriUrl, { signal: AbortSignal.timeout(5000) });
           if (r.ok) {
             const j = await r.json();
@@ -5396,23 +5326,7 @@ async function fetchArgilesAndDraw(lat, lng) {
               if (a === 'Faible') return 'faible';
             }
           }
-        } catch { /* fallback WMS */ }
-        // Fallback WMS BRGM
-        const nBbox = `${nLng - 0.0001},${nLat - 0.0001},${nLng + 0.0001},${nLat + 0.0001}`;
-        const urls = [
-          `https://geoservices.brgm.fr/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ALEARG&QUERY_LAYERS=ALEARG&SRS=EPSG:4326&BBOX=${nBbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=text/plain`,
-        ];
-        for (const nUrl of urls) {
-          try {
-            const r = await fetch(nUrl, { signal: AbortSignal.timeout(5000) });
-            if (!r.ok) continue;
-            const t = await r.text();
-            const lower = t.toLowerCase();
-            if (lower.includes('fort')) return 'forte';
-            if (lower.includes('moyen')) return 'moyenne';
-            if (lower.includes('faible')) return 'faible';
-          } catch { /* try next */ }
-        }
+        } catch (e) { /* ignore */ }
         return null;
       };
       const neighborLevels = await Promise.all(offsets.map(([dLat, dLng]) => queryNeighborAlea(lat + dLat, lng + dLng)));
@@ -5449,11 +5363,11 @@ async function fetchArgilesAndDraw(lat, lng) {
 function switchArgilesVersion(version) {
   if (!argilesMap) return;
   if (version === '2026') {
-    _argilesWmsCurrent.forEach(l => argilesMap.removeLayer(l));
+    if (_argilesFeatureLayer2020) argilesMap.removeLayer(_argilesFeatureLayer2020);
     if (_argilesFeatureLayer2026) _argilesFeatureLayer2026.addTo(argilesMap);
   } else {
     if (_argilesFeatureLayer2026) argilesMap.removeLayer(_argilesFeatureLayer2026);
-    _argilesWmsCurrent.forEach(l => l.addTo(argilesMap));
+    if (_argilesFeatureLayer2020) _argilesFeatureLayer2020.addTo(argilesMap);
   }
   _argilesVersion = version;
   document.querySelectorAll('.argiles-version-btn').forEach(btn => {
