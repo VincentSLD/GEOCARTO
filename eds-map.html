@@ -1577,16 +1577,22 @@ function adminRenderTable() {
   if (!_adminItems.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
 
-  const counts = { all: _adminItems.length, pending: 0, ok: 0, error: 0 };
+  const counts = { all: _adminItems.length, pending: 0, ok: 0, error: 0, queued: 0 };
   _adminItems.forEach(it => {
     if (it.status === 'indexed') counts.ok++;
     else if (it.status === 'error') counts.error++;
     else if (it.status === 'pending') counts.pending++;
+    else if (it.status === 'queued') counts.queued++;
   });
   document.getElementById('admin-count-all').textContent = counts.all;
   document.getElementById('admin-count-pending').textContent = counts.pending;
   document.getElementById('admin-count-ok').textContent = counts.ok;
   document.getElementById('admin-count-error').textContent = counts.error;
+  const startBtn = document.getElementById('admin-btn-start');
+  if (startBtn && !_adminBulkRunning) {
+    startBtn.textContent = counts.queued ? '▶ Lancer l\'indexation (' + counts.queued + ' fichier' + (counts.queued > 1 ? 's' : '') + ')' : '▶ Lancer l\'indexation';
+    startBtn.disabled = !counts.queued;
+  }
 
   const searchVal = (document.getElementById('admin-search') ? document.getElementById('admin-search').value : '').toLowerCase().trim();
   const filtered = _adminItems.map((it, i) => ({ ...it, _idx: i })).filter(it => {
