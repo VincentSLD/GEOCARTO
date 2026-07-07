@@ -1071,49 +1071,76 @@ function gedExtractLatLon(text) {
 
 function gedExtractAddress(text) {
   if (!text) return null;
-  const head = text.slice(0, 12000);
+  const full = text.slice(0, 15000);
   const _clean = s => s.replace(/\s+/g, ' ').trim();
-  const _skipCompany = /(?:si[èe]ge|bureau|agence|cabinet|sarl|sas\b|eurl|sa\b|société|direction|succursale|t[ée]l[\.:]|fax|mail|www\.|@)/i;
 
-  // Passe 1 : adresses associees a des mots-cles terrain/projet/site
-  const siteKeywords = '(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage)';
+  // Mots qui signalent une adresse de societe/redacteur (a exclure)
+  const _isCompanyCtx = (ctx) => /(?:si[èe]ge|bureau[x]?\s|agence|cabinet|sarl|sas\b|sasu|eurl|sa\b|soci[ée]t[ée]|direction|succursale|t[ée]l[\s.:/]|fax|mail|courriel|www\.|@|\.fr\b|\.com\b|n°?\s*(?:siret|siren|rcs|tva)|capital|immatricul|r[ée]dacteur|r[ée]dig[ée]|[ée]tabli\s+par|r[ée]alis[ée]\s+par|notre\s+(?:agence|bureau|soci)|intervenants?\s|contact\s|responsable\s|chef\s+de\s+(?:projet|service)|ing[ée]nieur)/i.test(ctx);
+
+  // Mots qui signalent une adresse de terrain/projet (a privilegier)
+  const _SK = '(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage|programme|lotissement|maison|villa|pavillon|b[âa]timent|r[ée]sidence|am[ée]nagement|viabilisation)';
+
+  // === PASSE 1 : adresses avec mots-cles terrain/projet ===
+  // Chercher dans tout le texte (pas seulement les premiers chars)
   const sitePatterns = [
-    new RegExp('(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\'\\u2019])?|des\\s+)?' + siteKeywords + '\\s*[:.]?\\s*(.{10,120}?\\d{5}\\s+[A-ZÀ-Ü][a-zà-ü\\-\\s]+)', 'i'),
-    new RegExp(siteKeywords + '\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+trouve)\\s+(?:au\\s+|à\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?)?(.{5,120}?\\d{5}\\s+[A-ZÀ-Ü][a-zà-ü\\-\\s]+)', 'i'),
-    new RegExp(siteKeywords + '\\s*[:,]\\s*(.{10,120}?\\d{5}\\s+[A-ZÀ-Ü][a-zà-ü\\-\\s]+)', 'i'),
-    new RegExp('(?:sur\\s+(?:la\\s+)?commune\\s+(?:de\\s+)?)([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\\-\\s]{2,40})\\s*[\\(,]\\s*(\\d{2,5})', 'i'),
-    new RegExp('(?:lieu[\\s-]dit|lieudit)\\s+(?:de\\s+|du\\s+|des\\s+|le\\s+|la\\s+|les\\s+)?[«"\'\\u00AB]?(.{3,60}?)[»"\'\\u00BB]?\\s*(?:[,àa]\\s+|[-–]\\s*)(.{3,40}?\\d{5}\\s+[A-ZÀ-Ü][a-zà-ü\\-\\s]+)', 'i'),
+    // "lieu/adresse/localisation du projet : ..."
+    new RegExp('(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\'\\u2019])?|des\\s+)?' + _SK + '\\s*[:.]?\\s*(.{5,150})', 'i'),
+    // "projet situe a ..."
+    new RegExp(_SK + '\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+situe|se\\s+trouve)\\s+(?:au\\s+|[àa]\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?|en\\s+)?(.{5,150})', 'i'),
+    // "projet : 12 rue ... 44000 Nantes" ou "projet, Nantes"
+    new RegExp(_SK + '\\s*[:,]\\s*(.{5,150})', 'i'),
+    // "commune de XXXX" / "sur la commune de XXXX"
+    /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[''’])([A-ZÀ-Üa-zà-ü][\w\sà-ü\-'']{2,40})/i,
+    // "lieu-dit XXX a/commune VILLE"
+    /(?:lieu[\s-]dit|lieudit)\s+(?:de\s+|du\s+|des\s+|le\s+|la\s+|les\s+)?[«"'«]?(.{3,60}?)[»"'»]?\s*(?:[,àa]\s+|[-–]\s*)([A-ZÀ-Ü][\wà-ü\s\-]{2,40})/i,
   ];
+
   for (const re of sitePatterns) {
-    const m = head.match(re);
-    if (m) {
-      const addr = _clean(m[1] + (m[2] ? ' ' + m[2] : ''));
-      if (addr.length >= 8 && !_skipCompany.test(addr)) return addr;
-    }
+    const m = full.match(re);
+    if (!m) continue;
+    let raw = _clean(m[1] + (m[2] ? ', ' + m[2] : ''));
+    // Tronquer au premier point ou retour logique
+    raw = raw.split(/[.\n]/)[0].replace(/\s*$/, '');
+    // Extraire jusqu'au code postal + ville si present
+    const cpCity = raw.match(/^(.{0,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/);
+    if (cpCity) raw = _clean(cpCity[1]);
+    // Tronquer a la derniere ville lisible sinon
+    else { const words = raw.split(/\s+/).slice(0, 12); raw = words.join(' '); }
+    if (raw.length >= 5 && !_isCompanyCtx(raw)) return raw;
   }
 
-  // Passe 2 : patterns generiques, mais on filtre les adresses de societes
+  // === PASSE 2 : patterns generiques HORS en-tete societe ===
+  // Ignorer les ~1500 premiers caracteres (en-tete avec adresse societe)
+  const body = text.slice(1500, 15000);
   const genericPatterns = [
-    /(?:situ[ée]{1,2}s?\s+(?:au\s+|à\s+|sur\s+)?|sis(?:e)?\s+(?:à\s+)?)(.{10,100}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+    /(?:situ[ée]{1,2}s?\s+(?:au\s+|[àa]\s+|sur\s+)?|sis(?:e)?\s+(?:[àa]\s+)?)(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
     /(?:adresse|localisation|implantation)\s*[:]\s*(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
-    /(\d{1,4}[\s,]+(?:rue|avenue|av\.|boulevard|bd|chemin|route|impasse|allée|place|lieu[\s-]dit|lotissement|ZA|ZI|ZAC)[^.;\n]{5,60}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+    /(\d{1,4}[\s,]+(?:rue|avenue|av\.|boulevard|bd|chemin|route|impasse|all[ée]e|place|lieu[\s-]dit|lotissement|ZA|ZI|ZAC)[^.;\n]{5,60}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
   ];
   for (const re of genericPatterns) {
     const re2 = new RegExp(re.source, 'gi');
     let m2;
-    while ((m2 = re2.exec(head))) {
+    while ((m2 = re2.exec(body))) {
       const addr = _clean(m2[1]);
-      const ctx = head.slice(Math.max(0, m2.index - 80), m2.index);
-      if (!_skipCompany.test(ctx) && !_skipCompany.test(addr)) return addr;
+      const ctx = body.slice(Math.max(0, m2.index - 120), m2.index);
+      if (!_isCompanyCtx(ctx) && !_isCompanyCtx(addr)) return addr;
     }
   }
 
-  // Passe 3 : code postal + commune seuls (dernier recours)
+  // === PASSE 3 : commune seule (sans code postal) — hors en-tete ===
+  const communeRe = /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[''’])([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s'']{2,40})/gi;
+  let cm;
+  while ((cm = communeRe.exec(body))) {
+    const ctx = body.slice(Math.max(0, cm.index - 120), cm.index);
+    if (!_isCompanyCtx(ctx)) return _clean(cm[1]);
+  }
+
+  // === PASSE 4 : code postal + commune — hors en-tete ===
   const cpRe = /(\d{5})\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s]{2,30})/g;
   let cpMatch;
-  while ((cpMatch = cpRe.exec(head))) {
-    const ctx = head.slice(Math.max(0, cpMatch.index - 100), cpMatch.index);
-    if (!_skipCompany.test(ctx)) return _clean(cpMatch[0]);
+  while ((cpMatch = cpRe.exec(body))) {
+    const ctx = body.slice(Math.max(0, cpMatch.index - 120), cpMatch.index);
+    if (!_isCompanyCtx(ctx)) return _clean(cpMatch[0]);
   }
   return null;
 }
