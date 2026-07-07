@@ -816,14 +816,15 @@ async function gedHandleFiles(fileList) {
       if (extractedAddrs.length > 0) {
         addrFound.style.display = '';
         const tagColors = { terrain: '#2e7d32', commune: '#1565c0', adresse: '#795548', 'code postal': '#9e9e9e' };
-        addrFound.innerHTML = `<b>Adresses trouvées dans le rapport :</b><div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">` +
+        window._gedFoundAddrs = extractedAddrs;
+        addrFound.innerHTML = '<b>Adresses trouvées dans le rapport :</b><div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">' +
           extractedAddrs.map((a, idx) => {
             const col = tagColors[a.tag] || '#795548';
-            return `<button onclick="document.getElementById('ged-index-addr-input').value='${a.addr.replace(/'/g, "\\'")}';gedGeocodeAddr();" style="text-align:left;padding:6px 10px;background:#fff;border:1px solid ${col};border-radius:6px;cursor:pointer;font-size:0.7rem;font-family:inherit;color:#1a1a1a;transition:all 0.15s;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='${col}11'" onmouseout="this.style.background='#fff'">
-              <span style="font-size:0.58rem;padding:1px 5px;border-radius:3px;background:${col};color:#fff;font-weight:700;white-space:nowrap;flex-shrink:0;">${a.tag}</span>
-              <span>${a.addr}</span>
-            </button>`;
-          }).join('') + `</div>`;
+            return '<button onclick="gedPickAddr(' + idx + ')" style="text-align:left;padding:6px 10px;background:#fff;border:1px solid ' + col + ';border-radius:6px;cursor:pointer;font-size:0.7rem;font-family:inherit;color:#1a1a1a;transition:all 0.15s;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background=\'' + col + '11\'" onmouseout="this.style.background=\'#fff\'">' +
+              '<span style="font-size:0.58rem;padding:1px 5px;border-radius:3px;background:' + col + ';color:#fff;font-weight:700;white-space:nowrap;flex-shrink:0;">' + a.tag + '</span>' +
+              '<span>' + a.addr.replace(/</g, '&lt;') + '</span>' +
+            '</button>';
+          }).join('') + '</div>';
         document.getElementById('ged-index-addr-input').value = extractedAddrs[0].addr;
       } else {
         addrFound.style.display = 'none';
@@ -879,6 +880,13 @@ async function gedConfirmGeoPosition() {
   document.getElementById('ged-file-input').value = '';
   if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
   map.invalidateSize({ animate: false });
+}
+
+function gedPickAddr(idx) {
+  const a = window._gedFoundAddrs && window._gedFoundAddrs[idx];
+  if (!a) return;
+  document.getElementById('ged-index-addr-input').value = a.addr;
+  gedGeocodeAddr();
 }
 
 function gedOpenPendingFile() {
