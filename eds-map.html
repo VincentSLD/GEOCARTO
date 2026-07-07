@@ -1518,6 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function adminAddFiles(fileList) {
   const exts = ['pdf','docx','txt','csv','eml'];
   let added = 0;
+  const doublons = [];
   for (const file of fileList) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!exts.includes(ext)) continue;
@@ -1525,10 +1526,14 @@ function adminAddFiles(fileList) {
     const existing = _adminItems.find(it => it.name === file.name);
     if (existing) {
       if (!existing.file) existing.file = file;
+      doublons.push(file.name);
       continue;
     }
     _adminItems.push({ file, name: file.name, ext, hash, text: null, status: 'queued', lat: null, lon: null, addrs: [], error: null, docId: null });
     added++;
+  }
+  if (doublons.length) {
+    alert(doublons.length + ' fichier(s) deja en base :\n\n' + doublons.join('\n') + '\n\nPour re-indexer, supprimez d\'abord la ligne puis re-glissez le fichier.');
   }
   if (added) {
     document.getElementById('admin-btn-start').disabled = false;
