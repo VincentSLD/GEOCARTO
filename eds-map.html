@@ -1556,6 +1556,7 @@ function adminRenderTable() {
     if (_adminFilter === 'error') return it.status === 'error';
     return true;
   });
+  filtered.reverse();
 
   tbody.innerHTML = filtered.map(it => {
     const i = it._idx;
@@ -1568,7 +1569,7 @@ function adminRenderTable() {
     const coordsHtml = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
     const rowClass = it.status === 'indexed' ? 'row-ok' : it.status === 'pending' ? 'row-pending' : '';
     const selected = i === _adminSelectedIdx ? 'background:#fff3e0;' : '';
-    return '<tr class="' + rowClass + '" style="cursor:pointer;' + selected + '" onclick="adminSelectRow(' + i + ')">' +
+    return '<tr class="' + rowClass + '" data-idx="' + i + '" style="cursor:pointer;' + selected + '" onclick="adminSelectRow(' + i + ')">' +
       '<td style="color:#9ca3af;font-size:0.65rem;">' + (i + 1) + '</td>' +
       '<td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + it.name.replace(/"/g, '&quot;') + '">' + it.name + '</td>' +
       '<td>' + statusHtml + '</td>' +
@@ -1580,6 +1581,13 @@ function adminRenderTable() {
         '<button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="event.stopPropagation();adminDeleteRow(' + i + ')" title="Supprimer">🗑</button>' +
       '</div></td></tr>';
   }).join('');
+}
+
+function adminScrollToRow(idx) {
+  const tbody = document.getElementById('admin-table-body');
+  if (!tbody) return;
+  const row = tbody.querySelector('tr[data-idx="' + idx + '"]');
+  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function adminFilter(f, btn) {
@@ -1631,6 +1639,7 @@ async function adminStartBulk() {
     document.getElementById('admin-progress-bar').style.width = pct + '%';
     it.status = 'processing';
     adminRenderTable();
+    adminScrollToRow(globalIdx);
 
     try {
       // Extract text
@@ -1698,6 +1707,7 @@ async function adminStartBulk() {
       it.error = e.message;
     }
     adminRenderTable();
+    adminScrollToRow(globalIdx);
   }
 
   _adminBulkRunning = false;
