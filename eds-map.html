@@ -1088,7 +1088,7 @@ function gedExtractLatLon(text) {
 function gedExtractAddresses(text) {
   if (!text) return [];
   const full = text.slice(0, 20000);
-  const _clean = s => s.replace(/\s+/g, ‘ ‘).trim();
+  const _clean = s => s.replace(/\s+/g, ' ').trim();
   const seen = new Set();
   const results = [];
 
@@ -1096,32 +1096,32 @@ function gedExtractAddresses(text) {
     addr = _clean(addr);
     if (addr.length < 5) return;
     // Tronquer au premier point ou saut
-    addr = addr.split(/[.\n]/)[0].replace(/\s*$/, ‘’);
-    // Extraire jusqu’au code postal + ville si present
+    addr = addr.split(/[.\n]/)[0].replace(/\s*$/, '');
+    // Extraire jusqu'au code postal + ville si present
     const cpCity = addr.match(/^(.{0,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/);
     if (cpCity) addr = _clean(cpCity[1]);
-    else { addr = addr.split(/\s+/).slice(0, 12).join(‘ ‘); }
+    else { addr = addr.split(/\s+/).slice(0, 12).join(' '); }
     if (addr.length < 5) return;
-    const key = addr.toLowerCase().replace(/\s+/g, ‘’);
+    const key = addr.toLowerCase().replace(/\s+/g, '');
     if (seen.has(key)) return;
     seen.add(key);
     results.push({ addr, tag });
   }
 
-  const _SK = ‘(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage|programme|lotissement|maison|villa|pavillon|b[âa]timent|r[ée]sidence|am[ée]nagement|viabilisation)’;
+  const _SK = '(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage|programme|lotissement|maison|villa|pavillon|b[âa]timent|r[ée]sidence|am[ée]nagement|viabilisation)';
 
   // Passe 1 : adresses avec mots-cles terrain/projet
   const sitePatterns = [
-    new RegExp(‘(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\’\\u2019])?|des\\s+)?’ + _SK + ‘\\s*[:.]?\\s*(.{5,150})’, ‘gi’),
-    new RegExp(_SK + ‘\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+situe|se\\s+trouve)\\s+(?:au\\s+|[àa]\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?|en\\s+)?(.{5,150})’, ‘gi’),
-    new RegExp(_SK + ‘\\s*[:,]\\s*(.{5,150})’, ‘gi’),
-    /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[‘’’])([A-ZÀ-Üa-zà-ü][\w\sà-ü\-’’]{2,40})/gi,
-    /(?:lieu[\s-]dit|lieudit)\s+(?:de\s+|du\s+|des\s+|le\s+|la\s+|les\s+)?[«"’«]?(.{3,60}?)[»"’»]?\s*(?:[,àa]\s+|[-–]\s*)([A-ZÀ-Ü][\wà-ü\s\-]{2,40})/gi,
+    new RegExp('(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\'\\u2019])?|des\\s+)?' + _SK + '\\s*[:.]?\\s*(.{5,150})', 'gi'),
+    new RegExp(_SK + '\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+situe|se\\s+trouve)\\s+(?:au\\s+|[àa]\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?|en\\s+)?(.{5,150})', 'gi'),
+    new RegExp(_SK + '\\s*[:,]\\s*(.{5,150})', 'gi'),
+    new RegExp('(?:sur\\s+(?:la\\s+)?)?commune\\s+(?:de\\s+|d[\\u2018\\u2019\'])([A-Z\\u00C0-\\u00DCa-z\\u00E0-\\u00FC][\\w\\s\\u00E0-\\u00FC\\-\\u2018\\u2019\']{2,40})', 'gi'),
+    new RegExp('(?:lieu[\\s-]dit|lieudit)\\s+(?:de\\s+|du\\s+|des\\s+|le\\s+|la\\s+|les\\s+)?[\\u00AB"\'\\u2018]?(.{3,60}?)[\\u00BB"\'\\u2019]?\\s*(?:[,\\u00E0a]\\s+|[-\\u2013]\\s*)([A-Z\\u00C0-\\u00DC][\\w\\u00E0-\\u00FC\\s\\-]{2,40})', 'gi'),
   ];
   for (const re of sitePatterns) {
     let m;
     while ((m = re.exec(full))) {
-      _add(m[1] + (m[2] ? ‘, ‘ + m[2] : ‘’), ‘terrain’);
+      _add(m[1] + (m[2] ? ', ' + m[2] : ''), 'terrain');
     }
   }
 
@@ -1133,18 +1133,18 @@ function gedExtractAddresses(text) {
   ];
   for (const re of genericPatterns) {
     let m;
-    while ((m = re.exec(full))) { _add(m[1], ‘adresse’); }
+    while ((m = re.exec(full))) { _add(m[1], 'adresse'); }
   }
 
   // Passe 3 : commune seule
-  const communeRe = /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[‘’’])([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s’’]{2,40})/gi;
+  const communeRe = new RegExp('(?:sur\\s+(?:la\\s+)?)?commune\\s+(?:de\\s+|d[\\u2018\\u2019\'])([A-Z\\u00C0-\\u00DC][A-Z\\u00C0-\\u00DCa-z\\u00E0-\\u00FC\\-\\s\\u2018\\u2019\']{2,40})', 'gi');
   let cm;
-  while ((cm = communeRe.exec(full))) { _add(cm[1], ‘commune’); }
+  while ((cm = communeRe.exec(full))) { _add(cm[1], 'commune'); }
 
   // Passe 4 : code postal + commune
   const cpRe = /(\d{5})\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s]{2,30})/g;
   let cpM;
-  while ((cpM = cpRe.exec(full))) { _add(cpM[0], ‘code postal’); }
+  while ((cpM = cpRe.exec(full))) { _add(cpM[0], 'code postal'); }
 
   return results;
 }
