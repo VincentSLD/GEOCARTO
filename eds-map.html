@@ -1575,7 +1575,7 @@ function adminRenderTable() {
       '<td>' + addrHtml + '</td>' +
       '<td>' + coordsHtml + '</td>' +
       '<td><div style="display:flex;gap:4px;">' +
-        (it.ext === 'pdf' && it.file ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
+        (it.ext === 'pdf' && (it.file || it.docId) ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
         (it.status === 'pending' ? '<button class="admin-btn admin-btn-primary admin-btn-sm" onclick="event.stopPropagation();adminSelectRow(' + i + ')">Localiser</button>' : '') +
         '<button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="event.stopPropagation();adminDeleteRow(' + i + ')" title="Supprimer">🗑</button>' +
       '</div></td></tr>';
@@ -1591,10 +1591,17 @@ function adminFilter(f, btn) {
 
 function adminOpenPdfByIdx(i) {
   const it = _adminItems[i];
-  if (!it || !it.file) return;
-  const url = URL.createObjectURL(it.file);
-  window.open(url, '_blank');
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  if (!it) return;
+  if (it.file) {
+    const url = URL.createObjectURL(it.file);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else if (it.docId) {
+    const storagePath = it.docId + '.' + it.ext;
+    const { data } = sb.storage.from('ged-pdfs').getPublicUrl(storagePath);
+    if (data && data.publicUrl) window.open(data.publicUrl, '_blank');
+    else alert('PDF non disponible dans le stockage');
+  }
 }
 
 function adminOpenPdf() {
@@ -1676,6 +1683,15 @@ async function adminStartBulk() {
         if (error) throw new Error(error.message);
       }
 
+      // Upload file to Supabase Storage
+      if (it.file) {
+        const storagePath = it.docId + '.' + it.ext;
+        const { error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+        if (upErr && upErr.message && upErr.message.includes('not found')) {
+          if (!window._gedStorageWarned) { window._gedStorageWarned = true; console.warn('Bucket "ged-pdfs" absent — creer le bucket dans Supabase Dashboard > Storage, nom: ged-pdfs, public.'); }
+        } else if (upErr) { console.warn('Storage upload:', upErr.message); }
+      }
+
       it.status = it.lat != null ? 'indexed' : 'pending';
     } catch (e) {
       it.status = 'error';
@@ -1704,6 +1720,7 @@ async function adminDeleteRow(i) {
     try {
       await sb.from('ged_chunks').delete().eq('document_id', it.docId);
       await sb.from('ged_documents').delete().eq('id', it.docId);
+      await sb.storage.from('ged-pdfs').remove([it.docId + '.' + it.ext]);
     } catch (e) {
       alert('Erreur suppression: ' + e.message);
       return;
@@ -1760,7 +1777,7 @@ function adminSelectRow(i) {
   document.getElementById('admin-detail-addr-input').value = '';
   document.getElementById('admin-detail-coords').textContent = it.lat != null ? it.lat.toFixed(6) + ', ' + it.lon.toFixed(6) : '';
   document.getElementById('admin-detail-save').disabled = it.lat == null;
-  document.getElementById('admin-detail-pdf-btn').style.display = it.file && it.ext === 'pdf' ? '' : 'none';
+  document.getElementById('admin-detail-pdf-btn').style.display = (it.file || it.docId) && it.ext === 'pdf' ? '' : 'none';
 
   // Addresses
   const addrDiv = document.getElementById('admin-detail-addrs');
