@@ -61,6 +61,7 @@ export default async function handler(req, res) {
     let o;
     try { o = JSON.parse(cleaned); }
     catch (e) { o = { resume: txt || '(résumé indisponible)', conclusion: '', fiche: null }; }
+    if (aj.usage) o.usage = { input_tokens: aj.usage.input_tokens || 0, output_tokens: aj.usage.output_tokens || 0 };
     return res.status(200).json(o);
   } catch (e) {
     console.error('ged-summary error:', e.message);
