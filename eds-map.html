@@ -146,8 +146,11 @@
           <button onclick="gedGeocodeAddr()" style="padding:5px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:inherit;white-space:nowrap;">Localiser</button>
         </div>
         <div id="ged-index-geo-coords" style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:6px;"></div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button id="ged-open-pdf-btn" onclick="gedOpenPendingFile()" style="display:none;flex:1;padding:6px 10px;background:#fff;color:#e65100;border:2px solid #e65100;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='rgba(230,81,0,0.08)'" onmouseout="this.style.background='#fff'">📄 Ouvrir le PDF pour lire l'adresse</button>
+        </div>
         <details style="margin-bottom:8px;">
-          <summary style="font-size:0.65rem;color:#9ca3af;cursor:pointer;">Lire un extrait du rapport</summary>
+          <summary style="font-size:0.65rem;color:#9ca3af;cursor:pointer;">Lire un extrait du texte extrait</summary>
           <div id="ged-index-text-preview" style="max-height:150px;overflow-y:auto;font-size:0.62rem;color:#6b7280;line-height:1.5;margin-top:4px;padding:6px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:5px;white-space:pre-wrap;word-break:break-word;"></div>
         </details>
         <div style="display:flex;gap:6px;">
@@ -796,6 +799,9 @@ async function gedHandleFiles(fileList) {
       } else {
         addrFound.style.display = 'none';
       }
+      // Bouton ouvrir le PDF si c'est un fichier PDF
+      const openPdfBtn = document.getElementById('ged-open-pdf-btn');
+      if (openPdfBtn) openPdfBtn.style.display = f.ext === 'pdf' ? '' : 'none';
       // Afficher un extrait du texte pour consultation manuelle
       const preview = document.getElementById('ged-index-text-preview');
       if (preview) preview.textContent = text.slice(0, 3000);
@@ -844,6 +850,14 @@ async function gedConfirmGeoPosition() {
   document.getElementById('ged-file-input').value = '';
   if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
   map.invalidateSize({ animate: false });
+}
+
+function gedOpenPendingFile() {
+  if (!_gedPendingIndex || !_gedPendingIndex.f?.file) return;
+  const file = _gedPendingIndex.f.file;
+  const url = URL.createObjectURL(file);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function gedSkipGeoPosition() {
