@@ -880,6 +880,72 @@
 
   .error-msg.active { display: block; }
 
+  /* Toast notifications */
+  #service-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 420px;
+    pointer-events: none;
+  }
+  .service-toast {
+    pointer-events: auto;
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-left: 4px solid #e65100;
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.82rem;
+    color: #1a1a1a;
+    animation: toastSlideIn 0.35s ease-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .service-toast.toast-hide {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  .service-toast .toast-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .service-toast .toast-body { flex: 1; }
+  .service-toast .toast-title {
+    font-weight: 700;
+    font-size: 0.84rem;
+    margin-bottom: 4px;
+    color: #d32f2f;
+  }
+  .service-toast .toast-detail {
+    font-size: 0.76rem;
+    color: #4a4a4a;
+    line-height: 1.5;
+  }
+  .service-toast .toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #8a8a80;
+    padding: 0 0 0 6px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .service-toast .toast-close:hover { color: #d32f2f; }
+  @keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
   /* Responsive */
   @media screen and (max-width: 1023px) {
     #parcel-search-row { display: none !important; }
@@ -1316,6 +1382,9 @@
     <div class="spinner"></div>
     <div class="loading-text" id="loading-text">Interrogation des API en cours…</div>
   </div>
+
+  <!-- Toast notifications -->
+  <div id="service-toast-container"></div>
 
   <!-- Results -->
   <section class="results" id="results">
@@ -3083,6 +3152,38 @@ function hideError() {
   document.getElementById('error-msg').classList.remove('active');
 }
 
+function showServiceToast(failedServices) {
+  const container = document.getElementById('service-toast-container');
+  if (!container || !failedServices.length) return;
+  container.innerHTML = '';
+  const list = failedServices.map(s => `<div style="margin-bottom:2px;">- ${s}</div>`).join('');
+  const toast = document.createElement('div');
+  toast.className = 'service-toast';
+  toast.innerHTML = `
+    <span class="toast-icon">&#9888;&#65039;</span>
+    <div class="toast-body">
+      <div class="toast-title">${failedServices.length} service${failedServices.length > 1 ? 's' : ''} indisponible${failedServices.length > 1 ? 's' : ''}</div>
+      <div class="toast-detail">
+        ${list}
+        <div style="margin-top:6px;color:#8a8a80;font-size:0.7rem;">Les données seront disponibles quand les serveurs seront rétablis.</div>
+      </div>
+    </div>
+    <button class="toast-close" onclick="this.closest('.service-toast').classList.add('toast-hide');setTimeout(()=>this.closest('.service-toast').remove(),350)">&times;</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.classList.add('toast-hide');
+      setTimeout(() => toast.remove(), 350);
+    }
+  }, 15000);
+}
+
+function clearServiceToasts() {
+  const container = document.getElementById('service-toast-container');
+  if (container) container.innerHTML = '';
+}
+
 function setLoading(show, text) {
   const overlay = document.getElementById('loading');
   if (show) {
@@ -3230,9 +3331,11 @@ async function investigate() {
     }
 
     setLoading(true, 'Interrogation des API en cours…');
+    clearServiceToasts();
 
     // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
-    await Promise.allSettled([
+    const _serviceNames = ['Risques (Géorisques)', 'CatNat (Géorisques)', 'Sismique (Géorisques)', 'Cavités (Géorisques)', 'ICPE (Géorisques)', 'Mvt. terrain (Géorisques)', 'BSS (BRGM)', 'Nappes (BRGM)'];
+    const _results = await Promise.allSettled([
       fetchRisques(lat, lng),
       fetchCatNat(lat, lng),
       fetchSismique(lat, lng),
@@ -3242,6 +3345,11 @@ async function investigate() {
       fetchBSS(lat, lng),
       fetchNappes(lat, lng),
     ]);
+
+    const _failedServices = _results
+      .map((r, i) => r.status === 'rejected' ? _serviceNames[i] : null)
+      .filter(Boolean);
+    if (_failedServices.length > 0) showServiceToast(_failedServices);
 
     // Fetch altitude (non-blocking)
     fetchAltitude(lat, lng);
@@ -3620,8 +3728,9 @@ async function fetchNappes(lat, lng) {
       el.style.border = '1px solid #78909c';
     }
   } catch (e) {
-    if (el) { el.textContent = 'Données non disponibles'; el.style.color = '#78909c'; el.style.border = '1px solid #78909c'; }
+    if (el) { el.textContent = 'Service BRGM indisponible'; el.style.color = '#e65100'; el.style.border = '1px solid #e65100'; }
     console.error('fetchNappes error:', e);
+    throw e;
   }
 }
 
@@ -3861,14 +3970,16 @@ async function fetchBSS(lat, lng) {
     const urlTotal = `https://geoservices.brgm.fr/geologie?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature` +
       `&TYPENAMES=ms:BSS_TOTAL_AVEC_LABEL&COUNT=200&BBOX=${bboxStr}`;
 
-    // Requêtes en parallèle
+    let _bssErrors = 0;
     const safeFetch = async (url) => {
       try {
         const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
-        return r.ok ? await r.text() : '';
-      } catch(e) { console.warn('BSS fetch error:', e); return ''; }
+        if (!r.ok) { _bssErrors++; return ''; }
+        return await r.text();
+      } catch(e) { _bssErrors++; console.warn('BSS fetch error:', e); return ''; }
     };
     const [xmlEau, xmlTotal] = await Promise.all([safeFetch(urlEau), safeFetch(urlTotal)]);
+    if (_bssErrors >= 2) throw new Error('Service BRGM BSS indisponible');
     const featEau = xmlEau ? parseBSSGml(xmlEau, lat, lng) : [];
     const featTotal = xmlTotal ? parseBSSGml(xmlTotal, lat, lng) : [];
 
@@ -3913,7 +4024,7 @@ async function fetchBSS(lat, lng) {
     document.getElementById('stat-bss').textContent = '?';
     document.getElementById('bss-list').innerHTML = `
       <div class="empty-state">
-        Impossible de charger les sondages BSS automatiquement.
+        Service BRGM BSS temporairement indisponible.
       </div>`;
     throw e;
   }
@@ -7361,7 +7472,10 @@ async function fetchGeologicalInfo(lat, lng) {
     }
   } catch(e) {
     loading.style.display = 'none';
-    errorDiv.innerHTML = `⚠️ Erreur BRGM : ${e.message}`;
+    const isDown = e.message?.includes('503') || e.message?.includes('Failed to fetch') || e.name === 'AbortError' || e.name === 'TimeoutError';
+    errorDiv.innerHTML = isDown
+      ? '⚠️ Service InfoTerre (BRGM) temporairement indisponible.'
+      : `⚠️ Erreur BRGM : ${e.message}`;
     errorDiv.style.display = 'block';
   }
 }
@@ -7373,7 +7487,6 @@ async function fetchGeolNotations1km(lat, lng) {
   el.textContent = '⏳…';
 
   try {
-    // Même grille carrée que fetchGeolArea
     const { x: cx, y: cy } = wgs84ToLambert93(lat, lng);
     const radius = 1000;
     const steps = 8;
@@ -7390,12 +7503,14 @@ async function fetchGeolNotations1km(lat, lng) {
     }
 
     const notations = new Set();
+    let _serviceDown = false;
 
-    // Requêtes en parallèle par batch de 10
     const batchSize = 10;
     for (let b = 0; b < points.length; b += batchSize) {
+      if (_serviceDown) break;
       const batch = points.slice(b, b + batchSize);
       await Promise.all(batch.map(async (pt) => {
+        if (_serviceDown) return;
         try {
           const d = 50;
           const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
@@ -7404,21 +7519,28 @@ async function fetchGeolNotations1km(lat, lng) {
             `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
             `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
           const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
-          if (!resp.ok) return;
+          if (!resp.ok) { _serviceDown = true; return; }
           const xml = await resp.text();
           const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
           if (n) notations.add(n);
-        } catch(e) { /* ignorer */ }
+        } catch(e) { _serviceDown = true; }
       }));
     }
 
-    // Retirer la notation du point principal (déjà affichée)
+    if (_serviceDown && notations.size === 0) {
+      el.textContent = 'Service InfoTerre indisponible';
+      el.style.color = '#e65100';
+      return;
+    }
+
     const mainNot = (document.getElementById('geol-notation')?.textContent || '').trim();
     notations.delete(mainNot);
 
     el.textContent = notations.size > 0 ? [...notations].join(', ') : 'identique';
+    el.style.color = '';
   } catch(e) {
-    el.textContent = '—';
+    el.textContent = 'Service indisponible';
+    el.style.color = '#e65100';
     console.warn('Notations 1km error:', e);
   }
 }
