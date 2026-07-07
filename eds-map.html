@@ -1520,12 +1520,13 @@ function adminAddFiles(fileList) {
   let added = 0;
   for (const file of fileList) {
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!exts.includes(ext)) continue;
+    if (!exts.includes(ext)) { console.warn('Extension ignoree:', ext, file.name); continue; }
     const hash = file.size + '-' + file.lastModified;
-    if (_adminItems.find(it => it.hash === hash && it.name === file.name)) continue;
+    if (_adminItems.find(it => it.hash === hash && it.name === file.name)) { console.warn('Doublon ignore:', file.name); continue; }
     _adminItems.push({ file, name: file.name, ext, hash, text: null, status: 'queued', lat: null, lon: null, addrs: [], error: null, docId: null });
     added++;
   }
+  console.log('adminAddFiles:', fileList.length, 'fichiers recus,', added, 'ajoutes');
   if (added) {
     document.getElementById('admin-btn-start').disabled = false;
     adminRenderTable();
