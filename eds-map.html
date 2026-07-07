@@ -1093,6 +1093,13 @@ async function gedDoIndex(f, hash, text, lat, lon) {
     if (error) { try { await sb.from('ged_documents').delete().eq('id', docId); } catch (x) {} throw new Error(error.message); }
   }
 
+  // Upload file to Supabase Storage
+  if (f.file) {
+    const storagePath = docId + '.' + f.ext;
+    const { error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, f.file, { upsert: true, contentType: f.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+    if (upErr) console.error('Storage upload ERREUR:', upErr.message);
+  }
+
   if (progBar) progBar.style.width = '100%';
   const issues = partial ? [{ name: f.name, type: 'warn', msg: `tronqué à ${GED_MAX_CHUNKS} passages` }] : [];
   gedIndexStatus('');
@@ -1733,10 +1740,10 @@ async function adminStartBulk() {
       // Upload file to Supabase Storage
       if (it.file) {
         const storagePath = it.docId + '.' + it.ext;
-        const { error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
-        if (upErr && upErr.message && upErr.message.includes('not found')) {
-          if (!window._gedStorageWarned) { window._gedStorageWarned = true; console.warn('Bucket "ged-pdfs" absent — creer le bucket dans Supabase Dashboard > Storage, nom: ged-pdfs, public.'); }
-        } else if (upErr) { console.warn('Storage upload:', upErr.message); }
+        console.log('Storage upload:', storagePath, 'size:', it.file.size);
+        const { data: upData, error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+        if (upErr) { console.error('Storage upload ERREUR:', upErr.message, upErr); }
+        else { console.log('Storage upload OK:', upData); }
       }
 
       it.status = it.lat != null ? 'indexed' : 'pending';
