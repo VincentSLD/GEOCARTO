@@ -4224,7 +4224,7 @@ async function onBssMapClick(e) {
     .openOn(window.bssMap);
 
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const xml = await resp.text();
 
@@ -7454,7 +7454,7 @@ async function fetchGeologicalInfo(lat, lng) {
       `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
       `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const xml = await resp.text();
 
@@ -7505,7 +7505,7 @@ async function fetchGeolNotations1km(lat, lng) {
     const notations = new Set();
     let _serviceDown = false;
 
-    const batchSize = 10;
+    const batchSize = 3;
     for (let b = 0; b < points.length; b += batchSize) {
       if (_serviceDown) break;
       const batch = points.slice(b, b + batchSize);
@@ -7518,7 +7518,7 @@ async function fetchGeolNotations1km(lat, lng) {
             `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
             `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
             `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-          const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+          const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
           if (!resp.ok) { _serviceDown = true; return; }
           const xml = await resp.text();
           const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
@@ -7605,7 +7605,7 @@ async function onGeolMapQuery(e) {
       `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
       `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const xml = await resp.text();
 
