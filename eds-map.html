@@ -143,6 +143,7 @@
           <button class="admin-filter-btn" onclick="adminFilter('error',this)">Erreurs <span id="admin-count-error">0</span></button>
           <div style="flex:1;"></div>
           <input type="text" id="admin-search" placeholder="🔍 Rechercher..." oninput="adminRenderTable()" style="padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.72rem;font-family:inherit;width:180px;">
+          <button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="adminDeleteAll()">🗑 Tout vider</button>
           <button class="admin-btn admin-btn-outline admin-btn-sm" onclick="adminLoadExisting()">🔄 Recharger depuis la base</button>
         </div>
         <div id="admin-table-wrap">
@@ -1755,6 +1756,34 @@ async function adminDeleteRow(i) {
   _adminItems.splice(i, 1);
   if (_adminSelectedIdx === i) { _adminSelectedIdx = null; document.getElementById('admin-detail').style.display = 'none'; document.getElementById('admin-detail-empty').style.display = ''; }
   else if (_adminSelectedIdx != null && _adminSelectedIdx > i) _adminSelectedIdx--;
+  adminRenderTable();
+}
+
+async function adminDeleteAll() {
+  const total = _adminItems.length;
+  if (!total) return;
+  if (!confirm('Supprimer les ' + total + ' fichiers de la base ?\n\nCette action est irreversible.')) return;
+  if (!confirm('Confirmer la suppression definitive de ' + total + ' documents, chunks et PDFs stockes ?')) return;
+  document.getElementById('admin-global-status').textContent = 'Suppression en cours...';
+  let deleted = 0;
+  let errors = 0;
+  for (let i = _adminItems.length - 1; i >= 0; i--) {
+    const it = _adminItems[i];
+    if (it.docId) {
+      try {
+        await sb.from('ged_chunks').delete().eq('document_id', it.docId);
+        await sb.from('ged_documents').delete().eq('id', it.docId);
+        await sb.storage.from('ged-pdfs').remove([it.docId + '.' + it.ext]);
+      } catch (e) { errors++; continue; }
+    }
+    _adminItems.splice(i, 1);
+    deleted++;
+    if (deleted % 10 === 0) document.getElementById('admin-global-status').textContent = 'Suppression... ' + deleted + '/' + total;
+  }
+  _adminSelectedIdx = null;
+  document.getElementById('admin-detail').style.display = 'none';
+  document.getElementById('admin-detail-empty').style.display = '';
+  document.getElementById('admin-global-status').textContent = deleted + ' supprimes' + (errors ? ', ' + errors + ' erreurs' : '');
   adminRenderTable();
 }
 
