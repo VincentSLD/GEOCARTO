@@ -111,6 +111,19 @@
 <!-- Bouton fermer les vues Google -->
 <button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
 
+<!-- Admin password modal -->
+<div id="admin-pw-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;box-shadow:0 8px 40px rgba(0,0,0,0.25);width:340px;font-family:'Bricolage Grotesque',sans-serif;">
+    <div style="font-size:0.92rem;font-weight:700;color:#e65100;margin-bottom:16px;display:flex;align-items:center;gap:8px;">🔒 Accès administrateur</div>
+    <input type="password" id="admin-pw-input" placeholder="Mot de passe" style="width:100%;padding:10px 14px;border:2px solid #e0ddd5;border-radius:8px;font-size:0.88rem;font-family:inherit;box-sizing:border-box;margin-bottom:6px;" onkeydown="if(event.key==='Enter')adminSubmitPassword()">
+    <div id="admin-pw-error" style="color:#d32f2f;font-size:0.74rem;min-height:20px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="adminSubmitPassword()" style="flex:1;padding:8px;background:#e65100;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:inherit;">Valider</button>
+      <button onclick="document.getElementById('admin-pw-modal').style.display='none'" style="padding:8px 16px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:inherit;">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- Admin panel overlay -->
 <div id="admin-overlay" onclick="if(event.target===this)adminClose()">
   <div id="admin-panel">
@@ -1461,22 +1474,31 @@ let _adminDetailMarker = null;
 let _adminBulkRunning = false;
 let _adminBulkAbort = false;
 
-async function adminPromptPassword() {
+function adminPromptPassword() {
   if (_adminAuth) { document.getElementById('admin-overlay').style.display = 'block'; return; }
-  const pw = prompt('Mot de passe administrateur :');
-  if (!pw) return;
+  const modal = document.getElementById('admin-pw-modal');
+  modal.style.display = 'flex';
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('admin-pw-error').textContent = '';
+  setTimeout(() => document.getElementById('admin-pw-input').focus(), 100);
+}
+
+async function adminSubmitPassword() {
+  const pw = document.getElementById('admin-pw-input').value;
+  if (!pw) { document.getElementById('admin-pw-error').textContent = 'Veuillez saisir le mot de passe.'; return; }
   try {
     const { data } = await sb.from('geocarto_settings').select('value').eq('key', 'delete_password').single();
-    if (!data || !data.value) { alert('Aucun mot de passe defini. Configurez-le dans le panneau Admin de geocarto.vercel.app.'); return; }
+    if (!data || !data.value) { document.getElementById('admin-pw-error').textContent = 'Aucun mot de passe defini dans geocarto.vercel.app.'; return; }
     if (pw === data.value) {
       _adminAuth = true;
+      document.getElementById('admin-pw-modal').style.display = 'none';
       document.getElementById('admin-overlay').style.display = 'block';
       adminLoadExisting();
     } else {
-      alert('Mot de passe incorrect.');
+      document.getElementById('admin-pw-error').textContent = 'Mot de passe incorrect.';
     }
   } catch (e) {
-    alert('Erreur de verification : ' + e.message);
+    document.getElementById('admin-pw-error').textContent = 'Erreur : ' + e.message;
   }
 }
 
@@ -1677,7 +1699,7 @@ function adminStopBulk() {
 async function adminLoadExisting() {
   document.getElementById('admin-global-status').textContent = 'Chargement...';
   try {
-    const { data, error } = await sb.from('ged_documents').select('id,path,name,ext,size,file_hash,lat,lon,char_count').order('created_at', { ascending: false }).limit(500);
+    const { data, error } = await sb.from('ged_documents').select('id,path,name,ext,size,file_hash,lat,lon,char_count').order('id', { ascending: false }).limit(500);
     if (error) throw new Error(error.message);
     if (!data || !data.length) { document.getElementById('admin-global-status').textContent = 'Base vide'; return; }
     // Merge with existing items (don't duplicate)
