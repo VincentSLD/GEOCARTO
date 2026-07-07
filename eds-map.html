@@ -1452,9 +1452,8 @@ async function deleteZone(z) {
 }
 
 // ====== ADMIN — Indexation en masse ======
-const ADMIN_PASSWORD = 'geocarto2024';
 let _adminAuth = false;
-let _adminItems = []; // {file, name, ext, hash, text, status, lat, lon, addrs, error}
+let _adminItems = [];
 let _adminFilter = 'all';
 let _adminSelectedIdx = null;
 let _adminDetailMap = null;
@@ -1462,16 +1461,22 @@ let _adminDetailMarker = null;
 let _adminBulkRunning = false;
 let _adminBulkAbort = false;
 
-function adminPromptPassword() {
+async function adminPromptPassword() {
   if (_adminAuth) { document.getElementById('admin-overlay').style.display = ''; return; }
   const pw = prompt('Mot de passe administrateur :');
   if (!pw) return;
-  if (pw === ADMIN_PASSWORD) {
-    _adminAuth = true;
-    document.getElementById('admin-overlay').style.display = '';
-    adminLoadExisting();
-  } else {
-    alert('Mot de passe incorrect.');
+  try {
+    const { data } = await sb.from('geocarto_settings').select('value').eq('key', 'delete_password').single();
+    if (!data || !data.value) { alert('Aucun mot de passe defini. Configurez-le dans le panneau Admin de geocarto.vercel.app.'); return; }
+    if (pw === data.value) {
+      _adminAuth = true;
+      document.getElementById('admin-overlay').style.display = '';
+      adminLoadExisting();
+    } else {
+      alert('Mot de passe incorrect.');
+    }
+  } catch (e) {
+    alert('Erreur de verification : ' + e.message);
   }
 }
 
