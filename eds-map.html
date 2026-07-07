@@ -1462,7 +1462,7 @@ let _adminBulkRunning = false;
 let _adminBulkAbort = false;
 
 async function adminPromptPassword() {
-  if (_adminAuth) { document.getElementById('admin-overlay').style.display = ''; return; }
+  if (_adminAuth) { document.getElementById('admin-overlay').style.display = 'block'; return; }
   const pw = prompt('Mot de passe administrateur :');
   if (!pw) return;
   try {
@@ -1470,7 +1470,7 @@ async function adminPromptPassword() {
     if (!data || !data.value) { alert('Aucun mot de passe defini. Configurez-le dans le panneau Admin de geocarto.vercel.app.'); return; }
     if (pw === data.value) {
       _adminAuth = true;
-      document.getElementById('admin-overlay').style.display = '';
+      document.getElementById('admin-overlay').style.display = 'block';
       adminLoadExisting();
     } else {
       alert('Mot de passe incorrect.');
