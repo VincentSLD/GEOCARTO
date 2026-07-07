@@ -37,6 +37,39 @@
   }
   #map { position: absolute; inset: 0; top: 0; }
   .leaflet-top { top: 50px !important; }
+
+  /* Admin panel */
+  #admin-overlay { display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px); }
+  #admin-panel { position:absolute;inset:20px;background:#fff;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.25);display:flex;flex-direction:column;overflow:hidden;font-family:'Bricolage Grotesque',sans-serif; }
+  #admin-panel .admin-header { padding:16px 24px;border-bottom:2px solid #e65100;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(230,81,0,0.06),rgba(230,81,0,0.02)); }
+  #admin-panel .admin-header h2 { font-size:1rem;color:#e65100;margin:0;display:flex;align-items:center;gap:8px; }
+  #admin-panel .admin-body { flex:1;display:flex;overflow:hidden; }
+  #admin-panel .admin-left { flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e5e7eb; }
+  #admin-panel .admin-right { width:420px;display:flex;flex-direction:column;overflow:hidden; }
+  #admin-table-wrap { flex:1;overflow-y:auto;overflow-x:auto; }
+  #admin-table { width:100%;border-collapse:collapse;font-size:0.74rem; }
+  #admin-table thead { position:sticky;top:0;z-index:1; }
+  #admin-table th { background:#f8f8f6;padding:8px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap; }
+  #admin-table td { padding:7px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle; }
+  #admin-table tr:hover { background:#faf6f3; }
+  #admin-table tr.row-ok { }
+  #admin-table tr.row-pending td:first-child { border-left:3px solid #e65100; }
+  #admin-table .badge-ok { display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.62rem;font-weight:700;background:#e8f5e9;color:#2e7d32; }
+  #admin-table .badge-pending { display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.62rem;font-weight:700;background:#fff3e0;color:#e65100; }
+  #admin-table .badge-error { display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.62rem;font-weight:700;background:#ffebee;color:#c62828; }
+  .admin-btn { padding:4px 10px;border:none;border-radius:5px;cursor:pointer;font-size:0.66rem;font-weight:700;font-family:inherit;transition:all 0.15s; }
+  .admin-btn-primary { background:#e65100;color:#fff; }
+  .admin-btn-primary:hover { background:#bf360c; }
+  .admin-btn-outline { background:#fff;color:#e65100;border:1px solid #e65100; }
+  .admin-btn-outline:hover { background:rgba(230,81,0,0.08); }
+  .admin-btn-sm { padding:3px 8px;font-size:0.62rem; }
+  #admin-right-content { flex:1;overflow-y:auto;padding:16px; }
+  .admin-dropzone { border:2px dashed #e0c8a8;border-radius:10px;padding:30px 20px;text-align:center;background:rgba(230,81,0,0.03);cursor:pointer;transition:all 0.2s; }
+  .admin-dropzone:hover { border-color:#e65100;background:rgba(230,81,0,0.06); }
+  .admin-dropzone.dragover { border-color:#e65100;background:rgba(230,81,0,0.1); }
+  .admin-filter-bar { padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
+  .admin-filter-btn { padding:4px 12px;border-radius:20px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:0.68rem;font-weight:600;font-family:inherit;color:#6b7280;transition:all 0.15s; }
+  .admin-filter-btn.active { background:#e65100;color:#fff;border-color:#e65100; }
 </style>
 </head>
 <body>
@@ -57,6 +90,7 @@
   <button id="btn-ged" onclick="toggleGedPanel()" style="padding:6px 12px;background:rgba(121,85,72,0.1);border:1px solid rgba(121,85,72,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#795548;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.2s;" onmouseover="this.style.background='rgba(121,85,72,0.2)'" onmouseout="this.style.background='rgba(121,85,72,0.1)'">
     📄 Documentation Études de sol <span style="font-size:0.6rem;padding:1px 5px;background:#795548;color:#fff;border-radius:4px;font-weight:700;letter-spacing:0.5px;">BETA</span>
   </button>
+  <button onclick="adminPromptPassword()" style="padding:6px 12px;background:rgba(230,81,0,0.08);border:1px solid rgba(230,81,0,0.25);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#e65100;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(230,81,0,0.15)'" onmouseout="this.style.background='rgba(230,81,0,0.08)'">🔒 Admin</button>
 </div>
 
 <div id="map"></div>
@@ -76,6 +110,90 @@
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
 <!-- Bouton fermer les vues Google -->
 <button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
+
+<!-- Admin panel overlay -->
+<div id="admin-overlay" onclick="if(event.target===this)adminClose()">
+  <div id="admin-panel">
+    <div class="admin-header">
+      <h2>🔒 Administration — Indexation en masse</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="admin-global-status" style="font-size:0.72rem;color:#6b7280;"></span>
+        <button onclick="adminClose()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#9ca3af;padding:2px 8px;border-radius:6px;" onmouseover="this.style.color='#e65100'" onmouseout="this.style.color='#9ca3af'">✖</button>
+      </div>
+    </div>
+    <div class="admin-body">
+      <div class="admin-left">
+        <div class="admin-filter-bar">
+          <button class="admin-filter-btn active" onclick="adminFilter('all',this)">Tous <span id="admin-count-all">0</span></button>
+          <button class="admin-filter-btn" onclick="adminFilter('pending',this)">A localiser <span id="admin-count-pending">0</span></button>
+          <button class="admin-filter-btn" onclick="adminFilter('ok',this)">Localisés <span id="admin-count-ok">0</span></button>
+          <button class="admin-filter-btn" onclick="adminFilter('error',this)">Erreurs <span id="admin-count-error">0</span></button>
+          <div style="flex:1;"></div>
+          <button class="admin-btn admin-btn-outline admin-btn-sm" onclick="adminLoadExisting()">🔄 Recharger depuis la base</button>
+        </div>
+        <div id="admin-table-wrap">
+          <table id="admin-table">
+            <thead><tr>
+              <th style="width:30px;">#</th>
+              <th>Fichier</th>
+              <th style="width:90px;">Statut</th>
+              <th style="width:200px;">Adresse(s) trouvée(s)</th>
+              <th style="width:160px;">Coordonnées</th>
+              <th style="width:100px;">Actions</th>
+            </tr></thead>
+            <tbody id="admin-table-body"></tbody>
+          </table>
+          <div id="admin-table-empty" style="padding:40px 20px;text-align:center;color:#9ca3af;font-size:0.8rem;">Aucun fichier. Glissez des PDFs dans la zone de droite ou rechargez depuis la base.</div>
+        </div>
+      </div>
+      <div class="admin-right">
+        <div style="padding:16px;border-bottom:1px solid #e5e7eb;">
+          <div class="admin-dropzone" id="admin-dropzone" onclick="document.getElementById('admin-file-input').click()">
+            <div style="font-size:2rem;margin-bottom:8px;">📄</div>
+            <div style="font-size:0.82rem;color:#374151;font-weight:700;">Glissez vos PDFs ici</div>
+            <div style="font-size:0.72rem;color:#6b7280;margin-top:4px;">ou cliquez pour sélectionner</div>
+            <div style="font-size:0.62rem;color:#9ca3af;margin-top:6px;">PDF, DOCX, TXT — Plusieurs fichiers acceptés</div>
+          </div>
+          <input type="file" id="admin-file-input" accept=".pdf,.docx,.txt,.csv,.eml" multiple style="display:none;" onchange="adminAddFiles(this.files)">
+          <div id="admin-progress-wrap" style="display:none;margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#374151;font-weight:700;margin-bottom:4px;">
+              <span id="admin-progress-label">Indexation en cours...</span>
+              <span id="admin-progress-pct">0%</span>
+            </div>
+            <div style="height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;">
+              <div id="admin-progress-bar" style="height:100%;width:0;background:linear-gradient(90deg,#e65100,#ff8f00);transition:width 0.3s;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <button id="admin-btn-start" onclick="adminStartBulk()" class="admin-btn admin-btn-primary" style="flex:1;" disabled>▶ Lancer l'indexation</button>
+            <button id="admin-btn-stop" onclick="adminStopBulk()" class="admin-btn admin-btn-outline" style="display:none;">⏹ Stop</button>
+          </div>
+        </div>
+        <div id="admin-right-content">
+          <div id="admin-detail-empty" style="text-align:center;color:#9ca3af;font-size:0.78rem;padding:30px 10px;">Sélectionnez un fichier dans le tableau pour le géolocaliser manuellement.</div>
+          <div id="admin-detail" style="display:none;">
+            <div style="font-weight:700;font-size:0.82rem;color:#1a1a1a;margin-bottom:10px;word-break:break-all;" id="admin-detail-name"></div>
+            <div id="admin-detail-addrs" style="margin-bottom:10px;"></div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;">
+              <input type="text" id="admin-detail-addr-input" placeholder="Saisir une adresse..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.74rem;font-family:inherit;" onkeydown="if(event.key==='Enter')adminGeocodeDetail()">
+              <button onclick="adminGeocodeDetail()" class="admin-btn admin-btn-primary">Localiser</button>
+            </div>
+            <div id="admin-detail-coords" style="font-size:0.74rem;font-weight:700;color:#374151;margin-bottom:10px;"></div>
+            <div id="admin-detail-map" style="height:200px;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:10px;"></div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;">
+              <button id="admin-detail-pdf-btn" onclick="adminOpenPdf()" class="admin-btn admin-btn-outline" style="flex:1;">📄 Ouvrir le PDF</button>
+              <button id="admin-detail-save" onclick="adminSavePosition()" class="admin-btn admin-btn-primary" style="flex:1;" disabled>✓ Enregistrer la position</button>
+            </div>
+            <details>
+              <summary style="font-size:0.65rem;color:#9ca3af;cursor:pointer;">Extrait du texte</summary>
+              <div id="admin-detail-preview" style="max-height:180px;overflow-y:auto;font-size:0.62rem;color:#6b7280;line-height:1.5;margin-top:6px;padding:8px;background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;white-space:pre-wrap;word-break:break-word;"></div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal formulaire zone d'opportunité -->
 <div id="zone-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.4);backdrop-filter:blur(3px);align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;">
@@ -1328,6 +1446,359 @@ async function deleteZone(z) {
     const { error } = await sb.from('carte_zones').delete().eq('id', z.id);
     if (error) throw new Error(error.message);
     await loadZones();
+  } catch (e) {
+    alert('Erreur : ' + e.message);
+  }
+}
+
+// ====== ADMIN — Indexation en masse ======
+const ADMIN_PASSWORD = 'geocarto2024';
+let _adminAuth = false;
+let _adminItems = []; // {file, name, ext, hash, text, status, lat, lon, addrs, error}
+let _adminFilter = 'all';
+let _adminSelectedIdx = null;
+let _adminDetailMap = null;
+let _adminDetailMarker = null;
+let _adminBulkRunning = false;
+let _adminBulkAbort = false;
+
+function adminPromptPassword() {
+  if (_adminAuth) { document.getElementById('admin-overlay').style.display = ''; return; }
+  const pw = prompt('Mot de passe administrateur :');
+  if (!pw) return;
+  if (pw === ADMIN_PASSWORD) {
+    _adminAuth = true;
+    document.getElementById('admin-overlay').style.display = '';
+    adminLoadExisting();
+  } else {
+    alert('Mot de passe incorrect.');
+  }
+}
+
+function adminClose() {
+  document.getElementById('admin-overlay').style.display = 'none';
+}
+
+// Drag & drop on admin dropzone
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('admin-dropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); adminAddFiles(e.dataTransfer.files); });
+});
+
+function adminAddFiles(fileList) {
+  const exts = ['pdf','docx','txt','csv','eml'];
+  let added = 0;
+  for (const file of fileList) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!exts.includes(ext)) continue;
+    const hash = file.size + '-' + file.lastModified;
+    if (_adminItems.find(it => it.hash === hash && it.name === file.name)) continue;
+    _adminItems.push({ file, name: file.name, ext, hash, text: null, status: 'queued', lat: null, lon: null, addrs: [], error: null, docId: null });
+    added++;
+  }
+  if (added) {
+    document.getElementById('admin-btn-start').disabled = false;
+    adminRenderTable();
+  }
+}
+
+function adminRenderTable() {
+  const tbody = document.getElementById('admin-table-body');
+  const empty = document.getElementById('admin-table-empty');
+  if (!_adminItems.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const counts = { all: _adminItems.length, pending: 0, ok: 0, error: 0 };
+  _adminItems.forEach(it => {
+    if (it.status === 'indexed') counts.ok++;
+    else if (it.status === 'error') counts.error++;
+    else if (it.status === 'pending') counts.pending++;
+  });
+  document.getElementById('admin-count-all').textContent = counts.all;
+  document.getElementById('admin-count-pending').textContent = counts.pending;
+  document.getElementById('admin-count-ok').textContent = counts.ok;
+  document.getElementById('admin-count-error').textContent = counts.error;
+
+  const filtered = _adminItems.map((it, i) => ({ ...it, _idx: i })).filter(it => {
+    if (_adminFilter === 'all') return true;
+    if (_adminFilter === 'pending') return it.status === 'pending';
+    if (_adminFilter === 'ok') return it.status === 'indexed';
+    if (_adminFilter === 'error') return it.status === 'error';
+    return true;
+  });
+
+  tbody.innerHTML = filtered.map(it => {
+    const i = it._idx;
+    const statusHtml = it.status === 'indexed' ? '<span class="badge-ok">Localise</span>'
+      : it.status === 'pending' ? '<span class="badge-pending">A localiser</span>'
+      : it.status === 'error' ? '<span class="badge-error">Erreur</span>'
+      : it.status === 'processing' ? '<span style="color:#e65100;font-size:0.65rem;font-weight:700;">⏳ En cours</span>'
+      : '<span style="color:#9ca3af;font-size:0.65rem;">En attente</span>';
+    const addrHtml = it.addrs.length ? it.addrs.slice(0, 2).map(a => '<div style="font-size:0.62rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">' + a.addr + '</div>').join('') : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
+    const coordsHtml = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
+    const rowClass = it.status === 'indexed' ? 'row-ok' : it.status === 'pending' ? 'row-pending' : '';
+    const selected = i === _adminSelectedIdx ? 'background:#fff3e0;' : '';
+    return '<tr class="' + rowClass + '" style="cursor:pointer;' + selected + '" onclick="adminSelectRow(' + i + ')">' +
+      '<td style="color:#9ca3af;font-size:0.65rem;">' + (i + 1) + '</td>' +
+      '<td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + it.name.replace(/"/g, '&quot;') + '">' + it.name + '</td>' +
+      '<td>' + statusHtml + '</td>' +
+      '<td>' + addrHtml + '</td>' +
+      '<td>' + coordsHtml + '</td>' +
+      '<td><div style="display:flex;gap:4px;">' +
+        (it.ext === 'pdf' ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
+        (it.status === 'pending' ? '<button class="admin-btn admin-btn-primary admin-btn-sm" onclick="event.stopPropagation();adminSelectRow(' + i + ')">Localiser</button>' : '') +
+      '</div></td></tr>';
+  }).join('');
+}
+
+function adminFilter(f, btn) {
+  _adminFilter = f;
+  document.querySelectorAll('.admin-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  adminRenderTable();
+}
+
+function adminOpenPdfByIdx(i) {
+  const it = _adminItems[i];
+  if (!it || !it.file) return;
+  const url = URL.createObjectURL(it.file);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function adminOpenPdf() {
+  if (_adminSelectedIdx != null) adminOpenPdfByIdx(_adminSelectedIdx);
+}
+
+// Bulk indexation
+async function adminStartBulk() {
+  if (_adminBulkRunning) return;
+  _adminBulkRunning = true;
+  _adminBulkAbort = false;
+  const startBtn = document.getElementById('admin-btn-start');
+  const stopBtn = document.getElementById('admin-btn-stop');
+  const progWrap = document.getElementById('admin-progress-wrap');
+  startBtn.disabled = true;
+  stopBtn.style.display = '';
+  progWrap.style.display = '';
+
+  const queued = _adminItems.filter(it => it.status === 'queued');
+  for (let qi = 0; qi < queued.length; qi++) {
+    if (_adminBulkAbort) break;
+    const it = queued[qi];
+    const globalIdx = _adminItems.indexOf(it);
+    const pct = ((qi + 1) / queued.length * 100).toFixed(0);
+    document.getElementById('admin-progress-label').textContent = 'Fichier ' + (qi + 1) + '/' + queued.length + ' — ' + it.name;
+    document.getElementById('admin-progress-pct').textContent = pct + '%';
+    document.getElementById('admin-progress-bar').style.width = pct + '%';
+    it.status = 'processing';
+    adminRenderTable();
+
+    try {
+      // Extract text
+      const text = await gedExtractText(it.file, it.ext);
+      if (!text || text.length < 20) throw new Error(it.ext === 'pdf' ? 'PDF scanne ou vide' : 'Aucun texte');
+      it.text = text;
+
+      // Extract GPS
+      const geo = gedExtractLatLon(text);
+      if (geo) {
+        it.lat = geo.lat;
+        it.lon = geo.lon;
+      }
+
+      // Extract addresses
+      it.addrs = gedExtractAddresses(text);
+
+      // Index
+      const f = { file: it.file, name: it.name, path: it.name, ext: it.ext, size: it.file.size };
+
+      // Check duplicate
+      const { data: existDoc } = await sb.from('ged_documents').select('file_hash').eq('path', f.path).maybeSingle();
+      if (existDoc && existDoc.file_hash === it.hash) {
+        it.status = it.lat != null ? 'indexed' : 'pending';
+        continue;
+      }
+
+      // Chunk & embed
+      const allChunks = gedChunkText(text);
+      const chunks = allChunks.slice(0, GED_MAX_CHUNKS);
+      const rows = [];
+      for (let b = 0; b < chunks.length; b += 50) {
+        const batch = chunks.slice(b, b + 50);
+        const er = await fetch('/api/embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texts: batch }) });
+        if (!er.ok) throw new Error('Embedding error');
+        const ej = await er.json();
+        if (!ej.embeddings) throw new Error('Embeddings vides');
+        ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k], embedding: '[' + emb.join(',') + ']' }));
+      }
+
+      // Store
+      { const { error } = await sb.from('ged_documents').delete().eq('path', f.path); if (error) throw new Error(error.message); }
+      const ins = await sb.from('ged_documents').insert({ path: f.path, name: f.name, ext: f.ext, size: f.size, file_hash: it.hash, char_count: text.length, lat: it.lat, lon: it.lon }).select('id').single();
+      if (ins.error) throw new Error(ins.error.message);
+      it.docId = ins.data.id;
+
+      for (let b = 0; b < rows.length; b += 50) {
+        const slice = rows.slice(b, b + 50).map(r => ({ ...r, document_id: it.docId }));
+        const { error } = await sb.from('ged_chunks').insert(slice);
+        if (error) throw new Error(error.message);
+      }
+
+      it.status = it.lat != null ? 'indexed' : 'pending';
+    } catch (e) {
+      it.status = 'error';
+      it.error = e.message;
+    }
+    adminRenderTable();
+  }
+
+  _adminBulkRunning = false;
+  stopBtn.style.display = 'none';
+  startBtn.disabled = !_adminItems.some(it => it.status === 'queued');
+  document.getElementById('admin-progress-label').textContent = 'Termine';
+  document.getElementById('admin-global-status').textContent = _adminItems.filter(it => it.status === 'indexed').length + ' localises, ' + _adminItems.filter(it => it.status === 'pending').length + ' a localiser';
+  adminRenderTable();
+}
+
+function adminStopBulk() {
+  _adminBulkAbort = true;
+}
+
+// Load existing documents from Supabase
+async function adminLoadExisting() {
+  document.getElementById('admin-global-status').textContent = 'Chargement...';
+  try {
+    const { data, error } = await sb.from('ged_documents').select('id,path,name,ext,size,file_hash,lat,lon,char_count').order('created_at', { ascending: false }).limit(500);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) { document.getElementById('admin-global-status').textContent = 'Base vide'; return; }
+    // Merge with existing items (don't duplicate)
+    const existingHashes = new Set(_adminItems.map(it => it.hash + '|' + it.name));
+    for (const doc of data) {
+      const key = doc.file_hash + '|' + doc.name;
+      if (existingHashes.has(key)) continue;
+      _adminItems.push({
+        file: null, name: doc.name, ext: doc.ext, hash: doc.file_hash,
+        text: null, status: doc.lat != null ? 'indexed' : 'pending',
+        lat: doc.lat, lon: doc.lon, addrs: [], error: null, docId: doc.id
+      });
+    }
+    document.getElementById('admin-global-status').textContent = data.length + ' documents charges';
+    adminRenderTable();
+  } catch (e) {
+    document.getElementById('admin-global-status').textContent = 'Erreur: ' + e.message;
+  }
+}
+
+// Detail panel - select a row
+function adminSelectRow(i) {
+  _adminSelectedIdx = i;
+  const it = _adminItems[i];
+  if (!it) return;
+  document.getElementById('admin-detail-empty').style.display = 'none';
+  document.getElementById('admin-detail').style.display = '';
+  document.getElementById('admin-detail-name').textContent = it.name;
+  document.getElementById('admin-detail-addr-input').value = '';
+  document.getElementById('admin-detail-coords').textContent = it.lat != null ? it.lat.toFixed(6) + ', ' + it.lon.toFixed(6) : '';
+  document.getElementById('admin-detail-save').disabled = it.lat == null;
+  document.getElementById('admin-detail-pdf-btn').style.display = it.file && it.ext === 'pdf' ? '' : 'none';
+
+  // Addresses
+  const addrDiv = document.getElementById('admin-detail-addrs');
+  if (it.addrs.length) {
+    const tagColors = { terrain: '#2e7d32', commune: '#1565c0', adresse: '#795548', 'code postal': '#9e9e9e' };
+    addrDiv.innerHTML = '<div style="font-size:0.68rem;font-weight:700;color:#374151;margin-bottom:6px;">Adresses trouvees dans le rapport :</div>' +
+      it.addrs.map((a, idx) => {
+        const col = tagColors[a.tag] || '#795548';
+        return '<button onclick="adminPickAddr(' + idx + ')" style="display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:5px 8px;margin-bottom:3px;background:#fff;border:1px solid ' + col + ';border-radius:5px;cursor:pointer;font-size:0.68rem;font-family:inherit;color:#1a1a1a;transition:all 0.15s;" onmouseover="this.style.background=\'' + col + '11\'" onmouseout="this.style.background=\'#fff\'">' +
+          '<span style="font-size:0.56rem;padding:1px 4px;border-radius:3px;background:' + col + ';color:#fff;font-weight:700;flex-shrink:0;">' + a.tag + '</span>' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.addr.replace(/</g, '&lt;') + '</span></button>';
+      }).join('');
+  } else {
+    addrDiv.innerHTML = '<div style="font-size:0.68rem;color:#9ca3af;font-style:italic;">Aucune adresse trouvee automatiquement.</div>';
+  }
+
+  // Preview
+  const preview = document.getElementById('admin-detail-preview');
+  if (it.text) preview.textContent = it.text.slice(0, 5000);
+  else preview.textContent = '(texte non disponible - fichier charge depuis la base)';
+
+  // Mini map
+  setTimeout(() => {
+    const mapDiv = document.getElementById('admin-detail-map');
+    if (_adminDetailMap) { _adminDetailMap.remove(); _adminDetailMap = null; _adminDetailMarker = null; }
+    _adminDetailMap = L.map(mapDiv, { zoomControl: true }).setView(it.lat != null ? [it.lat, it.lon] : [46.8, 2.3], it.lat != null ? 14 : 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_adminDetailMap);
+    if (it.lat != null) {
+      _adminDetailMarker = L.marker([it.lat, it.lon]).addTo(_adminDetailMap);
+    }
+    _adminDetailMap.on('click', function(e) {
+      const lat = e.latlng.lat, lon = e.latlng.lng;
+      _adminItems[_adminSelectedIdx].lat = lat;
+      _adminItems[_adminSelectedIdx].lon = lon;
+      document.getElementById('admin-detail-coords').textContent = lat.toFixed(6) + ', ' + lon.toFixed(6);
+      document.getElementById('admin-detail-save').disabled = false;
+      if (_adminDetailMarker) _adminDetailMap.removeLayer(_adminDetailMarker);
+      _adminDetailMarker = L.marker([lat, lon]).addTo(_adminDetailMap);
+    });
+    setTimeout(() => _adminDetailMap.invalidateSize(), 200);
+  }, 100);
+
+  adminRenderTable();
+}
+
+function adminPickAddr(addrIdx) {
+  if (_adminSelectedIdx == null) return;
+  const it = _adminItems[_adminSelectedIdx];
+  const a = it.addrs[addrIdx];
+  if (!a) return;
+  document.getElementById('admin-detail-addr-input').value = a.addr;
+  adminGeocodeDetail();
+}
+
+async function adminGeocodeDetail() {
+  const addr = document.getElementById('admin-detail-addr-input').value.trim();
+  if (!addr || addr.length < 3) return;
+  try {
+    const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(addr) + '&limit=1');
+    const j = await r.json();
+    if (j.features && j.features.length) {
+      const [lon, lat] = j.features[0].geometry.coordinates;
+      const label = j.features[0].properties.label || addr;
+      _adminItems[_adminSelectedIdx].lat = lat;
+      _adminItems[_adminSelectedIdx].lon = lon;
+      document.getElementById('admin-detail-coords').textContent = label + ' (' + lat.toFixed(5) + ', ' + lon.toFixed(5) + ')';
+      document.getElementById('admin-detail-save').disabled = false;
+      if (_adminDetailMap) {
+        _adminDetailMap.setView([lat, lon], 15);
+        if (_adminDetailMarker) _adminDetailMap.removeLayer(_adminDetailMarker);
+        _adminDetailMarker = L.marker([lat, lon]).addTo(_adminDetailMap);
+      }
+    } else {
+      document.getElementById('admin-detail-coords').innerHTML = '<span style="color:#d32f2f;">Adresse non trouvee</span>';
+    }
+  } catch (e) {
+    document.getElementById('admin-detail-coords').innerHTML = '<span style="color:#d32f2f;">Erreur : ' + e.message + '</span>';
+  }
+}
+
+async function adminSavePosition() {
+  if (_adminSelectedIdx == null) return;
+  const it = _adminItems[_adminSelectedIdx];
+  if (it.lat == null) return;
+  try {
+    if (it.docId) {
+      const { error } = await sb.from('ged_documents').update({ lat: it.lat, lon: it.lon }).eq('id', it.docId);
+      if (error) throw new Error(error.message);
+    }
+    it.status = 'indexed';
+    document.getElementById('admin-detail-save').disabled = true;
+    document.getElementById('admin-detail-save').textContent = '✓ Enregistre';
+    setTimeout(() => { document.getElementById('admin-detail-save').textContent = '✓ Enregistrer la position'; }, 1500);
+    adminRenderTable();
   } catch (e) {
     alert('Erreur : ' + e.message);
   }
