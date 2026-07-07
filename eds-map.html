@@ -1575,8 +1575,9 @@ function adminRenderTable() {
       '<td>' + addrHtml + '</td>' +
       '<td>' + coordsHtml + '</td>' +
       '<td><div style="display:flex;gap:4px;">' +
-        (it.ext === 'pdf' ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
+        (it.ext === 'pdf' && it.file ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
         (it.status === 'pending' ? '<button class="admin-btn admin-btn-primary admin-btn-sm" onclick="event.stopPropagation();adminSelectRow(' + i + ')">Localiser</button>' : '') +
+        '<button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="event.stopPropagation();adminDeleteRow(' + i + ')" title="Supprimer">🗑</button>' +
       '</div></td></tr>';
   }).join('');
 }
@@ -1695,25 +1696,53 @@ function adminStopBulk() {
   _adminBulkAbort = true;
 }
 
-// Load existing documents from Supabase
+async function adminDeleteRow(i) {
+  const it = _adminItems[i];
+  if (!it) return;
+  if (!confirm('Supprimer "' + it.name + '" ?')) return;
+  if (it.docId) {
+    try {
+      await sb.from('ged_chunks').delete().eq('document_id', it.docId);
+      await sb.from('ged_documents').delete().eq('id', it.docId);
+    } catch (e) {
+      alert('Erreur suppression: ' + e.message);
+      return;
+    }
+  }
+  _adminItems.splice(i, 1);
+  if (_adminSelectedIdx === i) { _adminSelectedIdx = null; document.getElementById('admin-detail').style.display = 'none'; document.getElementById('admin-detail-empty').style.display = ''; }
+  else if (_adminSelectedIdx != null && _adminSelectedIdx > i) _adminSelectedIdx--;
+  adminRenderTable();
+}
+
+// Load existing documents from Supabase (paginated 200 by 200)
 async function adminLoadExisting() {
   document.getElementById('admin-global-status').textContent = 'Chargement...';
   try {
-    const { data, error } = await sb.from('ged_documents').select('id,path,name,ext,size,file_hash,lat,lon,char_count').order('id', { ascending: false }).limit(500);
-    if (error) throw new Error(error.message);
-    if (!data || !data.length) { document.getElementById('admin-global-status').textContent = 'Base vide'; return; }
-    // Merge with existing items (don't duplicate)
     const existingHashes = new Set(_adminItems.map(it => it.hash + '|' + it.name));
-    for (const doc of data) {
-      const key = doc.file_hash + '|' + doc.name;
-      if (existingHashes.has(key)) continue;
-      _adminItems.push({
-        file: null, name: doc.name, ext: doc.ext, hash: doc.file_hash,
-        text: null, status: doc.lat != null ? 'indexed' : 'pending',
-        lat: doc.lat, lon: doc.lon, addrs: [], error: null, docId: doc.id
-      });
+    let total = 0;
+    let offset = 0;
+    const pageSize = 200;
+    while (true) {
+      const { data, error } = await sb.from('ged_documents').select('id,path,name,ext,size,file_hash,lat,lon,char_count').order('id', { ascending: false }).range(offset, offset + pageSize - 1);
+      if (error) throw new Error(error.message);
+      if (!data || !data.length) break;
+      for (const doc of data) {
+        const key = doc.file_hash + '|' + doc.name;
+        if (existingHashes.has(key)) continue;
+        existingHashes.add(key);
+        _adminItems.push({
+          file: null, name: doc.name, ext: doc.ext, hash: doc.file_hash,
+          text: null, status: doc.lat != null ? 'indexed' : 'pending',
+          lat: doc.lat, lon: doc.lon, addrs: [], error: null, docId: doc.id
+        });
+        total++;
+      }
+      document.getElementById('admin-global-status').textContent = 'Chargement... ' + total + ' documents';
+      if (data.length < pageSize) break;
+      offset += pageSize;
     }
-    document.getElementById('admin-global-status').textContent = data.length + ' documents charges';
+    document.getElementById('admin-global-status').textContent = total ? total + ' documents charges' : 'Base vide';
     adminRenderTable();
   } catch (e) {
     document.getElementById('admin-global-status').textContent = 'Erreur: ' + e.message;
