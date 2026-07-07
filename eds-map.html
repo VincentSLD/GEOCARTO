@@ -142,6 +142,7 @@
           <button class="admin-filter-btn" onclick="adminFilter('ok',this)">Localisés <span id="admin-count-ok">0</span></button>
           <button class="admin-filter-btn" onclick="adminFilter('error',this)">Erreurs <span id="admin-count-error">0</span></button>
           <div style="flex:1;"></div>
+          <input type="text" id="admin-search" placeholder="🔍 Rechercher..." oninput="adminRenderTable()" style="padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.72rem;font-family:inherit;width:180px;">
           <button class="admin-btn admin-btn-outline admin-btn-sm" onclick="adminLoadExisting()">🔄 Recharger depuis la base</button>
         </div>
         <div id="admin-table-wrap">
@@ -1558,11 +1559,12 @@ function adminRenderTable() {
   document.getElementById('admin-count-ok').textContent = counts.ok;
   document.getElementById('admin-count-error').textContent = counts.error;
 
+  const searchVal = (document.getElementById('admin-search') ? document.getElementById('admin-search').value : '').toLowerCase().trim();
   const filtered = _adminItems.map((it, i) => ({ ...it, _idx: i })).filter(it => {
-    if (_adminFilter === 'all') return true;
-    if (_adminFilter === 'pending') return it.status === 'pending';
-    if (_adminFilter === 'ok') return it.status === 'indexed';
-    if (_adminFilter === 'error') return it.status === 'error';
+    if (_adminFilter === 'pending' && it.status !== 'pending') return false;
+    if (_adminFilter === 'ok' && it.status !== 'indexed') return false;
+    if (_adminFilter === 'error' && it.status !== 'error') return false;
+    if (searchVal && !it.name.toLowerCase().includes(searchVal)) return false;
     return true;
   });
   filtered.reverse();
