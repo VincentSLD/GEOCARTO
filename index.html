@@ -3334,7 +3334,7 @@ async function investigate() {
     clearServiceToasts();
 
     // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
-    const _serviceNames = ['Risques (Géorisques)', 'CatNat (Géorisques)', 'Sismique (Géorisques)', 'Cavités (Géorisques)', 'ICPE (Géorisques)', 'Mvt. terrain (Géorisques)', 'BSS (BRGM)', 'Nappes (BRGM)'];
+    const _serviceNames = ['Risques (Géorisques)', 'CatNat (Géorisques)', 'Sismique (Géorisques)', 'Cavités (Géorisques)', 'ICPE (Géorisques)', 'Mvt. terrain (Géorisques)', 'BSS (BRGM)', 'Nappes (BRGM)', 'Géologie (InfoTerre)'];
     const _results = await Promise.allSettled([
       fetchRisques(lat, lng),
       fetchCatNat(lat, lng),
@@ -3344,6 +3344,7 @@ async function investigate() {
       fetchMvtTerrain(lat, lng),
       fetchBSS(lat, lng),
       fetchNappes(lat, lng),
+      fetchGeologicalInfo(lat, lng),
     ]);
 
     const _failedServices = _results
@@ -4764,8 +4765,7 @@ function setupMaps(lat, lng) {
     tryNextLegend();
   }
 
-  // Fetch geological info via WMS GetFeatureInfo (BD Charm-50)
-  fetchGeologicalInfo(lat, lng);
+  // fetchGeologicalInfo est dans le Promise.allSettled de investigate()
   fetchGeolNotations1km(lat, lng);
 
   // ====== Carte Cavités Souterraines ======
