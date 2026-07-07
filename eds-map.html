@@ -139,8 +139,8 @@
       <input type="file" id="ged-file-input" accept=".pdf,.docx,.txt,.csv,.eml" style="display:none;" onchange="gedHandleFiles(this.files)">
       <div id="ged-index-geo-prompt" style="display:none;margin-top:8px;padding:10px 12px;border:2px solid #e65100;border-radius:8px;background:rgba(230,81,0,0.06);">
         <div style="font-size:0.72rem;font-weight:700;color:#e65100;margin-bottom:6px;">📍 Position GPS non trouvée automatiquement</div>
-        <div id="ged-index-addr-found" style="display:none;font-size:0.68rem;color:#374151;margin-bottom:8px;padding:6px 8px;background:rgba(230,81,0,0.06);border-radius:5px;line-height:1.4;"></div>
-        <div style="font-size:0.68rem;color:#6b7280;margin-bottom:6px;">Saisissez l'adresse du rapport ou cliquez directement sur la carte :</div>
+        <div id="ged-index-addr-found" style="display:none;font-size:0.68rem;color:#374151;margin-bottom:8px;padding:6px 8px;background:rgba(230,81,0,0.06);border-radius:5px;line-height:1.4;max-height:180px;overflow-y:auto;"></div>
+        <div style="font-size:0.68rem;color:#6b7280;margin-bottom:6px;">Cliquez sur une adresse ci-dessus, saisissez-en une, ou cliquez sur la carte :</div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input type="text" id="ged-index-addr-input" placeholder="ex: 12 rue des Halles, Nantes" style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.72rem;font-family:inherit;" onkeydown="if(event.key==='Enter')gedGeocodeAddr()">
           <button onclick="gedGeocodeAddr()" style="padding:5px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:inherit;white-space:nowrap;">Localiser</button>
@@ -810,13 +810,21 @@ async function gedHandleFiles(fileList) {
       document.getElementById('ged-index-geo-ok').disabled = true;
       document.getElementById('ged-index-geo-ok').style.opacity = '0.5';
       document.getElementById('ged-index-addr-input').value = '';
-      // Afficher l'adresse extraite du texte si trouvée
+      // Afficher toutes les adresses trouvees dans le rapport
       const addrFound = document.getElementById('ged-index-addr-found');
-      const extractedAddr = gedExtractAddress(text);
-      if (extractedAddr) {
+      const extractedAddrs = gedExtractAddresses(text);
+      if (extractedAddrs.length > 0) {
         addrFound.style.display = '';
-        addrFound.innerHTML = `<b>Adresse trouvée dans le rapport :</b><br>${extractedAddr}`;
-        document.getElementById('ged-index-addr-input').value = extractedAddr;
+        const tagColors = { terrain: '#2e7d32', commune: '#1565c0', adresse: '#795548', 'code postal': '#9e9e9e' };
+        addrFound.innerHTML = `<b>Adresses trouvées dans le rapport :</b><div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">` +
+          extractedAddrs.map((a, idx) => {
+            const col = tagColors[a.tag] || '#795548';
+            return `<button onclick="document.getElementById('ged-index-addr-input').value='${a.addr.replace(/'/g, "\\'")}';gedGeocodeAddr();" style="text-align:left;padding:6px 10px;background:#fff;border:1px solid ${col};border-radius:6px;cursor:pointer;font-size:0.7rem;font-family:inherit;color:#1a1a1a;transition:all 0.15s;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='${col}11'" onmouseout="this.style.background='#fff'">
+              <span style="font-size:0.58rem;padding:1px 5px;border-radius:3px;background:${col};color:#fff;font-weight:700;white-space:nowrap;flex-shrink:0;">${a.tag}</span>
+              <span>${a.addr}</span>
+            </button>`;
+          }).join('') + `</div>`;
+        document.getElementById('ged-index-addr-input').value = extractedAddrs[0].addr;
       } else {
         addrFound.style.display = 'none';
       }
@@ -1069,80 +1077,68 @@ function gedExtractLatLon(text) {
   return null;
 }
 
-function gedExtractAddress(text) {
-  if (!text) return null;
-  const full = text.slice(0, 15000);
-  const _clean = s => s.replace(/\s+/g, ' ').trim();
+function gedExtractAddresses(text) {
+  if (!text) return [];
+  const full = text.slice(0, 20000);
+  const _clean = s => s.replace(/\s+/g, ‘ ‘).trim();
+  const seen = new Set();
+  const results = [];
 
-  // Mots qui signalent une adresse de societe/redacteur (a exclure)
-  const _isCompanyCtx = (ctx) => /(?:si[èe]ge|bureau[x]?\s|agence|cabinet|sarl|sas\b|sasu|eurl|sa\b|soci[ée]t[ée]|direction|succursale|t[ée]l[\s.:/]|fax|mail|courriel|www\.|@|\.fr\b|\.com\b|n°?\s*(?:siret|siren|rcs|tva)|capital|immatricul|r[ée]dacteur|r[ée]dig[ée]|[ée]tabli\s+par|r[ée]alis[ée]\s+par|notre\s+(?:agence|bureau|soci)|intervenants?\s|contact\s|responsable\s|chef\s+de\s+(?:projet|service)|ing[ée]nieur)/i.test(ctx);
-
-  // Mots qui signalent une adresse de terrain/projet (a privilegier)
-  const _SK = '(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage|programme|lotissement|maison|villa|pavillon|b[âa]timent|r[ée]sidence|am[ée]nagement|viabilisation)';
-
-  // === PASSE 1 : adresses avec mots-cles terrain/projet ===
-  // Chercher dans tout le texte (pas seulement les premiers chars)
-  const sitePatterns = [
-    // "lieu/adresse/localisation du projet : ..."
-    new RegExp('(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\'\\u2019])?|des\\s+)?' + _SK + '\\s*[:.]?\\s*(.{5,150})', 'i'),
-    // "projet situe a ..."
-    new RegExp(_SK + '\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+situe|se\\s+trouve)\\s+(?:au\\s+|[àa]\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?|en\\s+)?(.{5,150})', 'i'),
-    // "projet : 12 rue ... 44000 Nantes" ou "projet, Nantes"
-    new RegExp(_SK + '\\s*[:,]\\s*(.{5,150})', 'i'),
-    // "commune de XXXX" / "sur la commune de XXXX"
-    /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[''’])([A-ZÀ-Üa-zà-ü][\w\sà-ü\-'']{2,40})/i,
-    // "lieu-dit XXX a/commune VILLE"
-    /(?:lieu[\s-]dit|lieudit)\s+(?:de\s+|du\s+|des\s+|le\s+|la\s+|les\s+)?[«"'«]?(.{3,60}?)[»"'»]?\s*(?:[,àa]\s+|[-–]\s*)([A-ZÀ-Ü][\wà-ü\s\-]{2,40})/i,
-  ];
-
-  for (const re of sitePatterns) {
-    const m = full.match(re);
-    if (!m) continue;
-    let raw = _clean(m[1] + (m[2] ? ', ' + m[2] : ''));
-    // Tronquer au premier point ou retour logique
-    raw = raw.split(/[.\n]/)[0].replace(/\s*$/, '');
-    // Extraire jusqu'au code postal + ville si present
-    const cpCity = raw.match(/^(.{0,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/);
-    if (cpCity) raw = _clean(cpCity[1]);
-    // Tronquer a la derniere ville lisible sinon
-    else { const words = raw.split(/\s+/).slice(0, 12); raw = words.join(' '); }
-    if (raw.length >= 5 && !_isCompanyCtx(raw)) return raw;
+  function _add(addr, tag) {
+    addr = _clean(addr);
+    if (addr.length < 5) return;
+    // Tronquer au premier point ou saut
+    addr = addr.split(/[.\n]/)[0].replace(/\s*$/, ‘’);
+    // Extraire jusqu’au code postal + ville si present
+    const cpCity = addr.match(/^(.{0,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/);
+    if (cpCity) addr = _clean(cpCity[1]);
+    else { addr = addr.split(/\s+/).slice(0, 12).join(‘ ‘); }
+    if (addr.length < 5) return;
+    const key = addr.toLowerCase().replace(/\s+/g, ‘’);
+    if (seen.has(key)) return;
+    seen.add(key);
+    results.push({ addr, tag });
   }
 
-  // === PASSE 2 : patterns generiques HORS en-tete societe ===
-  // Ignorer les ~1500 premiers caracteres (en-tete avec adresse societe)
-  const body = text.slice(1500, 15000);
-  const genericPatterns = [
-    /(?:situ[ée]{1,2}s?\s+(?:au\s+|[àa]\s+|sur\s+)?|sis(?:e)?\s+(?:[àa]\s+)?)(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
-    /(?:adresse|localisation|implantation)\s*[:]\s*(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
-    /(\d{1,4}[\s,]+(?:rue|avenue|av\.|boulevard|bd|chemin|route|impasse|all[ée]e|place|lieu[\s-]dit|lotissement|ZA|ZI|ZAC)[^.;\n]{5,60}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/i,
+  const _SK = ‘(?:terrain|projet|site|chantier|parcelle|op[ée]ration|investigation|intervention|construction|r[ée]alisation|mission|[ée]tude|implantation|ouvrage|programme|lotissement|maison|villa|pavillon|b[âa]timent|r[ée]sidence|am[ée]nagement|viabilisation)’;
+
+  // Passe 1 : adresses avec mots-cles terrain/projet
+  const sitePatterns = [
+    new RegExp(‘(?:lieu|adresse|localisation|emplacement|situation)\\s+(?:du\\s+|de\\s+(?:l[\’\\u2019])?|des\\s+)?’ + _SK + ‘\\s*[:.]?\\s*(.{5,150})’, ‘gi’),
+    new RegExp(_SK + ‘\\s+(?:est\\s+)?(?:situ[ée]{1,2}s?|sis(?:e)?|localis[ée]{1,2}|implant[ée]{1,2}|se\\s+situe|se\\s+trouve)\\s+(?:au\\s+|[àa]\\s+|sur\\s+(?:la\\s+commune\\s+(?:de\\s+)?)?|en\\s+)?(.{5,150})’, ‘gi’),
+    new RegExp(_SK + ‘\\s*[:,]\\s*(.{5,150})’, ‘gi’),
+    /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[‘’’])([A-ZÀ-Üa-zà-ü][\w\sà-ü\-’’]{2,40})/gi,
+    /(?:lieu[\s-]dit|lieudit)\s+(?:de\s+|du\s+|des\s+|le\s+|la\s+|les\s+)?[«"’«]?(.{3,60}?)[»"’»]?\s*(?:[,àa]\s+|[-–]\s*)([A-ZÀ-Ü][\wà-ü\s\-]{2,40})/gi,
   ];
-  for (const re of genericPatterns) {
-    const re2 = new RegExp(re.source, 'gi');
-    let m2;
-    while ((m2 = re2.exec(body))) {
-      const addr = _clean(m2[1]);
-      const ctx = body.slice(Math.max(0, m2.index - 120), m2.index);
-      if (!_isCompanyCtx(ctx) && !_isCompanyCtx(addr)) return addr;
+  for (const re of sitePatterns) {
+    let m;
+    while ((m = re.exec(full))) {
+      _add(m[1] + (m[2] ? ‘, ‘ + m[2] : ‘’), ‘terrain’);
     }
   }
 
-  // === PASSE 3 : commune seule (sans code postal) — hors en-tete ===
-  const communeRe = /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[''’])([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s'']{2,40})/gi;
-  let cm;
-  while ((cm = communeRe.exec(body))) {
-    const ctx = body.slice(Math.max(0, cm.index - 120), cm.index);
-    if (!_isCompanyCtx(ctx)) return _clean(cm[1]);
+  // Passe 2 : patterns generiques (tout le texte)
+  const genericPatterns = [
+    /(?:situ[ée]{1,2}s?\s+(?:au\s+|[àa]\s+|sur\s+)?|sis(?:e)?\s+(?:[àa]\s+)?)(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/gi,
+    /(?:adresse|localisation|implantation)\s*[:]\s*(.{10,120}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/gi,
+    /(\d{1,4}[\s,]+(?:rue|avenue|av\.|boulevard|bd|chemin|route|impasse|all[ée]e|place|lieu[\s-]dit|lotissement|ZA|ZI|ZAC)[^.;\n]{5,60}?\d{5}\s+[A-ZÀ-Ü][a-zà-ü\-\s]+)/gi,
+  ];
+  for (const re of genericPatterns) {
+    let m;
+    while ((m = re.exec(full))) { _add(m[1], ‘adresse’); }
   }
 
-  // === PASSE 4 : code postal + commune — hors en-tete ===
+  // Passe 3 : commune seule
+  const communeRe = /(?:sur\s+(?:la\s+)?)?commune\s+(?:de\s+|d[‘’’])([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s’’]{2,40})/gi;
+  let cm;
+  while ((cm = communeRe.exec(full))) { _add(cm[1], ‘commune’); }
+
+  // Passe 4 : code postal + commune
   const cpRe = /(\d{5})\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-\s]{2,30})/g;
-  let cpMatch;
-  while ((cpMatch = cpRe.exec(body))) {
-    const ctx = body.slice(Math.max(0, cpMatch.index - 120), cpMatch.index);
-    if (!_isCompanyCtx(ctx)) return _clean(cpMatch[0]);
-  }
-  return null;
+  let cpM;
+  while ((cpM = cpRe.exec(full))) { _add(cpM[0], ‘code postal’); }
+
+  return results;
 }
 
 async function gedGeocodeAddr() {
