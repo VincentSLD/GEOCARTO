@@ -1589,7 +1589,7 @@ function adminFilter(f, btn) {
   adminRenderTable();
 }
 
-function adminOpenPdfByIdx(i) {
+async function adminOpenPdfByIdx(i) {
   const it = _adminItems[i];
   if (!it) return;
   if (it.file) {
@@ -1598,9 +1598,9 @@ function adminOpenPdfByIdx(i) {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   } else if (it.docId) {
     const storagePath = it.docId + '.' + it.ext;
-    const { data } = sb.storage.from('ged-pdfs').getPublicUrl(storagePath);
-    if (data && data.publicUrl) window.open(data.publicUrl, '_blank');
-    else alert('PDF non disponible dans le stockage');
+    const { data, error } = await sb.storage.from('ged-pdfs').createSignedUrl(storagePath, 300);
+    if (data && data.signedUrl) window.open(data.signedUrl, '_blank');
+    else alert('PDF non disponible' + (error ? ' : ' + error.message : ''));
   }
 }
 
