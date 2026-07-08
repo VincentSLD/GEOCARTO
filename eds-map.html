@@ -344,6 +344,21 @@ map.createPane('gedPane');
 map.getPane('gedPane').style.zIndex = 650;
 roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.55, pane: 'roadsPane' }).addTo(map);
 
+// Centrage optionnel via l'URL (?lat=..&lng=.. ou &lon=..) — ex. lien depuis le CRM (point du marché)
+(function () {
+  try {
+    const p = new URLSearchParams(location.search);
+    const la = parseFloat(p.get('lat'));
+    const lo = parseFloat(p.get('lng') || p.get('lon'));
+    if (!isNaN(la) && !isNaN(lo)) {
+      L.marker([la, lo]).addTo(map).bindPopup('Point du marché (CRM)').openPopup();
+      const focusPt = () => map.setView([la, lo], 17, { animate: false });
+      focusPt();
+      setTimeout(focusPt, 900); // re-centre après un éventuel auto-fit sur les données chargées
+    }
+  } catch (e) {}
+})();
+
 let _gMiniSat = null, _gMiniSv = null, _gMiniPegman = null, _miniSyncing = false;
 
 // Bonhomme avec cône de vision pour la mini Google Maps

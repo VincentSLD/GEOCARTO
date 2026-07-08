@@ -1637,7 +1637,7 @@
           <div id="eds-loader" style="position:absolute;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.95);gap:0.7rem;backdrop-filter:blur(2px);">
             <span style="font-size:2.2rem;">📍</span>
             <div style="font-size:0.82rem;color:var(--text-secondary);text-align:center;">Points d'intérêt EDS GPH<br><span style="font-size:0.7rem;color:var(--text-muted);">Chargement automatique au lancement d'une investigation…</span></div>
-          </div>
+          </div>d
           <!-- Barre visible uniquement en plein écran -->
           <div id="eds-fs-bar" style="position:absolute;bottom:0;left:130px;right:0;z-index:500;background:rgba(255,255,255,0.93);backdrop-filter:blur(6px);padding:8px 10px;gap:8px;align-items:center;flex-wrap:wrap;">
             <button onclick="edsExitFullscreen()" style="padding:10px 12px;border-radius:10px;border:2px solid #f5c518;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);color:#f5c518;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;letter-spacing:0.02em;transition:all 0.2s;">✕</button>
@@ -2596,6 +2596,21 @@ function initPickerMap() {
       hideAddressSuggestions();
     }
   });
+
+  // Point d'investigation initial via l'URL (?lat=..&lng=.. ou &lon=..) — ex. lien depuis le CRM (point du marché)
+  try {
+    const _p = new URLSearchParams(location.search);
+    const _la = parseFloat(_p.get('lat'));
+    const _lo = parseFloat(_p.get('lng') || _p.get('lon'));
+    if (!isNaN(_la) && !isNaN(_lo)) {
+      const latEl = document.getElementById('lat'), lngEl = document.getElementById('lng');
+      if (latEl) latEl.value = _la.toFixed(10);
+      if (lngEl) lngEl.value = _lo.toFixed(10);
+      updatePickerMarker(_la, _lo, true);
+      try { reverseCadastre(_la, _lo); } catch (e) {}
+      try { reverseGeocode(_la, _lo); } catch (e) {}
+    }
+  } catch (e) {}
 }
 
 function updatePickerMarker(lat, lng, flyTo) {
