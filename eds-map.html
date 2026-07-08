@@ -169,7 +169,7 @@
             <div style="font-size:0.72rem;color:#6b7280;margin-top:4px;">ou cliquez pour sélectionner</div>
             <div style="font-size:0.62rem;color:#9ca3af;margin-top:6px;">PDF, DOCX, TXT — Plusieurs fichiers acceptés</div>
           </div>
-          <input type="file" id="admin-file-input" accept=".pdf,.docx,.txt,.csv,.eml" multiple style="display:none;" onchange="adminAddFiles(this.files)">
+          <input type="file" id="admin-file-input" accept=".pdf,.docx,.txt,.csv,.eml,.xlsx,.xls" multiple style="display:none;" onchange="adminAddFiles(this.files)">
           <div id="admin-progress-wrap" style="display:none;margin-top:10px;">
             <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#374151;font-weight:700;margin-bottom:4px;">
               <span id="admin-progress-label">Indexation en cours...</span>
@@ -269,7 +269,7 @@
         <div style="font-size:0.72rem;color:#6b7280;line-height:1.5;">Glissez-déposez un fichier ici<br>ou <b style="color:#e65100;">cliquez pour sélectionner</b></div>
         <div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;">PDF, DOCX, TXT — 1 fichier à la fois</div>
       </div>
-      <input type="file" id="ged-file-input" accept=".pdf,.docx,.txt,.csv,.eml" style="display:none;" onchange="gedHandleFiles(this.files)">
+      <input type="file" id="ged-file-input" accept=".pdf,.docx,.txt,.csv,.eml,.xlsx,.xls" style="display:none;" onchange="gedHandleFiles(this.files)">
       <div id="ged-index-geo-prompt" style="display:none;margin-top:8px;padding:10px 12px;border:2px solid #e65100;border-radius:8px;background:rgba(230,81,0,0.06);">
         <div style="font-size:0.72rem;font-weight:700;color:#e65100;margin-bottom:6px;">📍 Position GPS non trouvée automatiquement</div>
         <div id="ged-index-addr-found" style="display:none;font-size:0.68rem;color:#374151;margin-bottom:8px;padding:6px 8px;background:rgba(230,81,0,0.06);border-radius:5px;line-height:1.4;max-height:180px;overflow-y:auto;"></div>
@@ -883,7 +883,7 @@ function gedToggleTab(i, tab) {
 }
 
 // ====== Indexation drag-and-drop ======
-const GED_EXTS = ['pdf', 'docx', 'txt', 'csv', 'eml'];
+const GED_EXTS = ['pdf', 'docx', 'txt', 'csv', 'eml', 'xlsx', 'xls'];
 const GED_MAX_CHUNKS = 300;
 let _gedIndexing = false;
 
@@ -1157,6 +1157,18 @@ async function gedExtractText(file, ext) {
     const buf = await file.arrayBuffer();
     const r = await window._mammoth.extractRawText({ arrayBuffer: buf });
     return (r.value || '').trim().slice(0, MAX);
+  }
+  if (ext === 'xlsx' || ext === 'xls') {
+    if (!window._XLSX) { const m = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm'); window._XLSX = m.default || m; }
+    const buf = await file.arrayBuffer();
+    const wb = window._XLSX.read(buf, { type: 'array' });
+    let text = '';
+    for (const name of wb.SheetNames) {
+      const csv = window._XLSX.utils.sheet_to_csv(wb.Sheets[name]);
+      text += name + '\n' + csv + '\n\n';
+      if (text.length > MAX) break;
+    }
+    return text.trim().slice(0, MAX);
   }
   return '';
 }
@@ -1546,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function adminAddFiles(fileList) {
-  const exts = ['pdf','docx','txt','csv','eml'];
+  const exts = ['pdf','docx','txt','csv','eml','xlsx','xls'];
   let added = 0;
   const doublons = [];
   for (const file of fileList) {
