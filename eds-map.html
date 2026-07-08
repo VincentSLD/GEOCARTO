@@ -159,6 +159,11 @@
             <tbody id="admin-table-body"></tbody>
           </table>
           <div id="admin-table-empty" style="padding:40px 20px;text-align:center;color:#9ca3af;font-size:0.8rem;">Aucun fichier. Glissez des PDFs dans la zone de droite ou rechargez depuis la base.</div>
+          <div id="admin-pagination" style="display:none;padding:8px 0;text-align:center;font-size:0.72rem;font-family:inherit;display:flex;justify-content:center;align-items:center;gap:8px;">
+            <button onclick="adminPagePrev()" id="admin-page-prev" class="admin-btn admin-btn-outline admin-btn-sm">◀ Préc.</button>
+            <span id="admin-page-info" style="color:#6b7280;"></span>
+            <button onclick="adminPageNext()" id="admin-page-next" class="admin-btn admin-btn-outline admin-btn-sm">Suiv. ▶</button>
+          </div>
         </div>
       </div>
       <div class="admin-right">
@@ -1513,6 +1518,8 @@ let _adminAuth = false;
 let _adminItems = [];
 let _adminFilter = 'all';
 let _adminSelectedIdx = null;
+let _adminPage = 0;
+const _adminPageSize = 100;
 let _adminDetailMap = null;
 let _adminDetailMarker = null;
 let _adminBulkRunning = false;
@@ -1619,14 +1626,19 @@ function adminRenderTable() {
   });
   filtered.reverse();
 
-  tbody.innerHTML = filtered.map(it => {
+  const totalPages = Math.ceil(filtered.length / _adminPageSize);
+  if (_adminPage >= totalPages) _adminPage = Math.max(0, totalPages - 1);
+  const pageStart = _adminPage * _adminPageSize;
+  const pageItems = filtered.slice(pageStart, pageStart + _adminPageSize);
+
+  tbody.innerHTML = pageItems.map(it => {
     const i = it._idx;
     const statusHtml = it.status === 'indexed' ? '<span class="badge-ok">Localise</span>'
       : it.status === 'pending' ? '<span class="badge-pending">A localiser</span>'
       : it.status === 'error' ? '<span class="badge-error">Erreur</span>'
       : it.status === 'processing' ? '<span style="color:#e65100;font-size:0.65rem;font-weight:700;">⏳ En cours</span>'
       : '<span style="color:#9ca3af;font-size:0.65rem;">En attente</span>';
-    const addrHtml = it.addrs.length ? it.addrs.slice(0, 2).map(a => '<div style="font-size:0.62rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">' + a.addr + '</div>').join('') : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
+    const addrHtml = it.addrs && it.addrs.length ? it.addrs.slice(0, 2).map(a => '<div style="font-size:0.62rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">' + a.addr + '</div>').join('') : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
     const coordsHtml = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
     const rowClass = it.status === 'indexed' ? 'row-ok' : it.status === 'pending' ? 'row-pending' : '';
     const selected = i === _adminSelectedIdx ? 'background:#fff3e0;' : '';
@@ -1642,7 +1654,18 @@ function adminRenderTable() {
         '<button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="event.stopPropagation();adminDeleteRow(' + i + ')" title="Supprimer">🗑</button>' +
       '</div></td></tr>';
   }).join('');
+
+  const pag = document.getElementById('admin-pagination');
+  if (pag) {
+    pag.style.display = totalPages > 1 ? 'flex' : 'none';
+    document.getElementById('admin-page-info').textContent = 'Page ' + (_adminPage + 1) + ' / ' + totalPages + ' (' + filtered.length + ' fichiers)';
+    document.getElementById('admin-page-prev').disabled = _adminPage <= 0;
+    document.getElementById('admin-page-next').disabled = _adminPage >= totalPages - 1;
+  }
 }
+
+function adminPagePrev() { if (_adminPage > 0) { _adminPage--; adminRenderTable(); } }
+function adminPageNext() { _adminPage++; adminRenderTable(); }
 
 function adminUpdateRowInPlace(idx) {
   const tbody = document.getElementById('admin-table-body');
@@ -1714,6 +1737,11 @@ async function adminStartBulk() {
   const queued = _adminItems.filter(it => it.status === 'queued');
   for (let qi = 0; qi < queued.length; qi++) {
     if (_adminBulkAbort) break;
+    if (qi % 50 === 0 && qi > 0) {
+      document.getElementById('admin-progress-label').textContent = 'Lot ' + Math.ceil(qi / 50) + ' — pause GC…';
+      await new Promise(r => setTimeout(r, 2000));
+      adminRenderTable();
+    }
     await new Promise(r => setTimeout(r, 0));
     const it = queued[qi];
     const globalIdx = _adminItems.indexOf(it);
