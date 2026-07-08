@@ -1153,9 +1153,11 @@ async function gedExtractText(file, ext) {
     return text.trim();
   }
   if (ext === 'docx') {
-    if (!window._mammoth) window._mammoth = await import('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/+esm');
+    if (!window.mammoth) {
+      await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    }
     const buf = await file.arrayBuffer();
-    const r = await window._mammoth.extractRawText({ arrayBuffer: buf });
+    const r = await window.mammoth.extractRawText({ arrayBuffer: buf });
     return (r.value || '').trim().slice(0, MAX);
   }
   if (ext === 'xlsx' || ext === 'xls') {
@@ -1567,17 +1569,18 @@ function adminAddFiles(fileList) {
     const hash = file.size + '-' + file.lastModified;
     const existing = _adminItems.find(it => it.name === file.name);
     if (existing) {
-      if (!existing.file) existing.file = file;
-      doublons.push(file.name);
+      existing.file = file;
+      existing.hash = hash;
+      if (existing.status !== 'queued') { existing.status = 'queued'; doublons.push(file.name); }
       continue;
     }
     _adminItems.push({ file, name: file.name, ext, hash, text: null, status: 'queued', lat: null, lon: null, addrs: [], error: null, docId: null });
     added++;
   }
   if (doublons.length) {
-    alert(doublons.length + ' fichier(s) deja en base :\n\n' + doublons.join('\n') + '\n\nPour re-indexer, supprimez d\'abord la ligne puis re-glissez le fichier.');
+    alert(doublons.length + ' fichier(s) deja en base — ils seront re-verifies (indexation + stockage) au lancement.');
   }
-  if (added) {
+  if (added || doublons.length) {
     document.getElementById('admin-btn-start').disabled = false;
   }
   adminRenderTable();
@@ -1723,11 +1726,20 @@ async function adminStartBulk() {
       // Index
       const f = { file: it.file, name: it.name, path: it.name, ext: it.ext, size: it.file.size };
 
-      // Check duplicate
-      const { data: existDoc } = await sb.from('ged_documents').select('file_hash').eq('path', f.path).maybeSingle();
+      // Check duplicate — verify integrity (chunks + storage)
+      const { data: existDoc } = await sb.from('ged_documents').select('id, file_hash').eq('path', f.path).maybeSingle();
       if (existDoc && existDoc.file_hash === it.hash) {
-        it.status = it.lat != null ? 'indexed' : 'pending';
-        continue;
+        const { count: chunkCount } = await sb.from('ged_chunks').select('id', { count: 'exact', head: true }).eq('document_id', existDoc.id);
+        const storagePath = existDoc.id + '.' + it.ext;
+        const { data: storageData } = await sb.storage.from('ged-pdfs').download(storagePath);
+        const hasStorage = !!storageData && storageData.size > 0;
+        if (chunkCount > 0 && hasStorage) {
+          it.docId = existDoc.id;
+          it.status = it.lat != null ? 'indexed' : 'pending';
+          console.log('Verifie OK:', it.name, '— chunks:', chunkCount, 'storage:', hasStorage);
+          continue;
+        }
+        console.log('Incomplet:', it.name, '— chunks:', chunkCount, 'storage:', hasStorage, '→ re-indexation');
       }
 
       // Chunk & embed
