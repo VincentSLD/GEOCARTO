@@ -185,7 +185,8 @@
             </div>
           </div>
           <div style="margin-top:10px;display:flex;gap:6px;">
-            <button id="admin-btn-start" onclick="adminStartBulk()" class="admin-btn admin-btn-primary" style="flex:1;" disabled>▶ Lancer l'indexation</button>
+            <button id="admin-btn-upload" onclick="adminUploadBulk()" class="admin-btn admin-btn-outline" style="flex:1;" disabled>📤 Envoyer vers Supabase</button>
+            <button id="admin-btn-start" onclick="adminStartBulk()" class="admin-btn admin-btn-primary" style="flex:1;" disabled>▶ Indexer</button>
             <button id="admin-btn-stop" onclick="adminStopBulk()" class="admin-btn admin-btn-outline" style="display:none;">⏹ Stop</button>
           </div>
         </div>
@@ -1588,6 +1589,7 @@ function adminAddFiles(fileList) {
     alert(doublons.length + ' fichier(s) deja en base — ils seront re-verifies (indexation + stockage) au lancement.');
   }
   if (added || doublons.length) {
+    document.getElementById('admin-btn-upload').disabled = false;
     document.getElementById('admin-btn-start').disabled = false;
   }
   adminRenderTable();
@@ -1599,21 +1601,28 @@ function adminRenderTable() {
   if (!_adminItems.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
 
-  const counts = { all: _adminItems.length, pending: 0, ok: 0, error: 0, queued: 0 };
+  const counts = { all: _adminItems.length, pending: 0, ok: 0, error: 0, queued: 0, uploaded: 0 };
   _adminItems.forEach(it => {
     if (it.status === 'indexed') counts.ok++;
     else if (it.status === 'error') counts.error++;
     else if (it.status === 'pending') counts.pending++;
     else if (it.status === 'queued') counts.queued++;
+    else if (it.status === 'uploaded') counts.uploaded++;
   });
   document.getElementById('admin-count-all').textContent = counts.all;
   document.getElementById('admin-count-pending').textContent = counts.pending;
   document.getElementById('admin-count-ok').textContent = counts.ok;
   document.getElementById('admin-count-error').textContent = counts.error;
+  const uploadBtn = document.getElementById('admin-btn-upload');
+  if (uploadBtn && !_adminBulkRunning) {
+    uploadBtn.textContent = counts.queued ? '📤 Envoyer (' + counts.queued + ')' : '📤 Envoyer';
+    uploadBtn.disabled = !counts.queued;
+  }
   const startBtn = document.getElementById('admin-btn-start');
   if (startBtn && !_adminBulkRunning) {
-    startBtn.textContent = counts.queued ? '▶ Lancer l\'indexation (' + counts.queued + ' fichier' + (counts.queued > 1 ? 's' : '') + ')' : '▶ Lancer l\'indexation';
-    startBtn.disabled = !counts.queued;
+    const toIndex = counts.uploaded + counts.queued;
+    startBtn.textContent = toIndex ? '▶ Indexer (' + toIndex + ')' : '▶ Indexer';
+    startBtn.disabled = !toIndex;
   }
 
   const searchVal = (document.getElementById('admin-search') ? document.getElementById('admin-search').value : '').toLowerCase().trim();
@@ -1633,10 +1642,11 @@ function adminRenderTable() {
 
   tbody.innerHTML = pageItems.map(it => {
     const i = it._idx;
-    const statusHtml = it.status === 'indexed' ? '<span class="badge-ok">Localise</span>'
+    const statusHtml = it.status === 'indexed' ? '<span class="badge-ok">Localisé</span>'
       : it.status === 'pending' ? '<span class="badge-pending">A localiser</span>'
       : it.status === 'error' ? '<span class="badge-error">Erreur</span>'
       : it.status === 'processing' ? '<span style="color:#e65100;font-size:0.65rem;font-weight:700;">⏳ En cours</span>'
+      : it.status === 'uploaded' ? '<span style="color:#2563eb;font-size:0.65rem;font-weight:700;">☁ Envoyé</span>'
       : '<span style="color:#9ca3af;font-size:0.65rem;">En attente</span>';
     const addrHtml = it.addrs && it.addrs.length ? it.addrs.slice(0, 2).map(a => '<div style="font-size:0.62rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">' + a.addr + '</div>').join('') : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
     const coordsHtml = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
@@ -1674,10 +1684,11 @@ function adminUpdateRowInPlace(idx) {
   if (!tr) return;
   const it = _adminItems[idx];
   const statusTd = tr.children[2];
-  if (statusTd) statusTd.innerHTML = it.status === 'indexed' ? '<span class="badge-ok">Localise</span>'
+  if (statusTd) statusTd.innerHTML = it.status === 'indexed' ? '<span class="badge-ok">Localisé</span>'
     : it.status === 'pending' ? '<span class="badge-pending">A localiser</span>'
     : it.status === 'error' ? '<span class="badge-error">Erreur</span>'
     : it.status === 'processing' ? '<span style="color:#e65100;font-size:0.65rem;font-weight:700;">⏳ En cours</span>'
+    : it.status === 'uploaded' ? '<span style="color:#2563eb;font-size:0.65rem;font-weight:700;">☁ Envoyé</span>'
     : '<span style="color:#9ca3af;font-size:0.65rem;">En attente</span>';
   const coordsTd = tr.children[4];
   if (coordsTd) coordsTd.innerHTML = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
@@ -1722,72 +1733,143 @@ function adminOpenPdf() {
   if (_adminSelectedIdx != null) adminOpenPdfByIdx(_adminSelectedIdx);
 }
 
-// Bulk indexation
-async function adminStartBulk() {
+// Phase 1 — Upload files to Supabase Storage (no text extraction)
+async function adminUploadBulk() {
   if (_adminBulkRunning) return;
   _adminBulkRunning = true;
   _adminBulkAbort = false;
+  const uploadBtn = document.getElementById('admin-btn-upload');
   const startBtn = document.getElementById('admin-btn-start');
   const stopBtn = document.getElementById('admin-btn-stop');
   const progWrap = document.getElementById('admin-progress-wrap');
+  uploadBtn.disabled = true;
   startBtn.disabled = true;
   stopBtn.style.display = '';
   progWrap.style.display = '';
 
-  const queued = _adminItems.filter(it => it.status === 'queued');
+  const queued = _adminItems.filter(it => it.status === 'queued' && it.file);
   for (let qi = 0; qi < queued.length; qi++) {
     if (_adminBulkAbort) break;
-    if (qi % 50 === 0 && qi > 0) {
-      document.getElementById('admin-progress-label').textContent = 'Lot ' + Math.ceil(qi / 50) + ' — pause GC…';
-      await new Promise(r => setTimeout(r, 2000));
-      adminRenderTable();
-    }
     await new Promise(r => setTimeout(r, 0));
     const it = queued[qi];
     const globalIdx = _adminItems.indexOf(it);
     const pct = ((qi + 1) / queued.length * 100).toFixed(0);
-    document.getElementById('admin-progress-label').textContent = 'Fichier ' + (qi + 1) + '/' + queued.length + ' — ' + it.name;
+    document.getElementById('admin-progress-label').textContent = '📤 Envoi ' + (qi + 1) + '/' + queued.length + ' — ' + it.name;
     document.getElementById('admin-progress-pct').textContent = pct + '%';
     document.getElementById('admin-progress-bar').style.width = pct + '%';
     it.status = 'processing';
     adminUpdateRowInPlace(globalIdx);
 
     try {
+      const { data: existDoc } = await sb.from('ged_documents').select('id').eq('path', it.name).maybeSingle();
+      let docId;
+      if (existDoc) {
+        docId = existDoc.id;
+      } else {
+        const ins = await sb.from('ged_documents').insert({ path: it.name, name: it.name, ext: it.ext, size: it.file.size, file_hash: it.hash }).select('id').single();
+        if (ins.error) throw new Error(ins.error.message);
+        docId = ins.data.id;
+      }
+      it.docId = docId;
+
+      const storagePath = docId + '.' + it.ext;
+      const { error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+      if (upErr) throw new Error(upErr.message);
+
+      it.status = 'uploaded';
+      it.file = null;
+    } catch (e) {
+      it.status = 'error';
+      it.error = 'Upload: ' + e.message;
+      it.file = null;
+    }
+    adminUpdateRowInPlace(globalIdx);
+  }
+
+  _adminBulkRunning = false;
+  stopBtn.style.display = 'none';
+  const uploaded = _adminItems.filter(it => it.status === 'uploaded').length;
+  document.getElementById('admin-progress-label').textContent = 'Envoi termine — ' + uploaded + ' fichiers prets a indexer';
+  document.getElementById('admin-global-status').textContent = uploaded + ' envoyes, prets a indexer';
+  adminRenderTable();
+}
+
+// Phase 2 — Index from Supabase Storage (download → extract → embed → store chunks)
+async function adminStartBulk() {
+  if (_adminBulkRunning) return;
+  _adminBulkRunning = true;
+  _adminBulkAbort = false;
+  const uploadBtn = document.getElementById('admin-btn-upload');
+  const startBtn = document.getElementById('admin-btn-start');
+  const stopBtn = document.getElementById('admin-btn-stop');
+  const progWrap = document.getElementById('admin-progress-wrap');
+  uploadBtn.disabled = true;
+  startBtn.disabled = true;
+  stopBtn.style.display = '';
+  progWrap.style.display = '';
+
+  const toIndex = _adminItems.filter(it => it.status === 'uploaded' || (it.status === 'queued' && it.file));
+  for (let qi = 0; qi < toIndex.length; qi++) {
+    if (_adminBulkAbort) break;
+    if (qi % 50 === 0 && qi > 0) {
+      document.getElementById('admin-progress-label').textContent = 'Pause GC…';
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    await new Promise(r => setTimeout(r, 0));
+    const it = toIndex[qi];
+    const globalIdx = _adminItems.indexOf(it);
+    const pct = ((qi + 1) / toIndex.length * 100).toFixed(0);
+    document.getElementById('admin-progress-label').textContent = '🔍 Indexation ' + (qi + 1) + '/' + toIndex.length + ' — ' + it.name;
+    document.getElementById('admin-progress-pct').textContent = pct + '%';
+    document.getElementById('admin-progress-bar').style.width = pct + '%';
+    it.status = 'processing';
+    adminUpdateRowInPlace(globalIdx);
+
+    try {
+      // Get or create doc record
+      let docId = it.docId;
+      if (!docId) {
+        const ins = await sb.from('ged_documents').insert({ path: it.name, name: it.name, ext: it.ext, size: it.file ? it.file.size : 0, file_hash: it.hash }).select('id').single();
+        if (ins.error) throw new Error(ins.error.message);
+        docId = ins.data.id;
+        it.docId = docId;
+        if (it.file) {
+          const sp = docId + '.' + it.ext;
+          await sb.storage.from('ged-pdfs').upload(sp, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+        }
+      }
+
+      // Check if already fully indexed
+      const { count: chunkCount } = await sb.from('ged_chunks').select('id', { count: 'exact', head: true }).eq('document_id', docId);
+      if (chunkCount > 0) {
+        it.status = it.lat != null ? 'indexed' : 'pending';
+        it.file = null;
+        console.log('Deja indexe:', it.name, '— chunks:', chunkCount);
+        adminUpdateRowInPlace(globalIdx);
+        continue;
+      }
+
+      // Download file from Storage
+      let fileBlob = it.file;
+      if (!fileBlob) {
+        const storagePath = docId + '.' + it.ext;
+        const { data, error } = await sb.storage.from('ged-pdfs').download(storagePath);
+        if (error || !data) throw new Error('Fichier introuvable dans le stockage');
+        fileBlob = new File([data], it.name, { type: data.type });
+      }
+
       // Extract text
-      const text = await gedExtractText(it.file, it.ext);
+      const text = await gedExtractText(fileBlob, it.ext);
+      fileBlob = null;
+      it.file = null;
       if (!text || text.length < 20) throw new Error(it.ext === 'pdf' ? 'PDF scanne ou vide' : 'Aucun texte');
-      it.text = text;
 
       // Extract GPS
       const geo = gedExtractLatLon(text);
-      if (geo) {
-        it.lat = geo.lat;
-        it.lon = geo.lon;
-      }
+      if (geo) { it.lat = geo.lat; it.lon = geo.lon; }
 
       // Extract addresses
       it.addrs = gedExtractAddresses(text);
-
-      // Index
-      const f = { file: it.file, name: it.name, path: it.name, ext: it.ext, size: it.file.size };
-
-      // Check duplicate — verify integrity (chunks + storage)
-      const { data: existDoc } = await sb.from('ged_documents').select('id, file_hash').eq('path', f.path).maybeSingle();
-      if (existDoc && existDoc.file_hash === it.hash) {
-        const { count: chunkCount } = await sb.from('ged_chunks').select('id', { count: 'exact', head: true }).eq('document_id', existDoc.id);
-        const storageFile = existDoc.id + '.' + it.ext;
-        const { data: storageList } = await sb.storage.from('ged-pdfs').list('', { limit: 1, search: storageFile });
-        const hasStorage = storageList && storageList.length > 0;
-        if (chunkCount > 0 && hasStorage) {
-          it.docId = existDoc.id;
-          it.status = it.lat != null ? 'indexed' : 'pending';
-          it.file = null;
-          it.text = null;
-          console.log('Verifie OK:', it.name, '— chunks:', chunkCount, 'storage:', hasStorage);
-          continue;
-        }
-        console.log('Incomplet:', it.name, '— chunks:', chunkCount, 'storage:', hasStorage, '→ re-indexation');
-      }
 
       // Chunk & embed
       const allChunks = gedChunkText(text);
@@ -1802,29 +1884,17 @@ async function adminStartBulk() {
         ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k], embedding: '[' + emb.join(',') + ']' }));
       }
 
-      // Store
-      { const { error } = await sb.from('ged_documents').delete().eq('path', f.path); if (error) throw new Error(error.message); }
-      const ins = await sb.from('ged_documents').insert({ path: f.path, name: f.name, ext: f.ext, size: f.size, file_hash: it.hash, char_count: text.length, lat: it.lat, lon: it.lon }).select('id').single();
-      if (ins.error) throw new Error(ins.error.message);
-      it.docId = ins.data.id;
+      // Delete old chunks if any, update document
+      await sb.from('ged_chunks').delete().eq('document_id', docId);
+      await sb.from('ged_documents').update({ char_count: text.length, lat: it.lat, lon: it.lon, file_hash: it.hash }).eq('id', docId);
 
       for (let b = 0; b < rows.length; b += 50) {
-        const slice = rows.slice(b, b + 50).map(r => ({ ...r, document_id: it.docId }));
+        const slice = rows.slice(b, b + 50).map(r => ({ ...r, document_id: docId }));
         const { error } = await sb.from('ged_chunks').insert(slice);
         if (error) throw new Error(error.message);
       }
 
-      // Upload file to Supabase Storage
-      if (it.file) {
-        const storagePath = it.docId + '.' + it.ext;
-        console.log('Storage upload:', storagePath, 'size:', it.file.size);
-        const { data: upData, error: upErr } = await sb.storage.from('ged-pdfs').upload(storagePath, it.file, { upsert: true, contentType: it.ext === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
-        if (upErr) { console.error('Storage upload ERREUR:', upErr.message, upErr); }
-        else { console.log('Storage upload OK:', upData); }
-      }
-
       it.status = it.lat != null ? 'indexed' : 'pending';
-      it.file = null;
       it.text = null;
       it.addrs = [];
     } catch (e) {
@@ -1839,7 +1909,6 @@ async function adminStartBulk() {
 
   _adminBulkRunning = false;
   stopBtn.style.display = 'none';
-  startBtn.disabled = !_adminItems.some(it => it.status === 'queued');
   document.getElementById('admin-progress-label').textContent = 'Termine';
   document.getElementById('admin-global-status').textContent = _adminItems.filter(it => it.status === 'indexed').length + ' localises, ' + _adminItems.filter(it => it.status === 'pending').length + ' a localiser';
   adminRenderTable();
@@ -1913,9 +1982,10 @@ async function adminLoadExisting() {
         const key = doc.file_hash + '|' + doc.name;
         if (existingHashes.has(key)) continue;
         existingHashes.add(key);
+        const docStatus = doc.char_count > 0 ? (doc.lat != null ? 'indexed' : 'pending') : 'uploaded';
         _adminItems.push({
           file: null, name: doc.name, ext: doc.ext, hash: doc.file_hash,
-          text: null, status: doc.lat != null ? 'indexed' : 'pending',
+          text: null, status: docStatus,
           lat: doc.lat, lon: doc.lon, addrs: [], error: null, docId: doc.id
         });
         total++;
