@@ -1697,6 +1697,7 @@ async function adminStartBulk() {
   const queued = _adminItems.filter(it => it.status === 'queued');
   for (let qi = 0; qi < queued.length; qi++) {
     if (_adminBulkAbort) break;
+    await new Promise(r => setTimeout(r, 0));
     const it = queued[qi];
     const globalIdx = _adminItems.indexOf(it);
     const pct = ((qi + 1) / queued.length * 100).toFixed(0);
@@ -1704,8 +1705,6 @@ async function adminStartBulk() {
     document.getElementById('admin-progress-pct').textContent = pct + '%';
     document.getElementById('admin-progress-bar').style.width = pct + '%';
     it.status = 'processing';
-    adminRenderTable();
-    adminScrollToRow(globalIdx);
 
     try {
       // Extract text
@@ -1787,8 +1786,7 @@ async function adminStartBulk() {
       it.file = null;
       it.text = null;
     }
-    adminRenderTable();
-    adminScrollToRow(globalIdx);
+    if (qi % 10 === 0 || qi === queued.length - 1) { adminRenderTable(); adminScrollToRow(globalIdx); }
   }
 
   _adminBulkRunning = false;
