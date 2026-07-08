@@ -1730,12 +1730,14 @@ async function adminStartBulk() {
       const { data: existDoc } = await sb.from('ged_documents').select('id, file_hash').eq('path', f.path).maybeSingle();
       if (existDoc && existDoc.file_hash === it.hash) {
         const { count: chunkCount } = await sb.from('ged_chunks').select('id', { count: 'exact', head: true }).eq('document_id', existDoc.id);
-        const storagePath = existDoc.id + '.' + it.ext;
-        const { data: storageData } = await sb.storage.from('ged-pdfs').download(storagePath);
-        const hasStorage = !!storageData && storageData.size > 0;
+        const storageFile = existDoc.id + '.' + it.ext;
+        const { data: storageList } = await sb.storage.from('ged-pdfs').list('', { limit: 1, search: storageFile });
+        const hasStorage = storageList && storageList.length > 0;
         if (chunkCount > 0 && hasStorage) {
           it.docId = existDoc.id;
           it.status = it.lat != null ? 'indexed' : 'pending';
+          it.file = null;
+          it.text = null;
           console.log('Verifie OK:', it.name, '— chunks:', chunkCount, 'storage:', hasStorage);
           continue;
         }
@@ -1777,9 +1779,13 @@ async function adminStartBulk() {
       }
 
       it.status = it.lat != null ? 'indexed' : 'pending';
+      it.file = null;
+      it.text = null;
     } catch (e) {
       it.status = 'error';
       it.error = e.message;
+      it.file = null;
+      it.text = null;
     }
     adminRenderTable();
     adminScrollToRow(globalIdx);
