@@ -1644,6 +1644,23 @@ function adminRenderTable() {
   }).join('');
 }
 
+function adminUpdateRowInPlace(idx) {
+  const tbody = document.getElementById('admin-table-body');
+  if (!tbody) return;
+  const tr = tbody.querySelector('tr[data-idx="' + idx + '"]');
+  if (!tr) return;
+  const it = _adminItems[idx];
+  const statusTd = tr.children[2];
+  if (statusTd) statusTd.innerHTML = it.status === 'indexed' ? '<span class="badge-ok">Localise</span>'
+    : it.status === 'pending' ? '<span class="badge-pending">A localiser</span>'
+    : it.status === 'error' ? '<span class="badge-error">Erreur</span>'
+    : it.status === 'processing' ? '<span style="color:#e65100;font-size:0.65rem;font-weight:700;">⏳ En cours</span>'
+    : '<span style="color:#9ca3af;font-size:0.65rem;">En attente</span>';
+  const coordsTd = tr.children[4];
+  if (coordsTd) coordsTd.innerHTML = it.lat != null ? '<span style="font-size:0.65rem;color:#2e7d32;">' + it.lat.toFixed(5) + ', ' + it.lon.toFixed(5) + '</span>' : '<span style="color:#bbb;font-size:0.62rem;">—</span>';
+  tr.className = it.status === 'indexed' ? 'row-ok' : it.status === 'pending' ? 'row-pending' : '';
+}
+
 function adminScrollToRow(idx) {
   const tbody = document.getElementById('admin-table-body');
   if (!tbody) return;
@@ -1705,6 +1722,7 @@ async function adminStartBulk() {
     document.getElementById('admin-progress-pct').textContent = pct + '%';
     document.getElementById('admin-progress-bar').style.width = pct + '%';
     it.status = 'processing';
+    adminUpdateRowInPlace(globalIdx);
 
     try {
       // Extract text
@@ -1780,13 +1798,15 @@ async function adminStartBulk() {
       it.status = it.lat != null ? 'indexed' : 'pending';
       it.file = null;
       it.text = null;
+      it.addrs = [];
     } catch (e) {
       it.status = 'error';
       it.error = e.message;
       it.file = null;
       it.text = null;
+      it.addrs = [];
     }
-    if (qi % 10 === 0 || qi === queued.length - 1) { adminRenderTable(); adminScrollToRow(globalIdx); }
+    adminUpdateRowInPlace(globalIdx);
   }
 
   _adminBulkRunning = false;
