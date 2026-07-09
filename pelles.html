@@ -120,7 +120,7 @@ textarea.form-input{resize:vertical;min-height:60px}
         <option value="oui">Disponible</option>
         <option value="non">Indisponible</option>
       </select>
-      <input type="number" class="filter-input" id="f-tarif" placeholder="Tarif max €/j" style="max-width:100px" oninput="applyFilters()">
+      <input type="number" class="filter-input" id="f-tarif" placeholder="PV max €/j" style="max-width:100px" oninput="applyFilters()" title="Plus-value matériel max €/j">
     </div>
     <div class="filter-row">
       <select class="filter-select" id="f-note" onchange="applyFilters()">
@@ -206,7 +206,7 @@ textarea.form-input{resize:vertical;min-height:60px}
       <!-- TAB MATERIEL -->
       <div id="tab-materiel" style="display:none">
         <div class="materiel-header materiel-row">
-          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Tarif €/j</span><span>Dispo</span><span></span>
+          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Plus-value €/j</span><span>Dispo</span><span></span>
         </div>
         <div id="materiel-list"></div>
         <button class="btn-sm" onclick="addMaterielRow()" style="margin-top:8px">+ Ajouter un engin</button>
@@ -549,7 +549,7 @@ function renderMaterielTab() {
     </div>
     <input type="number" class="form-input" value="${m.tonnage || ''}" onchange="_editMateriels[${i}].tonnage=parseFloat(this.value)||null" placeholder="T" style="padding:4px 8px;font-size:0.75rem">
     <input type="number" class="form-input" value="${m.profondeur_max || ''}" onchange="_editMateriels[${i}].profondeur_max=parseFloat(this.value)||null" placeholder="m" style="padding:4px 8px;font-size:0.75rem">
-    <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="€/j" style="padding:4px 8px;font-size:0.75rem">
+    <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="+€/j" style="padding:4px 8px;font-size:0.75rem">
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.72rem">
       <input type="checkbox" ${m.disponible !== false ? 'checked' : ''} onchange="_editMateriels[${i}].disponible=this.checked" style="accent-color:#e65100">
       Oui
@@ -742,7 +742,7 @@ function exportCSV() {
   const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Note', 'Matériels', 'Commentaire'];
   const lines = [headers.map(csvEsc).join(';')];
   _filtered.forEach(p => {
-    const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? m.tarif_journalier + '€/j' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
+    const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? '+' + m.tarif_journalier + '€' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
     lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
