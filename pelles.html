@@ -756,7 +756,19 @@ function exportCSV() {
 
 // ═══ INIT ═══
 initMap();
-loadData();
+loadData().then(() => {
+  const params = new URLSearchParams(window.location.search);
+  const lat = parseFloat(params.get('lat'));
+  const lng = parseFloat(params.get('lng') || params.get('lon'));
+  if (lat && lng) {
+    _interventionMode = true;
+    map.setView([lat, lng], 10);
+    setInterventionPoint(L.latLng(lat, lng));
+    document.getElementById('btn-intervention').style.borderColor = '#e65100';
+    document.getElementById('btn-intervention').style.color = '#e65100';
+    document.getElementById('btn-intervention').style.background = 'rgba(230,81,0,0.15)';
+  }
+});
 </script>
 </body>
 </html>

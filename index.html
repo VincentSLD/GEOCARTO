@@ -1311,7 +1311,7 @@
           <button class="preset-btn" onclick="window.open('eds-map.html','_blank')" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;color:#388e3c;border-color:#388e3c;">
             📍 EDS
           </button>
-          <button class="preset-btn hide-mobile" onclick="window.open('pelles.html','_blank')" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;color:#e65100;border-color:#e65100;">
+          <button class="preset-btn hide-mobile" onclick="openPelles()" style="padding:7px 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.72rem;white-space:nowrap;color:#e65100;border-color:#e65100;">
             🚧 Pelles
           </button>
           <button class="btn-investigate" id="btn-go" onclick="investigate()" style="flex:1;min-width:120px;">
@@ -3146,6 +3146,13 @@ async function fetchJSON(url, timeout = 10000) {
     clearTimeout(timer);
     throw e;
   }
+}
+
+function openPelles() {
+  const lat = document.getElementById('lat').value.trim();
+  const lng = document.getElementById('lng').value.trim();
+  const url = (lat && lng) ? 'pelles.html?lat=' + lat + '&lng=' + lng : 'pelles.html';
+  window.open(url, '_blank');
 }
 
 // Main investigation function
