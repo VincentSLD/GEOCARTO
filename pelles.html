@@ -708,7 +708,7 @@ function setInterventionPoint(latlng) {
   if (_interventionMarker) map.removeLayer(_interventionMarker);
   _interventionCircles.forEach(c => map.removeLayer(c));
   _interventionCircles = [];
-  const icon = L.divIcon({ className: '', html: '<div style="background:#e65100;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize: [20, 20], iconAnchor: [10, 10] });
+  const icon = L.divIcon({ className: '', html: '<div style="background:#00bcd4;border:3px solid #fff;border-radius:50%;width:22px;height:22px;box-shadow:0 0 12px rgba(0,188,212,0.6),0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize: [22, 22], iconAnchor: [11, 11] });
   _interventionMarker = L.marker(latlng, { icon }).addTo(map);
   const covering = _prestas.filter(p => {
     if (!p.lat || !p.lng) return false;
