@@ -17,7 +17,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;font-family:'Bricolage Grotesque',sans-serif;overflow:hidden;background:#1a1a1a;color:#e5e5e5}
-#sidebar{position:absolute;top:0;left:0;bottom:0;width:380px;z-index:1000;display:flex;flex-direction:column;background:#1a1a1a;border-right:2px solid #333}
+#sidebar{position:absolute;top:0;left:0;bottom:0;width:340px;z-index:1000;display:flex;flex-direction:column;background:#1a1a1a;border-right:2px solid #333}
 #sidebar-header{padding:14px 16px;border-bottom:2px solid #e65100;background:linear-gradient(135deg,rgba(230,81,0,0.12),rgba(230,81,0,0.04))}
 #sidebar-header h1{font-size:1.1rem;font-weight:800;color:#e65100;display:flex;align-items:center;gap:8px}
 #sidebar-header h1 span{color:#999;font-weight:400;font-size:0.7rem}
@@ -46,22 +46,23 @@ html,body{width:100%;height:100%;font-family:'Bricolage Grotesque',sans-serif;ov
 .badge-indispo{background:rgba(211,47,47,0.15);color:#ef5350}
 .stars{color:#e65100;font-size:0.75rem;letter-spacing:1px}
 .stars-empty{color:#555}
-#map{position:absolute;top:0;left:380px;right:0;bottom:0}
+#map{position:absolute;top:0;left:340px;right:420px;bottom:0}
 /* Intervention point banner */
-#intervention-bar{display:none;position:absolute;top:10px;left:400px;right:20px;z-index:1100;padding:10px 16px;background:rgba(230,81,0,0.95);color:#fff;border-radius:10px;font-size:0.8rem;font-weight:700;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.3);align-items:center;gap:10px}
+#intervention-bar{display:none;position:absolute;top:10px;left:360px;right:440px;z-index:1100;padding:10px 16px;background:rgba(230,81,0,0.95);color:#fff;border-radius:10px;font-size:0.8rem;font-weight:700;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.3);align-items:center;gap:10px}
 #intervention-bar button{padding:4px 12px;border-radius:6px;border:1px solid #fff;background:transparent;color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit}
-/* Modal */
-.modal-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:#1e1e1e;border-radius:14px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);border-top:4px solid #e65100}
-.modal-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333}
-.modal-header h2{font-size:0.95rem;color:#e65100;display:flex;align-items:center;gap:8px}
-.modal-close{background:none;border:none;color:#999;font-size:1.4rem;cursor:pointer}
-.modal-close:hover{color:#fff}
-.modal-body{padding:16px 20px}
-.modal-footer{padding:12px 20px;border-top:1px solid #333;display:flex;justify-content:flex-end;gap:8px}
+/* Detail panel (right side) */
+#detail-panel{position:absolute;top:0;right:0;bottom:0;width:420px;z-index:1000;display:flex;flex-direction:column;background:#1e1e1e;border-left:2px solid #333}
+#detail-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;background:linear-gradient(135deg,rgba(230,81,0,0.08),transparent)}
+#detail-header h2{font-size:0.95rem;color:#e65100;display:flex;align-items:center;gap:8px;font-weight:700}
+#detail-body{flex:1;overflow-y:auto;padding:14px 18px}
+#detail-footer{padding:12px 18px;border-top:1px solid #333;display:flex;justify-content:flex-end;gap:8px}
+#detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#555;text-align:center;padding:40px}
+#detail-empty .empty-icon{font-size:3rem;margin-bottom:12px;opacity:0.5}
+#detail-empty .empty-text{font-size:0.82rem;line-height:1.5}
+#detail-empty .empty-hint{font-size:0.7rem;color:#444;margin-top:8px}
+#detail-form{display:none;flex-direction:column;height:100%}
 .tabs{display:flex;gap:0;border-bottom:2px solid #333;margin-bottom:14px}
-.tab{padding:8px 16px;font-size:0.78rem;font-weight:700;color:#777;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab{padding:8px 14px;font-size:0.76rem;font-weight:700;color:#777;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
 .tab.active{color:#e65100;border-bottom-color:#e65100}
 .tab:hover{color:#ccc}
 .form-group{margin-bottom:12px}
@@ -75,8 +76,8 @@ textarea.form-input{resize:vertical;min-height:60px}
 .siret-result{padding:8px 12px;cursor:pointer;border-bottom:1px solid #333;font-size:0.75rem;transition:background 0.1s}
 .siret-result:hover{background:#333}
 .siret-result:last-child{border-bottom:none}
-.materiel-row{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
-.materiel-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
+.materiel-row{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
+.materiel-header{font-weight:700;color:#999;font-size:0.65rem;text-transform:uppercase;border-bottom:2px solid #444}
 .tarif-zone-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #333;font-size:0.75rem}
 .tarif-zone-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
 .badge-tarif{background:rgba(255,152,0,0.15);color:#ffb300;font-size:0.6rem;padding:2px 6px;border-radius:4px;font-weight:700}
@@ -91,9 +92,9 @@ textarea.form-input{resize:vertical;min-height:60px}
 .sidebar-footer{padding:8px 14px;border-top:1px solid #333;display:flex;gap:6px;align-items:center;justify-content:space-between;font-size:0.7rem;color:#666}
 .count-badge{background:#e65100;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700}
 .intervention-marker{background:#e65100;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
-#sidebar-list::-webkit-scrollbar{width:6px}
-#sidebar-list::-webkit-scrollbar-track{background:#1a1a1a}
-#sidebar-list::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+#sidebar-list::-webkit-scrollbar,#detail-body::-webkit-scrollbar{width:6px}
+#sidebar-list::-webkit-scrollbar-track,#detail-body::-webkit-scrollbar-track{background:#1a1a1a}
+#sidebar-list::-webkit-scrollbar-thumb,#detail-body::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
 </style>
 </head>
 <body>
@@ -106,21 +107,21 @@ textarea.form-input{resize:vertical;min-height:60px}
   <div id="sidebar-filters">
     <div class="filter-row">
       <input type="text" class="filter-input" id="f-search" placeholder="🔍 Rechercher nom, ville, SIRET…" oninput="applyFilters()">
-      <button class="btn-add" onclick="openModal()">+ Ajouter</button>
+      <button class="btn-add" onclick="openPanel()">+ Ajouter</button>
     </div>
     <div class="filter-row">
       <select class="filter-select" id="f-tonnage" onchange="applyFilters()">
         <option value="">Tous tonnages</option>
-        <option value="mini">Mini-pelle (< 6T)</option>
+        <option value="mini">Mini-pelle (&lt; 6T)</option>
         <option value="moyen">Moyenne (6-15T)</option>
-        <option value="gros">Grosse (> 15T)</option>
+        <option value="gros">Grosse (&gt; 15T)</option>
       </select>
       <select class="filter-select" id="f-dispo" onchange="applyFilters()">
         <option value="">Disponibilité</option>
         <option value="oui">Disponible</option>
         <option value="non">Indisponible</option>
       </select>
-      <input type="number" class="filter-input" id="f-tarif" placeholder="PV max €/j" style="max-width:100px" oninput="applyFilters()" title="Plus-value matériel max €/j">
+      <input type="number" class="filter-input" id="f-tarif" placeholder="PV max €" style="max-width:100px" oninput="applyFilters()" title="Plus-value matériel max €">
     </div>
     <div class="filter-row">
       <select class="filter-select" id="f-note" onchange="applyFilters()">
@@ -149,14 +150,19 @@ textarea.form-input{resize:vertical;min-height:60px}
   <button onclick="clearIntervention()">✕ Annuler</button>
 </div>
 
-<!-- MODAL ADD/EDIT -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 id="modal-title">🚧 Nouveau prestataire</h2>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
+<!-- DETAIL PANEL (right side, always visible) -->
+<div id="detail-panel">
+  <div id="detail-empty">
+    <div class="empty-icon">🚧</div>
+    <div class="empty-text">Sélectionnez un prestataire<br>dans la liste ou sur la carte</div>
+    <div class="empty-hint">ou cliquez sur « + Ajouter » pour en créer un</div>
+  </div>
+  <div id="detail-form">
+    <div id="detail-header">
+      <h2 id="panel-title">🚧 Nouveau prestataire</h2>
+      <button class="btn-sm" onclick="resetPanel()" title="Fermer">✕</button>
     </div>
-    <div class="modal-body">
+    <div id="detail-body">
       <!-- TABS -->
       <div class="tabs">
         <button class="tab active" onclick="switchTab('infos')">Infos</button>
@@ -191,10 +197,10 @@ textarea.form-input{resize:vertical;min-height:60px}
             <button class="btn-sm" onclick="addTarifZone()">+ Zone</button>
           </div>
           <div class="tarif-zone-header tarif-zone-row" id="tarif-zones-header" style="display:none">
-            <span>Rayon max (km)</span><span>Tarif (€/j)</span><span></span>
+            <span>Rayon max (km)</span><span>Tarif (€)</span><span></span>
           </div>
           <div id="tarif-zones-list"></div>
-          <div style="font-size:0.65rem;color:#666;margin-top:4px">Ex: 0→30 km = 800€/j, 0→60 km = 1000€/j</div>
+          <div style="font-size:0.65rem;color:#666;margin-top:4px">Ex: 0→30 km = 800€, 0→60 km = 1000€</div>
         </div>
         <div class="form-row" style="margin-top:8px">
           <div class="form-group"><label class="form-label">Latitude</label><input type="text" class="form-input" id="m-lat" placeholder="Auto (depuis adresse)"></div>
@@ -206,7 +212,7 @@ textarea.form-input{resize:vertical;min-height:60px}
       <!-- TAB MATERIEL -->
       <div id="tab-materiel" style="display:none">
         <div class="materiel-header materiel-row">
-          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Plus-value €/j</span><span>Dispo</span><span></span>
+          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Plus-value €</span><span>Dispo</span><span></span>
         </div>
         <div id="materiel-list"></div>
         <button class="btn-sm" onclick="addMaterielRow()" style="margin-top:8px">+ Ajouter un engin</button>
@@ -246,10 +252,10 @@ textarea.form-input{resize:vertical;min-height:60px}
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-save" onclick="savePrestataire()">Enregistrer</button>
+    <div id="detail-footer">
       <button class="btn-sm btn-danger" id="btn-delete" style="display:none;margin-right:auto" onclick="deletePrestataire()">🗑 Supprimer</button>
+      <button class="btn-cancel" onclick="resetPanel()">Annuler</button>
+      <button class="btn-save" onclick="savePrestataire()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -314,7 +320,7 @@ function renderMap() {
         radius: (z.rayon_max || 50) * 1000,
         color: color, fillColor: color, fillOpacity: 0.04 + zi * 0.03, weight: 1.5, dashArray: zi === 0 ? '6 4' : ''
       });
-      if (z.tarif) c.bindTooltip(z.rayon_max + 'km — ' + z.tarif + '€/j', { sticky: true, className: '' });
+      if (z.tarif) c.bindTooltip(z.rayon_max + 'km — ' + z.tarif + '€', { sticky: true, className: '' });
       circlesGroup.addLayer(c);
     });
     const marker = L.circleMarker([p.lat, p.lng], {
@@ -329,7 +335,7 @@ function renderMap() {
       <div style="font-size:11px;margin-top:4px">📏 Rayon: ${p.rayon_km || 50} km</div>
       ${formatTarifZones(p) ? '<div style="font-size:11px;margin-top:4px;color:#ff8f00">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
       ${p.note ? '<div style="font-size:12px;margin-top:4px;color:#e65100">' + '★'.repeat(p.note) + '<span style="color:#ccc">' + '★'.repeat(5 - p.note) + '</span></div>' : ''}
-      <div style="margin-top:6px"><a href="#" onclick="openModal('${p.id}');return false" style="color:#e65100;font-size:11px;font-weight:700">Modifier →</a></div>
+      <div style="margin-top:6px"><a href="#" onclick="openPanel('${p.id}');return false" style="color:#e65100;font-size:11px;font-weight:700">Modifier →</a></div>
     </div>`);
     markersGroup.addLayer(marker);
   });
@@ -392,7 +398,7 @@ function renderList() {
     const tonnages = [...new Set(mats.map(m => m.tonnage ? m.tonnage + 'T' : '').filter(Boolean))];
     const hasDispo = mats.some(m => m.disponible);
     const starsHtml = p.note ? '<span class="stars">' + '★'.repeat(p.note) + '</span><span class="stars-empty">' + '★'.repeat(5 - p.note) + '</span>' : '';
-    return `<div class="presta-card" onclick="focusPresta('${p.id}')">
+    return `<div class="presta-card${_editId === p.id ? ' active' : ''}" onclick="focusPresta('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="presta-name">${esc(p.nom)}</div>
@@ -407,7 +413,7 @@ function renderList() {
         ${p.contact_nom ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom) + '</span>' : ''}
       </div>
       ${formatTarifZones(p) ? '<div style="font-size:0.62rem;color:#ffb300;margin-top:3px">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
-      ${p._dist != null ? '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist/1000).toFixed(1) + ' km' + (getTarifForDist(p, p._dist/1000) != null ? ' → <b style="color:#ffb300">' + getTarifForDist(p, p._dist/1000) + '€/j</b>' : '') + '</div>' : ''}
+      ${p._dist != null ? '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist/1000).toFixed(1) + ' km' + (getTarifForDist(p, p._dist/1000) != null ? ' → <b style="color:#ffb300">' + getTarifForDist(p, p._dist/1000) + '€</b>' : '') + '</div>' : ''}
     </div>`;
   }).join('');
 }
@@ -415,9 +421,8 @@ function renderList() {
 function focusPresta(id) {
   const p = _prestas.find(x => x.id === id);
   if (!p) return;
-  document.querySelectorAll('.presta-card').forEach((c, i) => c.classList.toggle('active', _filtered[i]?.id === id));
   if (p.lat && p.lng) map.setView([p.lat, p.lng], 11);
-  openModal(id);
+  openPanel(id);
 }
 
 // ═══ SIRET SEARCH ═══
@@ -457,7 +462,6 @@ async function fillFromSiret(idx) {
   document.getElementById('m-cp').value = siege.code_postal || '';
   document.getElementById('m-ville').value = siege.libelle_commune || '';
   document.getElementById('siret-results').style.display = 'none';
-  // Geocode from address
   if (siege.code_postal && siege.libelle_commune) {
     try {
       const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(addr + ' ' + siege.code_postal + ' ' + siege.libelle_commune)}&limit=1`;
@@ -472,15 +476,14 @@ async function fillFromSiret(idx) {
   }
 }
 
-// ═══ MODAL ═══
-function openModal(id) {
+// ═══ PANEL ═══
+function openPanel(id) {
   _editId = id || null;
   _editMateriels = [];
   _editTarifs = [];
   _rating = 0;
-  document.getElementById('modal-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
+  document.getElementById('panel-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
   document.getElementById('btn-delete').style.display = id ? 'inline-block' : 'none';
-  // Reset
   ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-email','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
     const el = document.getElementById(f);
     if (el) el.value = f === 'm-rayon' ? '50' : '';
@@ -512,12 +515,16 @@ function openModal(id) {
   renderMaterielTab();
   renderTarifsZones();
   switchTab('infos');
-  document.getElementById('modal').classList.add('open');
+  document.getElementById('detail-empty').style.display = 'none';
+  document.getElementById('detail-form').style.display = 'flex';
+  renderList();
 }
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('open');
+function resetPanel() {
+  document.getElementById('detail-form').style.display = 'none';
+  document.getElementById('detail-empty').style.display = 'flex';
   _editId = null;
+  renderList();
 }
 
 function switchTab(name) {
@@ -549,7 +556,7 @@ function renderMaterielTab() {
     </div>
     <input type="number" class="form-input" value="${m.tonnage || ''}" onchange="_editMateriels[${i}].tonnage=parseFloat(this.value)||null" placeholder="T" style="padding:4px 8px;font-size:0.75rem">
     <input type="number" class="form-input" value="${m.profondeur_max || ''}" onchange="_editMateriels[${i}].profondeur_max=parseFloat(this.value)||null" placeholder="m" style="padding:4px 8px;font-size:0.75rem">
-    <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="+€/j" style="padding:4px 8px;font-size:0.75rem">
+    <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="+€" style="padding:4px 8px;font-size:0.75rem">
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.72rem">
       <input type="checkbox" ${m.disponible !== false ? 'checked' : ''} onchange="_editMateriels[${i}].disponible=this.checked" style="accent-color:#e65100">
       Oui
@@ -570,7 +577,7 @@ function renderTarifsZones() {
   if (!_editTarifs.length) { el.innerHTML = ''; return; }
   el.innerHTML = _editTarifs.sort((a, b) => (a.rayon_max || 0) - (b.rayon_max || 0)).map((t, i) => `<div class="tarif-zone-row">
     <input type="number" class="form-input" value="${t.rayon_max || ''}" onchange="_editTarifs[${i}].rayon_max=parseInt(this.value)||0;updateRayonFromZones()" placeholder="km" style="padding:4px 8px;font-size:0.75rem" min="1">
-    <input type="number" class="form-input" value="${t.tarif || ''}" onchange="_editTarifs[${i}].tarif=parseFloat(this.value)||0" placeholder="€/jour" style="padding:4px 8px;font-size:0.75rem" min="0">
+    <input type="number" class="form-input" value="${t.tarif || ''}" onchange="_editTarifs[${i}].tarif=parseFloat(this.value)||0" placeholder="€" style="padding:4px 8px;font-size:0.75rem" min="0">
     <button class="btn-sm btn-danger" onclick="_editTarifs.splice(${i},1);renderTarifsZones();updateRayonFromZones()">✕</button>
   </div>`).join('');
 }
@@ -593,7 +600,6 @@ async function savePrestataire() {
   if (!nom) { alert('Le nom est obligatoire.'); return; }
   let lat = parseFloat(document.getElementById('m-lat').value) || null;
   let lng = parseFloat(document.getElementById('m-lng').value) || null;
-  // Auto geocode if missing
   if (!lat || !lng) {
     const addr = document.getElementById('m-adresse').value.trim();
     const cp = document.getElementById('m-cp').value.trim();
@@ -638,7 +644,6 @@ async function savePrestataire() {
       if (error) throw error;
       prestaId = data.id;
     }
-    // Save materiels
     await sb.from('pelles_materiels').delete().eq('prestataire_id', prestaId);
     if (_editMateriels.length) {
       const matRows = _editMateriels.map(m => ({
@@ -650,7 +655,7 @@ async function savePrestataire() {
       const { error: e2 } = await sb.from('pelles_materiels').insert(matRows);
       if (e2) console.error('Erreur matériels:', e2);
     }
-    closeModal();
+    resetPanel();
     await loadData();
   } catch (e) {
     alert('Erreur : ' + (e.message || e));
@@ -664,7 +669,7 @@ async function deletePrestataire() {
     await sb.from('pelles_materiels').delete().eq('prestataire_id', _editId);
     const { error } = await sb.from('pelles_prestataires').delete().eq('id', _editId);
     if (error) throw error;
-    closeModal();
+    resetPanel();
     await loadData();
   } catch (e) { alert('Erreur : ' + (e.message || e)); }
 }
@@ -705,7 +710,6 @@ function setInterventionPoint(latlng) {
   _interventionCircles = [];
   const icon = L.divIcon({ className: '', html: '<div style="background:#e65100;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize: [20, 20], iconAnchor: [10, 10] });
   _interventionMarker = L.marker(latlng, { icon }).addTo(map);
-  // Find prestataires covering this point
   const covering = _prestas.filter(p => {
     if (!p.lat || !p.lng) return false;
     const dist = map.distance(latlng, L.latLng(p.lat, p.lng));
@@ -720,7 +724,6 @@ function setInterventionPoint(latlng) {
   document.getElementById('count-badge').textContent = covering.length;
   document.getElementById('count-filtered').textContent = `(couvrent ce point)`;
   document.getElementById('intervention-bar').innerHTML = `<span>📍 Point d'intervention — <b>${covering.length}</b> prestataire${covering.length > 1 ? 's' : ''} couvr${covering.length > 1 ? 'ent' : 'e'} cette zone</span><button onclick="clearIntervention()">✕ Annuler</button>`;
-  // Highlight circles
   covering.forEach(p => {
     const c = L.circle([p.lat, p.lng], {
       radius: (p.rayon_km || 50) * 1000,
