@@ -755,7 +755,7 @@ function setInterventionPoint(latlng) {
   _interventionCircles.forEach(c => map.removeLayer(c));
   _interventionCircles = [];
   const icon = L.divIcon({ className: '', html: '<div style="background:#00bcd4;border:3px solid #fff;border-radius:50%;width:22px;height:22px;box-shadow:0 0 12px rgba(0,188,212,0.6),0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize: [22, 22], iconAnchor: [11, 11] });
-  _interventionMarker = L.marker(latlng, { icon }).addTo(map);
+  _interventionMarker = L.marker(latlng, { icon, zIndexOffset: 1000 }).addTo(map);
   const covering = _prestas.filter(p => {
     if (!p.lat || !p.lng) return false;
     const dist = map.distance(latlng, L.latLng(p.lat, p.lng));
@@ -808,11 +808,15 @@ loadData().then(() => {
   const lng = parseFloat(params.get('lng') || params.get('lon'));
   if (lat && lng) {
     _interventionMode = true;
-    map.setView([lat, lng], 10);
-    setInterventionPoint(L.latLng(lat, lng));
     document.getElementById('btn-intervention').style.borderColor = '#e65100';
     document.getElementById('btn-intervention').style.color = '#e65100';
     document.getElementById('btn-intervention').style.background = 'rgba(230,81,0,0.15)';
+    document.getElementById('intervention-bar').style.display = 'flex';
+    document.getElementById('map').style.cursor = 'crosshair';
+    setTimeout(() => {
+      setInterventionPoint(L.latLng(lat, lng));
+      map.setView([lat, lng], 10);
+    }, 300);
   }
 });
 </script>
