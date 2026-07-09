@@ -694,7 +694,7 @@ async function gedSearchFromMap() {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
             <div style="font-weight:700;font-size:0.78rem;color:#1a1a1a;flex:1;word-break:break-word;">${d.name || '—'}</div>
             <div style="display:flex;align-items:center;gap:6px;">
-              ${(d.ext || 'pdf') === 'pdf' ? `<button onclick="event.stopPropagation();gedOpenStoragePdf('${d.id}','${d.ext || 'pdf'}')" style="padding:2px 7px;background:#795548;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.6rem;font-weight:700;font-family:inherit;" title="Ouvrir le PDF">📄 PDF</button>` : ''}
+              <button onclick="event.stopPropagation();gedOpenStorageFile('${d.id}','${d.ext || 'pdf'}','${(d.name || '').replace(/'/g, "\\'")}')" style="padding:2px 7px;background:#795548;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.6rem;font-weight:700;font-family:inherit;" title="Ouvrir le fichier">📄 ${(d.ext || 'pdf').toUpperCase()}</button>
               <div style="font-size:0.68rem;font-weight:700;color:#795548;white-space:nowrap;">${Math.round(d.distance_m)} m</div>
             </div>
           </div>
@@ -716,7 +716,7 @@ async function gedSearchFromMap() {
         <div style="font-weight:700;font-size:0.8rem;color:#1a1a1a;margin-bottom:4px;">${(d.name || '—').replace(/"/g, '&quot;')}</div>
         ${d.commune ? `<div style="font-size:0.68rem;color:#6b7280;margin-bottom:6px;">📍 ${d.commune}</div>` : ''}
         <div style="font-size:0.65rem;color:#9ca3af;margin-bottom:6px;">${Math.round(d.distance_m)} m du point</div>
-        ${(d.ext || 'pdf') === 'pdf' ? `<button onclick="gedOpenStoragePdf('${d.id}','${d.ext || 'pdf'}')" style="width:100%;padding:5px 10px;background:#795548;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;">📄 Ouvrir le PDF</button>` : ''}
+        <button onclick="gedOpenStorageFile('${d.id}','${d.ext || 'pdf'}','${(d.name || '').replace(/'/g, "\\'")}')" style="width:100%;padding:5px 10px;background:#795548;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.7rem;font-weight:700;font-family:inherit;">📄 Ouvrir le ${(d.ext || 'pdf').toUpperCase()}</button>
       </div>`, { maxWidth: 280 });
       m.on('click', () => {
         const el = document.getElementById('ged-item-' + i);
@@ -1005,9 +1005,8 @@ async function gedHandleFiles(fileList) {
       } else {
         addrFound.style.display = 'none';
       }
-      // Bouton ouvrir le PDF si c'est un fichier PDF
       const openPdfBtn = document.getElementById('ged-open-pdf-btn');
-      if (openPdfBtn) openPdfBtn.style.display = f.ext === 'pdf' ? '' : 'none';
+      if (openPdfBtn) { openPdfBtn.style.display = ''; openPdfBtn.textContent = '📄 Ouvrir le ' + f.ext.toUpperCase() + ' pour lire l\'adresse'; }
       // Afficher un extrait du texte pour consultation manuelle
       const preview = document.getElementById('ged-index-text-preview');
       if (preview) preview.textContent = text.slice(0, 3000);
@@ -1388,16 +1387,17 @@ function gedZoomToStudy(i) {
   m.openPopup();
 }
 
-async function gedOpenStoragePdf(docId, ext) {
+async function gedOpenStorageFile(docId, ext, fileName) {
   const storagePath = docId + '.' + ext;
   const { data, error } = await sb.storage.from('ged-pdfs').download(storagePath);
-  if (data) {
-    const url = URL.createObjectURL(data);
+  if (!data) { alert('Fichier non disponible dans le stockage' + (error ? ' : ' + error.message : '')); return; }
+  const url = URL.createObjectURL(data);
+  if (ext === 'pdf') {
     window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
   } else {
-    alert('PDF non disponible dans le stockage' + (error ? ' : ' + error.message : ''));
+    const a = document.createElement('a'); a.href = url; a.download = fileName || ('document.' + ext); document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 // ====== Zones d'opportunité (carte_zones) ======
@@ -1687,7 +1687,7 @@ function adminRenderTable() {
       '<td>' + addrHtml + '</td>' +
       '<td>' + coordsHtml + '</td>' +
       '<td><div style="display:flex;gap:4px;">' +
-        (it.ext === 'pdf' && (it.file || it.docId) ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">PDF</button>' : '') +
+        ((it.file || it.docId) ? '<button class="admin-btn admin-btn-outline admin-btn-sm" onclick="event.stopPropagation();adminOpenPdfByIdx(' + i + ')">' + (it.ext || 'pdf').toUpperCase() + '</button>' : '') +
         (it.status === 'pending' ? '<button class="admin-btn admin-btn-primary admin-btn-sm" onclick="event.stopPropagation();adminSelectRow(' + i + ')">Localiser</button>' : '') +
         '<button class="admin-btn admin-btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="event.stopPropagation();adminDeleteRow(' + i + ')" title="Supprimer">🗑</button>' +
       '</div></td></tr>';
@@ -1740,21 +1740,17 @@ function adminFilter(f, btn) {
 async function adminOpenPdfByIdx(i) {
   const it = _adminItems[i];
   if (!it) return;
-  if (it.file) {
-    const url = URL.createObjectURL(it.file);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } else if (it.docId) {
-    const storagePath = it.docId + '.' + it.ext;
-    const { data, error } = await sb.storage.from('ged-pdfs').download(storagePath);
-    if (data) {
-      const url = URL.createObjectURL(data);
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } else {
-      alert('PDF non disponible dans le stockage' + (error ? ' : ' + error.message : ''));
-    }
+  let blob = it.file;
+  if (!blob && it.docId) {
+    const { data, error } = await sb.storage.from('ged-pdfs').download(it.docId + '.' + it.ext);
+    if (!data) { alert('Fichier non disponible' + (error ? ' : ' + error.message : '')); return; }
+    blob = data;
   }
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  if (it.ext === 'pdf') { window.open(url, '_blank'); }
+  else { const a = document.createElement('a'); a.href = url; a.download = it.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function adminOpenPdf() {
@@ -2040,7 +2036,9 @@ function adminSelectRow(i) {
   document.getElementById('admin-detail-addr-input').value = '';
   document.getElementById('admin-detail-coords').textContent = it.lat != null ? it.lat.toFixed(6) + ', ' + it.lon.toFixed(6) : '';
   document.getElementById('admin-detail-save').disabled = it.lat == null;
-  document.getElementById('admin-detail-pdf-btn').style.display = (it.file || it.docId) && it.ext === 'pdf' ? '' : 'none';
+  const pdfBtn = document.getElementById('admin-detail-pdf-btn');
+  pdfBtn.style.display = (it.file || it.docId) ? '' : 'none';
+  pdfBtn.textContent = '📄 Ouvrir le ' + (it.ext || 'pdf').toUpperCase();
 
   // Addresses
   const addrDiv = document.getElementById('admin-detail-addrs');
