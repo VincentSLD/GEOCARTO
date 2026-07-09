@@ -14,6 +14,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/3.0.2/Control.FullScreen.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/3.0.2/Control.FullScreen.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -200,7 +202,7 @@
               <button onclick="adminGeocodeDetail()" class="admin-btn admin-btn-primary">Localiser</button>
             </div>
             <div id="admin-detail-coords" style="font-size:0.74rem;font-weight:700;color:#374151;margin-bottom:10px;"></div>
-            <div id="admin-detail-map" style="height:200px;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:10px;"></div>
+            <div id="admin-detail-map" style="height:300px;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:10px;"></div>
             <div style="display:flex;gap:6px;margin-bottom:10px;">
               <button id="admin-detail-pdf-btn" onclick="adminOpenPdf()" class="admin-btn admin-btn-outline" style="flex:1;">📄 Ouvrir le PDF</button>
               <button id="admin-detail-save" onclick="adminSavePosition()" class="admin-btn admin-btn-primary" style="flex:1;" disabled>✓ Enregistrer la position</button>
@@ -333,16 +335,27 @@ const iconJaune = colorIcon('jaune');
 const iconRouge = colorIcon('rouge');
 
 // Init carte
-map = L.map('map', { center: [46.8, 2.2], zoom: 6, zoomControl: false, attributionControl: false });
+map = L.map('map', { center: [46.8, 2.2], zoom: 6, zoomControl: false, attributionControl: false, fullscreenControl: true, fullscreenControlOptions: { position: 'bottomleft' } });
 L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+const _baseSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+const _baseOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+_baseSat.addTo(map);
 
 map.createPane('roadsPane');
 map.getPane('roadsPane').style.zIndex = 400;
+map.createPane('cadastrePane');
+map.getPane('cadastrePane').style.zIndex = 420;
 map.createPane('gedPane');
 map.getPane('gedPane').style.zIndex = 650;
 roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.55, pane: 'roadsPane' }).addTo(map);
+
+const _cadastreLayers = ['parcellaire_express_parcelle_noir', 'parcellaire_express_numero', 'parcellaire_express_batiment_noir'].map(layer =>
+  L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', { layers: layer, format: 'image/png', transparent: true, opacity: 0.8, version: '1.3.0', maxZoom: 22, maxNativeZoom: 20, pane: 'cadastrePane' })
+);
+const _cadastreGroup = L.layerGroup(_cadastreLayers);
+
+L.control.layers({ 'Satellite': _baseSat, 'Route': _baseOsm }, { 'Cadastre': _cadastreGroup, 'Routes': roadsLayer }, { position: 'bottomleft', collapsed: true }).addTo(map);
 
 // Centrage optionnel via l'URL (?lat=..&lng=.. ou &lon=..) — ex. lien depuis le CRM (point du marché)
 (function () {
@@ -2053,8 +2066,17 @@ function adminSelectRow(i) {
   setTimeout(() => {
     const mapDiv = document.getElementById('admin-detail-map');
     if (_adminDetailMap) { _adminDetailMap.remove(); _adminDetailMap = null; _adminDetailMarker = null; }
-    _adminDetailMap = L.map(mapDiv, { zoomControl: true }).setView(it.lat != null ? [it.lat, it.lon] : [46.8, 2.3], it.lat != null ? 14 : 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_adminDetailMap);
+    _adminDetailMap = L.map(mapDiv, { zoomControl: true, fullscreenControl: true, fullscreenControlOptions: { position: 'topright' } }).setView(it.lat != null ? [it.lat, it.lon] : [46.8, 2.3], it.lat != null ? 14 : 5);
+    const admOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+    const admSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+    admOsm.addTo(_adminDetailMap);
+    _adminDetailMap.createPane('cadastrePane');
+    _adminDetailMap.getPane('cadastrePane').style.zIndex = 450;
+    const admCadLayers = ['parcellaire_express_parcelle_noir', 'parcellaire_express_numero', 'parcellaire_express_batiment_noir'].map(layer =>
+      L.tileLayer.wms('https://data.geopf.fr/wms-v/ows', { layers: layer, format: 'image/png', transparent: true, opacity: 0.8, version: '1.3.0', maxZoom: 22, maxNativeZoom: 20, pane: 'cadastrePane' })
+    );
+    const admCadGroup = L.layerGroup(admCadLayers);
+    L.control.layers({ 'Route': admOsm, 'Satellite': admSat }, { 'Cadastre': admCadGroup }, { position: 'topright', collapsed: true }).addTo(_adminDetailMap);
     if (it.lat != null) {
       _adminDetailMarker = L.marker([it.lat, it.lon]).addTo(_adminDetailMap);
     }
