@@ -116,9 +116,6 @@ textarea.form-input{resize:vertical;min-height:60px}
         <option value="3">~3T</option>
         <option value="5">~5T</option>
         <option value="8">~8T</option>
-        <option value="mini">Mini-pelle (&lt; 6T)</option>
-        <option value="moyen">Moyenne (6-15T)</option>
-        <option value="gros">Grosse (&gt; 15T)</option>
       </select>
       <select class="filter-select" id="f-dispo" onchange="applyFilters()">
         <option value="">Disponibilité</option>
@@ -386,9 +383,6 @@ function applyFilters() {
         const t = parseFloat(m.tonnage) || 0;
         const tv = parseFloat(tonnage);
         if (tv) return Math.abs(t - tv) <= tv * 0.35;
-        if (tonnage === 'mini') return t < 6;
-        if (tonnage === 'moyen') return t >= 6 && t <= 15;
-        if (tonnage === 'gros') return t > 15;
         return true;
       });
       if (!hasTonnage) return false;
