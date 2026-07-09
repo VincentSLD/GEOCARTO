@@ -125,6 +125,13 @@ textarea.form-input{resize:vertical;min-height:60px}
         <option value="oui">Disponible</option>
         <option value="non">Indisponible</option>
       </select>
+      <select class="filter-select" id="f-prof" onchange="applyFilters()">
+        <option value="">Prof. max</option>
+        <option value="1.5">≥ 1m50</option>
+        <option value="2">≥ 2m00</option>
+        <option value="2.5">≥ 2m50</option>
+        <option value="3">≥ 3m00</option>
+      </select>
       <input type="number" class="filter-input" id="f-tarif" placeholder="PV max €" style="max-width:100px" oninput="applyFilters()" title="Plus-value matériel max €">
     </div>
     <div class="filter-row">
@@ -365,6 +372,7 @@ function applyFilters() {
   const search = (document.getElementById('f-search').value || '').toLowerCase().trim();
   const tonnage = document.getElementById('f-tonnage').value;
   const dispo = document.getElementById('f-dispo').value;
+  const profMin = parseFloat(document.getElementById('f-prof').value) || 0;
   const tarifMax = parseFloat(document.getElementById('f-tarif').value) || 0;
   const noteMin = parseInt(document.getElementById('f-note').value) || 0;
   _filtered = _prestas.filter(p => {
@@ -387,6 +395,7 @@ function applyFilters() {
     }
     if (dispo === 'oui' && !mats.some(m => m.disponible)) return false;
     if (dispo === 'non' && mats.some(m => m.disponible)) return false;
+    if (profMin > 0 && !mats.some(m => (parseFloat(m.profondeur_max) || 0) >= profMin)) return false;
     if (tarifMax > 0 && !mats.some(m => (parseFloat(m.tarif_journalier) || 0) <= tarifMax && (parseFloat(m.tarif_journalier) || 0) > 0)) return false;
     if (noteMin > 0 && (p.note || 0) < noteMin) return false;
     return true;
