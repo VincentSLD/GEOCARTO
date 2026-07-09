@@ -112,10 +112,10 @@ textarea.form-input{resize:vertical;min-height:60px}
     <div class="filter-row">
       <select class="filter-select" id="f-tonnage" onchange="applyFilters()">
         <option value="">Tous tonnages</option>
-        <option value="1">~1T</option>
-        <option value="3">~3T</option>
-        <option value="5">~5T</option>
-        <option value="8">~8T</option>
+        <option value="1">&lt; 1T</option>
+        <option value="3">&lt; 3T</option>
+        <option value="5">&lt; 5T</option>
+        <option value="8">&lt; 8T</option>
       </select>
       <select class="filter-select" id="f-dispo" onchange="applyFilters()">
         <option value="">Disponibilité</option>
@@ -382,7 +382,7 @@ function applyFilters() {
       const hasTonnage = mats.some(m => {
         const t = parseFloat(m.tonnage) || 0;
         const tv = parseFloat(tonnage);
-        if (tv) return Math.abs(t - tv) <= tv * 0.35;
+        if (tv) return t <= tv;
         return true;
       });
       if (!hasTonnage) return false;
