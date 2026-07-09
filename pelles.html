@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelles — Prestataires - GEOCARTO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/3.0.2/Control.FullScreen.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/3.0.2/Control.FullScreen.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Space+Grotesk:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;font-family:'Bricolage Grotesque',sans-serif;overflow:hidden;background:#1a1a1a;color:#e5e5e5}
+#sidebar{position:absolute;top:0;left:0;bottom:0;width:380px;z-index:1000;display:flex;flex-direction:column;background:#1a1a1a;border-right:2px solid #333}
+#sidebar-header{padding:14px 16px;border-bottom:2px solid #e65100;background:linear-gradient(135deg,rgba(230,81,0,0.12),rgba(230,81,0,0.04))}
+#sidebar-header h1{font-size:1.1rem;font-weight:800;color:#e65100;display:flex;align-items:center;gap:8px}
+#sidebar-header h1 span{color:#999;font-weight:400;font-size:0.7rem}
+#sidebar-filters{padding:10px 14px;border-bottom:1px solid #333;display:flex;flex-direction:column;gap:8px}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filter-input{flex:1;min-width:100px;padding:7px 10px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#e5e5e5;font-size:0.78rem;font-family:inherit}
+.filter-select{padding:7px 8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#e5e5e5;font-size:0.75rem;font-family:inherit;cursor:pointer}
+.filter-input:focus,.filter-select:focus{outline:none;border-color:#e65100}
+.btn-add{padding:7px 14px;border-radius:8px;border:2px solid #e65100;background:linear-gradient(135deg,#1a1a1a,#333);color:#e65100;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.2s}
+.btn-add:hover{background:#e65100;color:#fff}
+.btn-sm{padding:4px 10px;border-radius:6px;border:1px solid #555;background:#333;color:#ccc;font-size:0.7rem;cursor:pointer;font-family:inherit;transition:all 0.15s}
+.btn-sm:hover{border-color:#e65100;color:#e65100}
+.btn-danger{border-color:#d32f2f;color:#d32f2f}
+.btn-danger:hover{background:#d32f2f;color:#fff}
+#sidebar-list{flex:1;overflow-y:auto;padding:8px 10px}
+.presta-card{padding:10px 12px;margin-bottom:6px;border-radius:10px;border:1px solid #333;background:#222;cursor:pointer;transition:all 0.15s}
+.presta-card:hover{border-color:#e65100;background:#2a2a2a}
+.presta-card.active{border-color:#e65100;background:rgba(230,81,0,0.1)}
+.presta-name{font-size:0.82rem;font-weight:700;color:#fff;margin-bottom:2px}
+.presta-ville{font-size:0.7rem;color:#999}
+.presta-meta{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.presta-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.62rem;font-weight:700}
+.badge-tonnage{background:rgba(230,81,0,0.15);color:#e65100}
+.badge-rayon{background:rgba(33,150,243,0.15);color:#42a5f5}
+.badge-dispo{background:rgba(56,142,60,0.15);color:#66bb6a}
+.badge-indispo{background:rgba(211,47,47,0.15);color:#ef5350}
+.stars{color:#e65100;font-size:0.75rem;letter-spacing:1px}
+.stars-empty{color:#555}
+#map{position:absolute;top:0;left:380px;right:0;bottom:0}
+/* Intervention point banner */
+#intervention-bar{display:none;position:absolute;top:10px;left:400px;right:20px;z-index:1100;padding:10px 16px;background:rgba(230,81,0,0.95);color:#fff;border-radius:10px;font-size:0.8rem;font-weight:700;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.3);align-items:center;gap:10px}
+#intervention-bar button{padding:4px 12px;border-radius:6px;border:1px solid #fff;background:transparent;color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#1e1e1e;border-radius:14px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);border-top:4px solid #e65100}
+.modal-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333}
+.modal-header h2{font-size:0.95rem;color:#e65100;display:flex;align-items:center;gap:8px}
+.modal-close{background:none;border:none;color:#999;font-size:1.4rem;cursor:pointer}
+.modal-close:hover{color:#fff}
+.modal-body{padding:16px 20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #333;display:flex;justify-content:flex-end;gap:8px}
+.tabs{display:flex;gap:0;border-bottom:2px solid #333;margin-bottom:14px}
+.tab{padding:8px 16px;font-size:0.78rem;font-weight:700;color:#777;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:#e65100;border-bottom-color:#e65100}
+.tab:hover{color:#ccc}
+.form-group{margin-bottom:12px}
+.form-label{display:block;font-size:0.68rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px}
+.form-input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#e5e5e5;font-size:0.8rem;font-family:inherit}
+.form-input:focus{outline:none;border-color:#e65100}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+textarea.form-input{resize:vertical;min-height:60px}
+.siret-results{max-height:200px;overflow-y:auto;border:1px solid #444;border-radius:8px;margin-top:6px}
+.siret-result{padding:8px 12px;cursor:pointer;border-bottom:1px solid #333;font-size:0.75rem;transition:background 0.1s}
+.siret-result:hover{background:#333}
+.siret-result:last-child{border-bottom:none}
+.materiel-row{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
+.materiel-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
+.star-rating{display:inline-flex;gap:2px;cursor:pointer}
+.star-rating .star{font-size:1.3rem;color:#555;cursor:pointer;transition:color 0.1s}
+.star-rating .star.filled{color:#e65100}
+.star-rating .star:hover{color:#ff8f00}
+.btn-save{padding:8px 20px;border-radius:8px;border:none;background:#e65100;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.btn-save:hover{background:#ff6d00}
+.btn-cancel{padding:8px 20px;border-radius:8px;border:1px solid #555;background:transparent;color:#ccc;font-size:0.8rem;cursor:pointer;font-family:inherit}
+.btn-cancel:hover{border-color:#999;color:#fff}
+.sidebar-footer{padding:8px 14px;border-top:1px solid #333;display:flex;gap:6px;align-items:center;justify-content:space-between;font-size:0.7rem;color:#666}
+.count-badge{background:#e65100;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700}
+.intervention-marker{background:#e65100;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+#sidebar-list::-webkit-scrollbar{width:6px}
+#sidebar-list::-webkit-scrollbar-track{background:#1a1a1a}
+#sidebar-list::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>🚧 Pelles <span>Prestataires pelle mécanique</span></h1>
+  </div>
+  <div id="sidebar-filters">
+    <div class="filter-row">
+      <input type="text" class="filter-input" id="f-search" placeholder="🔍 Rechercher nom, ville, SIRET…" oninput="applyFilters()">
+      <button class="btn-add" onclick="openModal()">+ Ajouter</button>
+    </div>
+    <div class="filter-row">
+      <select class="filter-select" id="f-tonnage" onchange="applyFilters()">
+        <option value="">Tous tonnages</option>
+        <option value="mini">Mini-pelle (< 6T)</option>
+        <option value="moyen">Moyenne (6-15T)</option>
+        <option value="gros">Grosse (> 15T)</option>
+      </select>
+      <select class="filter-select" id="f-dispo" onchange="applyFilters()">
+        <option value="">Disponibilité</option>
+        <option value="oui">Disponible</option>
+        <option value="non">Indisponible</option>
+      </select>
+      <input type="number" class="filter-input" id="f-tarif" placeholder="Tarif max €/j" style="max-width:100px" oninput="applyFilters()">
+    </div>
+    <div class="filter-row">
+      <select class="filter-select" id="f-note" onchange="applyFilters()">
+        <option value="">Toutes notes</option>
+        <option value="5">★★★★★ (5)</option>
+        <option value="4">★★★★ (4+)</option>
+        <option value="3">★★★ (3+)</option>
+      </select>
+      <button class="btn-sm" id="btn-intervention" onclick="toggleInterventionMode()" style="flex:1">📍 Point d'intervention</button>
+      <button class="btn-sm" onclick="exportCSV()">⤓ CSV</button>
+    </div>
+  </div>
+  <div id="sidebar-list"></div>
+  <div class="sidebar-footer">
+    <span><span class="count-badge" id="count-badge">0</span> prestataires</span>
+    <span id="count-filtered"></span>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- INTERVENTION BAR -->
+<div id="intervention-bar">
+  <span>📍 Cliquez sur la carte pour définir le point d'intervention</span>
+  <button onclick="clearIntervention()">✕ Annuler</button>
+</div>
+
+<!-- MODAL ADD/EDIT -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">🚧 Nouveau prestataire</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('infos')">Infos</button>
+        <button class="tab" onclick="switchTab('materiel')">Matériel</button>
+        <button class="tab" onclick="switchTab('contact')">Contact</button>
+        <button class="tab" onclick="switchTab('notes')">Notes & Avis</button>
+      </div>
+
+      <!-- TAB INFOS -->
+      <div id="tab-infos">
+        <div class="form-group">
+          <label class="form-label">Recherche SIRET / Nom d'entreprise</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" class="form-input" id="m-siret-search" placeholder="SIRET, SIREN ou nom…" onkeydown="if(event.key==='Enter')searchSiret()">
+            <button class="btn-add" onclick="searchSiret()" style="white-space:nowrap">🔍 Rechercher</button>
+          </div>
+          <div id="siret-results" class="siret-results" style="display:none"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nom *</label><input type="text" class="form-input" id="m-nom"></div>
+          <div class="form-group"><label class="form-label">SIRET</label><input type="text" class="form-input" id="m-siret" maxlength="14"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Adresse</label><input type="text" class="form-input" id="m-adresse"></div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Code postal</label><input type="text" class="form-input" id="m-cp" maxlength="5"></div>
+          <div class="form-group"><label class="form-label">Ville</label><input type="text" class="form-input" id="m-ville"></div>
+          <div class="form-group"><label class="form-label">Rayon d'action (km)</label><input type="number" class="form-input" id="m-rayon" value="50" min="1" max="500"></div>
+        </div>
+        <div class="form-row" style="margin-top:4px">
+          <div class="form-group"><label class="form-label">Latitude</label><input type="text" class="form-input" id="m-lat" placeholder="Auto (depuis adresse)"></div>
+          <div class="form-group"><label class="form-label">Longitude</label><input type="text" class="form-input" id="m-lng" placeholder="Auto (depuis adresse)"></div>
+        </div>
+        <div style="font-size:0.68rem;color:#777;margin-top:-6px">💡 Laissez vide pour géolocaliser automatiquement depuis l'adresse</div>
+      </div>
+
+      <!-- TAB MATERIEL -->
+      <div id="tab-materiel" style="display:none">
+        <div class="materiel-header materiel-row">
+          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Tarif €/j</span><span>Dispo</span><span></span>
+        </div>
+        <div id="materiel-list"></div>
+        <button class="btn-sm" onclick="addMaterielRow()" style="margin-top:8px">+ Ajouter un engin</button>
+      </div>
+
+      <!-- TAB CONTACT -->
+      <div id="tab-contact" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nom du contact</label><input type="text" class="form-input" id="m-contact-nom"></div>
+          <div class="form-group"><label class="form-label">Fonction</label><input type="text" class="form-input" id="m-contact-fonction"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel"></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email"></div>
+        </div>
+      </div>
+
+      <!-- TAB NOTES -->
+      <div id="tab-notes" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Évaluation</label>
+          <div class="star-rating" id="star-rating">
+            <span class="star" data-v="1" onclick="setRating(1)">★</span>
+            <span class="star" data-v="2" onclick="setRating(2)">★</span>
+            <span class="star" data-v="3" onclick="setRating(3)">★</span>
+            <span class="star" data-v="4" onclick="setRating(4)">★</span>
+            <span class="star" data-v="5" onclick="setRating(5)">★</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Commentaire évaluation</label>
+          <textarea class="form-input" id="m-note-comment" placeholder="Qualité, fiabilité, ponctualité…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Commentaire général</label>
+          <textarea class="form-input" id="m-commentaire" placeholder="Notes internes…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="savePrestataire()">Enregistrer</button>
+      <button class="btn-sm btn-danger" id="btn-delete" style="display:none;margin-right:auto" onclick="deletePrestataire()">🗑 Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://asuccniyofzvwgooxjah.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzdWNjbml5b2Z6dndnb294amFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDQyNjgsImV4cCI6MjA4ODQ4MDI2OH0.dPerW1BApAxe26xzv9i7oWIubgGuzO5RibMvs-MFm88';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let _prestas = [];
+let _materiels = {};
+let _filtered = [];
+let _editId = null;
+let _editMateriels = [];
+let _rating = 0;
+let _siretResults = [];
+let _interventionMode = false;
+let _interventionMarker = null;
+let _interventionCircles = [];
+let map, markersGroup, circlesGroup;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+
+// ═══ MAP ═══
+function initMap() {
+  map = L.map('map', { fullscreenControl: true }).setView([46.6, 2.5], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(map);
+  circlesGroup = L.layerGroup().addTo(map);
+  markersGroup = L.markerClusterGroup({ maxClusterRadius: 40 }).addTo(map);
+  map.on('click', onMapClick);
+}
+
+function onMapClick(e) {
+  if (!_interventionMode) return;
+  setInterventionPoint(e.latlng);
+}
+
+function renderMap() {
+  markersGroup.clearLayers();
+  circlesGroup.clearLayers();
+  _filtered.forEach(p => {
+    if (!p.lat || !p.lng) return;
+    const mats = _materiels[p.id] || [];
+    const hasDispo = mats.some(m => m.disponible);
+    const color = mats.length === 0 ? '#999' : (hasDispo ? '#e65100' : '#d32f2f');
+    const circle = L.circle([p.lat, p.lng], {
+      radius: (p.rayon_km || 50) * 1000,
+      color: color, fillColor: color, fillOpacity: 0.06, weight: 1.5, dashArray: '6 4'
+    });
+    circlesGroup.addLayer(circle);
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
+    });
+    const tonnages = mats.map(m => m.tonnage ? m.tonnage + 'T' : m.type).join(', ');
+    marker.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:200px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(p.nom)}</div>
+      <div style="font-size:11px;color:#666;margin-bottom:6px">${esc(p.ville || '')} ${p.cp || ''}</div>
+      ${p.contact_nom ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom) + (p.contact_tel ? ' — ' + esc(p.contact_tel) : '') + '</div>' : ''}
+      ${tonnages ? '<div style="font-size:11px;margin-top:4px">🏗 ' + esc(tonnages) + '</div>' : ''}
+      <div style="font-size:11px;margin-top:4px">📏 Rayon: ${p.rayon_km || 50} km</div>
+      ${p.note ? '<div style="font-size:12px;margin-top:4px;color:#e65100">' + '★'.repeat(p.note) + '<span style="color:#ccc">' + '★'.repeat(5 - p.note) + '</span></div>' : ''}
+      <div style="margin-top:6px"><a href="#" onclick="openModal('${p.id}');return false" style="color:#e65100;font-size:11px;font-weight:700">Modifier →</a></div>
+    </div>`);
+    markersGroup.addLayer(marker);
+  });
+}
+
+// ═══ DATA ═══
+async function loadData() {
+  const { data: prestas, error: e1 } = await sb.from('pelles_prestataires').select('*').order('nom');
+  if (e1) { console.error('Erreur chargement prestataires:', e1); return; }
+  _prestas = prestas || [];
+  const { data: mats, error: e2 } = await sb.from('pelles_materiels').select('*');
+  if (e2) { console.error('Erreur chargement matériels:', e2); }
+  _materiels = {};
+  (mats || []).forEach(m => {
+    if (!_materiels[m.prestataire_id]) _materiels[m.prestataire_id] = [];
+    _materiels[m.prestataire_id].push(m);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = (document.getElementById('f-search').value || '').toLowerCase().trim();
+  const tonnage = document.getElementById('f-tonnage').value;
+  const dispo = document.getElementById('f-dispo').value;
+  const tarifMax = parseFloat(document.getElementById('f-tarif').value) || 0;
+  const noteMin = parseInt(document.getElementById('f-note').value) || 0;
+  _filtered = _prestas.filter(p => {
+    if (search && !(p.nom || '').toLowerCase().includes(search)
+      && !(p.ville || '').toLowerCase().includes(search)
+      && !(p.siret || '').includes(search)
+      && !(p.contact_nom || '').toLowerCase().includes(search)) return false;
+    const mats = _materiels[p.id] || [];
+    if (tonnage) {
+      const hasTonnage = mats.some(m => {
+        const t = parseFloat(m.tonnage) || 0;
+        if (tonnage === 'mini') return t < 6;
+        if (tonnage === 'moyen') return t >= 6 && t <= 15;
+        if (tonnage === 'gros') return t > 15;
+        return true;
+      });
+      if (!hasTonnage) return false;
+    }
+    if (dispo === 'oui' && !mats.some(m => m.disponible)) return false;
+    if (dispo === 'non' && mats.some(m => m.disponible)) return false;
+    if (tarifMax > 0 && !mats.some(m => (parseFloat(m.tarif_journalier) || 0) <= tarifMax && (parseFloat(m.tarif_journalier) || 0) > 0)) return false;
+    if (noteMin > 0 && (p.note || 0) < noteMin) return false;
+    return true;
+  });
+  renderList();
+  renderMap();
+  document.getElementById('count-badge').textContent = _filtered.length;
+  document.getElementById('count-filtered').textContent = _filtered.length < _prestas.length ? `(${_prestas.length} total)` : '';
+}
+
+function renderList() {
+  const el = document.getElementById('sidebar-list');
+  if (!_filtered.length) { el.innerHTML = '<div style="text-align:center;color:#666;padding:40px 20px;font-size:0.8rem">Aucun prestataire trouvé.</div>'; return; }
+  el.innerHTML = _filtered.map(p => {
+    const mats = _materiels[p.id] || [];
+    const tonnages = [...new Set(mats.map(m => m.tonnage ? m.tonnage + 'T' : '').filter(Boolean))];
+    const hasDispo = mats.some(m => m.disponible);
+    const starsHtml = p.note ? '<span class="stars">' + '★'.repeat(p.note) + '</span><span class="stars-empty">' + '★'.repeat(5 - p.note) + '</span>' : '';
+    return `<div class="presta-card" onclick="focusPresta('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="presta-name">${esc(p.nom)}</div>
+          <div class="presta-ville">${esc([p.ville, p.cp].filter(Boolean).join(' '))}</div>
+        </div>
+        <div>${starsHtml}</div>
+      </div>
+      <div class="presta-meta">
+        ${tonnages.map(t => '<span class="presta-badge badge-tonnage">' + esc(t) + '</span>').join('')}
+        <span class="presta-badge badge-rayon">📏 ${p.rayon_km || 50} km</span>
+        ${mats.length ? '<span class="presta-badge ' + (hasDispo ? 'badge-dispo' : 'badge-indispo') + '">' + (hasDispo ? '✓ Dispo' : '✕ Indispo') + '</span>' : ''}
+        ${p.contact_nom ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom) + '</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function focusPresta(id) {
+  const p = _prestas.find(x => x.id === id);
+  if (!p) return;
+  document.querySelectorAll('.presta-card').forEach((c, i) => c.classList.toggle('active', _filtered[i]?.id === id));
+  if (p.lat && p.lng) map.setView([p.lat, p.lng], 11);
+  openModal(id);
+}
+
+// ═══ SIRET SEARCH ═══
+async function searchSiret() {
+  const q = document.getElementById('m-siret-search').value.trim();
+  if (!q) return;
+  const resEl = document.getElementById('siret-results');
+  resEl.style.display = 'block';
+  resEl.innerHTML = '<div style="padding:10px;color:#999;font-size:0.75rem">Recherche en cours…</div>';
+  try {
+    const url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(q)}&per_page=10&etat_administratif=A`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Erreur API');
+    const data = await r.json();
+    _siretResults = data.results || [];
+    if (!_siretResults.length) { resEl.innerHTML = '<div style="padding:10px;color:#999;font-size:0.75rem">Aucun résultat.</div>'; return; }
+    resEl.innerHTML = _siretResults.map((r, i) => {
+      const siege = r.siege || {};
+      return `<div class="siret-result" onclick="fillFromSiret(${i})">
+        <div style="font-weight:700;color:#e5e5e5">${esc(r.nom_complet || r.nom_raison_sociale)}</div>
+        <div style="color:#999;font-size:0.7rem">${esc(siege.code_postal || '')} ${esc(siege.libelle_commune || '')} — SIRET: ${esc(siege.siret || r.siren || '')}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    resEl.innerHTML = '<div style="padding:10px;color:#d32f2f;font-size:0.75rem">Erreur : ' + esc(e.message) + '</div>';
+  }
+}
+
+async function fillFromSiret(idx) {
+  const r = _siretResults[idx];
+  if (!r) return;
+  const siege = r.siege || {};
+  document.getElementById('m-nom').value = r.nom_complet || r.nom_raison_sociale || '';
+  document.getElementById('m-siret').value = siege.siret || '';
+  const addr = [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(' ');
+  document.getElementById('m-adresse').value = addr;
+  document.getElementById('m-cp').value = siege.code_postal || '';
+  document.getElementById('m-ville').value = siege.libelle_commune || '';
+  document.getElementById('siret-results').style.display = 'none';
+  // Geocode from address
+  if (siege.code_postal && siege.libelle_commune) {
+    try {
+      const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(addr + ' ' + siege.code_postal + ' ' + siege.libelle_commune)}&limit=1`;
+      const geoR = await fetch(geoUrl);
+      const geoData = await geoR.json();
+      if (geoData.features && geoData.features[0]) {
+        const [lng, lat] = geoData.features[0].geometry.coordinates;
+        document.getElementById('m-lat').value = lat.toFixed(6);
+        document.getElementById('m-lng').value = lng.toFixed(6);
+      }
+    } catch (e) { console.warn('Geocoding échoué:', e); }
+  }
+}
+
+// ═══ MODAL ═══
+function openModal(id) {
+  _editId = id || null;
+  _editMateriels = [];
+  _rating = 0;
+  document.getElementById('modal-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
+  document.getElementById('btn-delete').style.display = id ? 'inline-block' : 'none';
+  // Reset
+  ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-email','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
+    const el = document.getElementById(f);
+    if (el) el.value = f === 'm-rayon' ? '50' : '';
+  });
+  document.getElementById('siret-results').style.display = 'none';
+  if (id) {
+    const p = _prestas.find(x => x.id === id);
+    if (p) {
+      document.getElementById('m-nom').value = p.nom || '';
+      document.getElementById('m-siret').value = p.siret || '';
+      document.getElementById('m-adresse').value = p.adresse || '';
+      document.getElementById('m-cp').value = p.cp || '';
+      document.getElementById('m-ville').value = p.ville || '';
+      document.getElementById('m-rayon').value = p.rayon_km || 50;
+      document.getElementById('m-lat').value = p.lat || '';
+      document.getElementById('m-lng').value = p.lng || '';
+      document.getElementById('m-contact-nom').value = p.contact_nom || '';
+      document.getElementById('m-contact-fonction').value = p.contact_fonction || '';
+      document.getElementById('m-contact-tel').value = p.contact_tel || '';
+      document.getElementById('m-contact-email').value = p.contact_email || '';
+      document.getElementById('m-note-comment').value = p.note_commentaire || '';
+      document.getElementById('m-commentaire').value = p.commentaire || '';
+      _rating = p.note || 0;
+      _editMateriels = (_materiels[id] || []).map(m => ({ ...m }));
+    }
+  }
+  renderStars();
+  renderMaterielTab();
+  switchTab('infos');
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  _editId = null;
+}
+
+function switchTab(name) {
+  ['infos','materiel','contact','notes'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.toLowerCase().includes(name === 'notes' ? 'notes' : name)));
+}
+
+// ═══ STARS ═══
+function setRating(v) { _rating = _rating === v ? 0 : v; renderStars(); }
+function renderStars() {
+  document.querySelectorAll('#star-rating .star').forEach(s => {
+    s.classList.toggle('filled', parseInt(s.dataset.v) <= _rating);
+  });
+}
+
+// ═══ MATERIEL TAB ═══
+function renderMaterielTab() {
+  const el = document.getElementById('materiel-list');
+  if (!_editMateriels.length) {
+    el.innerHTML = '<div style="padding:12px;color:#666;font-size:0.75rem;text-align:center">Aucun matériel. Cliquez sur "+ Ajouter un engin".</div>';
+    return;
+  }
+  el.innerHTML = _editMateriels.map((m, i) => `<div class="materiel-row">
+    <div>
+      <input type="text" class="form-input" value="${esc(m.type || '')}" onchange="_editMateriels[${i}].type=this.value" placeholder="Ex: Pelle 13T" style="padding:4px 8px;font-size:0.75rem;margin-bottom:3px">
+      <input type="text" class="form-input" value="${esc(m.modele || '')}" onchange="_editMateriels[${i}].modele=this.value" placeholder="Modèle" style="padding:4px 8px;font-size:0.72rem">
+    </div>
+    <input type="number" class="form-input" value="${m.tonnage || ''}" onchange="_editMateriels[${i}].tonnage=parseFloat(this.value)||null" placeholder="T" style="padding:4px 8px;font-size:0.75rem">
+    <input type="number" class="form-input" value="${m.profondeur_max || ''}" onchange="_editMateriels[${i}].profondeur_max=parseFloat(this.value)||null" placeholder="m" style="padding:4px 8px;font-size:0.75rem">
+    <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="€/j" style="padding:4px 8px;font-size:0.75rem">
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.72rem">
+      <input type="checkbox" ${m.disponible !== false ? 'checked' : ''} onchange="_editMateriels[${i}].disponible=this.checked" style="accent-color:#e65100">
+      Oui
+    </label>
+    <button class="btn-sm btn-danger" onclick="_editMateriels.splice(${i},1);renderMaterielTab()">✕</button>
+  </div>`).join('');
+}
+
+function addMaterielRow() {
+  _editMateriels.push({ type: '', modele: '', tonnage: null, profondeur_max: null, tarif_journalier: null, disponible: true, commentaire: '' });
+  renderMaterielTab();
+}
+
+// ═══ SAVE ═══
+async function savePrestataire() {
+  const nom = document.getElementById('m-nom').value.trim();
+  if (!nom) { alert('Le nom est obligatoire.'); return; }
+  let lat = parseFloat(document.getElementById('m-lat').value) || null;
+  let lng = parseFloat(document.getElementById('m-lng').value) || null;
+  // Auto geocode if missing
+  if (!lat || !lng) {
+    const addr = document.getElementById('m-adresse').value.trim();
+    const cp = document.getElementById('m-cp').value.trim();
+    const ville = document.getElementById('m-ville').value.trim();
+    if (cp && ville) {
+      try {
+        const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent([addr, cp, ville].filter(Boolean).join(' '))}&limit=1`;
+        const geoR = await fetch(geoUrl);
+        const geoData = await geoR.json();
+        if (geoData.features && geoData.features[0]) {
+          [lng, lat] = geoData.features[0].geometry.coordinates;
+        }
+      } catch (e) { console.warn('Geocoding échoué:', e); }
+    }
+  }
+  const row = {
+    nom, siret: document.getElementById('m-siret').value.trim() || null,
+    siren: (document.getElementById('m-siret').value.trim() || '').slice(0, 9) || null,
+    adresse: document.getElementById('m-adresse').value.trim() || null,
+    cp: document.getElementById('m-cp').value.trim() || null,
+    ville: document.getElementById('m-ville').value.trim() || null,
+    lat, lng,
+    rayon_km: parseInt(document.getElementById('m-rayon').value) || 50,
+    contact_nom: document.getElementById('m-contact-nom').value.trim() || null,
+    contact_fonction: document.getElementById('m-contact-fonction').value.trim() || null,
+    contact_tel: document.getElementById('m-contact-tel').value.trim() || null,
+    contact_email: document.getElementById('m-contact-email').value.trim() || null,
+    note: _rating || null,
+    note_commentaire: document.getElementById('m-note-comment').value.trim() || null,
+    commentaire: document.getElementById('m-commentaire').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  try {
+    let prestaId = _editId;
+    if (_editId) {
+      const { error } = await sb.from('pelles_prestataires').update(row).eq('id', _editId);
+      if (error) throw error;
+    } else {
+      row.created_at = new Date().toISOString();
+      const { data, error } = await sb.from('pelles_prestataires').insert(row).select('id').single();
+      if (error) throw error;
+      prestaId = data.id;
+    }
+    // Save materiels
+    await sb.from('pelles_materiels').delete().eq('prestataire_id', prestaId);
+    if (_editMateriels.length) {
+      const matRows = _editMateriels.map(m => ({
+        prestataire_id: prestaId, type: m.type || 'Pelle', modele: m.modele || null,
+        tonnage: m.tonnage, profondeur_max: m.profondeur_max,
+        tarif_journalier: m.tarif_journalier, disponible: m.disponible !== false,
+        commentaire: m.commentaire || null
+      }));
+      const { error: e2 } = await sb.from('pelles_materiels').insert(matRows);
+      if (e2) console.error('Erreur matériels:', e2);
+    }
+    closeModal();
+    await loadData();
+  } catch (e) {
+    alert('Erreur : ' + (e.message || e));
+  }
+}
+
+async function deletePrestataire() {
+  if (!_editId) return;
+  if (!confirm('Supprimer ce prestataire et tout son matériel ?')) return;
+  try {
+    await sb.from('pelles_materiels').delete().eq('prestataire_id', _editId);
+    const { error } = await sb.from('pelles_prestataires').delete().eq('id', _editId);
+    if (error) throw error;
+    closeModal();
+    await loadData();
+  } catch (e) { alert('Erreur : ' + (e.message || e)); }
+}
+
+// ═══ INTERVENTION POINT ═══
+function toggleInterventionMode() {
+  _interventionMode = !_interventionMode;
+  const btn = document.getElementById('btn-intervention');
+  const bar = document.getElementById('intervention-bar');
+  if (_interventionMode) {
+    btn.style.borderColor = '#e65100';
+    btn.style.color = '#e65100';
+    btn.style.background = 'rgba(230,81,0,0.15)';
+    bar.style.display = 'flex';
+    document.getElementById('map').style.cursor = 'crosshair';
+  } else {
+    clearIntervention();
+  }
+}
+
+function clearIntervention() {
+  _interventionMode = false;
+  const btn = document.getElementById('btn-intervention');
+  btn.style.borderColor = '#555';
+  btn.style.color = '#ccc';
+  btn.style.background = '#333';
+  document.getElementById('intervention-bar').style.display = 'none';
+  document.getElementById('map').style.cursor = '';
+  if (_interventionMarker) { map.removeLayer(_interventionMarker); _interventionMarker = null; }
+  _interventionCircles.forEach(c => map.removeLayer(c));
+  _interventionCircles = [];
+  applyFilters();
+}
+
+function setInterventionPoint(latlng) {
+  if (_interventionMarker) map.removeLayer(_interventionMarker);
+  _interventionCircles.forEach(c => map.removeLayer(c));
+  _interventionCircles = [];
+  const icon = L.divIcon({ className: '', html: '<div style="background:#e65100;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize: [20, 20], iconAnchor: [10, 10] });
+  _interventionMarker = L.marker(latlng, { icon }).addTo(map);
+  // Find prestataires covering this point
+  const covering = _prestas.filter(p => {
+    if (!p.lat || !p.lng) return false;
+    const dist = map.distance(latlng, L.latLng(p.lat, p.lng));
+    return dist <= (p.rayon_km || 50) * 1000;
+  }).map(p => {
+    const dist = map.distance(latlng, L.latLng(p.lat, p.lng));
+    return { ...p, _dist: dist };
+  }).sort((a, b) => a._dist - b._dist);
+  _filtered = covering;
+  renderList();
+  renderMap();
+  document.getElementById('count-badge').textContent = covering.length;
+  document.getElementById('count-filtered').textContent = `(couvrent ce point)`;
+  document.getElementById('intervention-bar').innerHTML = `<span>📍 Point d'intervention — <b>${covering.length}</b> prestataire${covering.length > 1 ? 's' : ''} couvr${covering.length > 1 ? 'ent' : 'e'} cette zone</span><button onclick="clearIntervention()">✕ Annuler</button>`;
+  // Highlight circles
+  covering.forEach(p => {
+    const c = L.circle([p.lat, p.lng], {
+      radius: (p.rayon_km || 50) * 1000,
+      color: '#e65100', fillColor: '#e65100', fillOpacity: 0.08, weight: 2
+    }).addTo(map);
+    _interventionCircles.push(c);
+  });
+  if (covering.length) {
+    const bounds = L.latLngBounds(covering.map(p => [p.lat, p.lng]));
+    bounds.extend(latlng);
+    map.fitBounds(bounds.pad(0.2));
+  }
+}
+
+// ═══ EXPORT CSV ═══
+function exportCSV() {
+  if (!_filtered.length) { alert('Rien à exporter.'); return; }
+  const csvEsc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Contact', 'Téléphone', 'Email', 'Note', 'Matériels', 'Commentaire'];
+  const lines = [headers.map(csvEsc).join(';')];
+  _filtered.forEach(p => {
+    const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? m.tarif_journalier + '€/j' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
+    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, p.contact_nom, p.contact_tel, p.contact_email, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
+  });
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'prestataires_pelles.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══ INIT ═══
+initMap();
+loadData();
+</script>
+</body>
+</html>
