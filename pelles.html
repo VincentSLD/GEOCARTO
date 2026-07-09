@@ -77,6 +77,9 @@ textarea.form-input{resize:vertical;min-height:60px}
 .siret-result:last-child{border-bottom:none}
 .materiel-row{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
 .materiel-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
+.tarif-zone-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #333;font-size:0.75rem}
+.tarif-zone-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
+.badge-tarif{background:rgba(255,152,0,0.15);color:#ffb300;font-size:0.6rem;padding:2px 6px;border-radius:4px;font-weight:700}
 .star-rating{display:inline-flex;gap:2px;cursor:pointer}
 .star-rating .star{font-size:1.3rem;color:#555;cursor:pointer;transition:color 0.1s}
 .star-rating .star.filled{color:#e65100}
@@ -182,7 +185,18 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Ville</label><input type="text" class="form-input" id="m-ville"></div>
           <div class="form-group"><label class="form-label">Rayon d'action (km)</label><input type="number" class="form-input" id="m-rayon" value="50" min="1" max="500"></div>
         </div>
-        <div class="form-row" style="margin-top:4px">
+        <div style="margin-top:12px;padding:12px;border:1px solid #444;border-radius:8px;background:#252525">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <label class="form-label" style="margin:0">Tarifs par zone de déplacement</label>
+            <button class="btn-sm" onclick="addTarifZone()">+ Zone</button>
+          </div>
+          <div class="tarif-zone-header tarif-zone-row" id="tarif-zones-header" style="display:none">
+            <span>Rayon max (km)</span><span>Tarif (€/j)</span><span></span>
+          </div>
+          <div id="tarif-zones-list"></div>
+          <div style="font-size:0.65rem;color:#666;margin-top:4px">Ex: 0→30 km = 800€/j, 0→60 km = 1000€/j</div>
+        </div>
+        <div class="form-row" style="margin-top:8px">
           <div class="form-group"><label class="form-label">Latitude</label><input type="text" class="form-input" id="m-lat" placeholder="Auto (depuis adresse)"></div>
           <div class="form-group"><label class="form-label">Longitude</label><input type="text" class="form-input" id="m-lng" placeholder="Auto (depuis adresse)"></div>
         </div>
@@ -252,12 +266,25 @@ let _editId = null;
 let _editMateriels = [];
 let _rating = 0;
 let _siretResults = [];
+let _editTarifs = [];
 let _interventionMode = false;
 let _interventionMarker = null;
 let _interventionCircles = [];
 let map, markersGroup, circlesGroup;
 
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+function getTarifForDist(p, distKm) {
+  const zones = Array.isArray(p.tarifs_zones) ? p.tarifs_zones : [];
+  if (!zones.length) return null;
+  const sorted = [...zones].sort((a, b) => a.rayon_max - b.rayon_max);
+  for (const z of sorted) { if (distKm <= z.rayon_max) return z.tarif; }
+  return null;
+}
+function formatTarifZones(p) {
+  const zones = Array.isArray(p.tarifs_zones) ? p.tarifs_zones : [];
+  if (!zones.length) return '';
+  return zones.sort((a, b) => a.rayon_max - b.rayon_max).map(z => z.rayon_max + 'km→' + z.tarif + '€').join(' / ');
+}
 
 // ═══ MAP ═══
 function initMap() {
@@ -281,11 +308,15 @@ function renderMap() {
     const mats = _materiels[p.id] || [];
     const hasDispo = mats.some(m => m.disponible);
     const color = mats.length === 0 ? '#999' : (hasDispo ? '#e65100' : '#d32f2f');
-    const circle = L.circle([p.lat, p.lng], {
-      radius: (p.rayon_km || 50) * 1000,
-      color: color, fillColor: color, fillOpacity: 0.06, weight: 1.5, dashArray: '6 4'
+    const zones = Array.isArray(p.tarifs_zones) && p.tarifs_zones.length ? p.tarifs_zones : [{ rayon_max: p.rayon_km || 50 }];
+    zones.sort((a, b) => b.rayon_max - a.rayon_max).forEach((z, zi) => {
+      const c = L.circle([p.lat, p.lng], {
+        radius: (z.rayon_max || 50) * 1000,
+        color: color, fillColor: color, fillOpacity: 0.04 + zi * 0.03, weight: 1.5, dashArray: zi === 0 ? '6 4' : ''
+      });
+      if (z.tarif) c.bindTooltip(z.rayon_max + 'km — ' + z.tarif + '€/j', { sticky: true, className: '' });
+      circlesGroup.addLayer(c);
     });
-    circlesGroup.addLayer(circle);
     const marker = L.circleMarker([p.lat, p.lng], {
       radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
     });
@@ -296,6 +327,7 @@ function renderMap() {
       ${p.contact_nom ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom) + (p.contact_tel ? ' — ' + esc(p.contact_tel) : '') + '</div>' : ''}
       ${tonnages ? '<div style="font-size:11px;margin-top:4px">🏗 ' + esc(tonnages) + '</div>' : ''}
       <div style="font-size:11px;margin-top:4px">📏 Rayon: ${p.rayon_km || 50} km</div>
+      ${formatTarifZones(p) ? '<div style="font-size:11px;margin-top:4px;color:#ff8f00">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
       ${p.note ? '<div style="font-size:12px;margin-top:4px;color:#e65100">' + '★'.repeat(p.note) + '<span style="color:#ccc">' + '★'.repeat(5 - p.note) + '</span></div>' : ''}
       <div style="margin-top:6px"><a href="#" onclick="openModal('${p.id}');return false" style="color:#e65100;font-size:11px;font-weight:700">Modifier →</a></div>
     </div>`);
@@ -374,6 +406,8 @@ function renderList() {
         ${mats.length ? '<span class="presta-badge ' + (hasDispo ? 'badge-dispo' : 'badge-indispo') + '">' + (hasDispo ? '✓ Dispo' : '✕ Indispo') + '</span>' : ''}
         ${p.contact_nom ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom) + '</span>' : ''}
       </div>
+      ${formatTarifZones(p) ? '<div style="font-size:0.62rem;color:#ffb300;margin-top:3px">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
+      ${p._dist != null ? '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist/1000).toFixed(1) + ' km' + (getTarifForDist(p, p._dist/1000) != null ? ' → <b style="color:#ffb300">' + getTarifForDist(p, p._dist/1000) + '€/j</b>' : '') + '</div>' : ''}
     </div>`;
   }).join('');
 }
@@ -442,6 +476,7 @@ async function fillFromSiret(idx) {
 function openModal(id) {
   _editId = id || null;
   _editMateriels = [];
+  _editTarifs = [];
   _rating = 0;
   document.getElementById('modal-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
   document.getElementById('btn-delete').style.display = id ? 'inline-block' : 'none';
@@ -470,10 +505,12 @@ function openModal(id) {
       document.getElementById('m-commentaire').value = p.commentaire || '';
       _rating = p.note || 0;
       _editMateriels = (_materiels[id] || []).map(m => ({ ...m }));
+      _editTarifs = Array.isArray(p.tarifs_zones) ? p.tarifs_zones.map(t => ({ ...t })) : [];
     }
   }
   renderStars();
   renderMaterielTab();
+  renderTarifsZones();
   switchTab('infos');
   document.getElementById('modal').classList.add('open');
 }
@@ -526,6 +563,30 @@ function addMaterielRow() {
   renderMaterielTab();
 }
 
+// ═══ TARIFS PAR ZONE ═══
+function renderTarifsZones() {
+  const el = document.getElementById('tarif-zones-list');
+  document.getElementById('tarif-zones-header').style.display = _editTarifs.length ? '' : 'none';
+  if (!_editTarifs.length) { el.innerHTML = ''; return; }
+  el.innerHTML = _editTarifs.sort((a, b) => (a.rayon_max || 0) - (b.rayon_max || 0)).map((t, i) => `<div class="tarif-zone-row">
+    <input type="number" class="form-input" value="${t.rayon_max || ''}" onchange="_editTarifs[${i}].rayon_max=parseInt(this.value)||0;updateRayonFromZones()" placeholder="km" style="padding:4px 8px;font-size:0.75rem" min="1">
+    <input type="number" class="form-input" value="${t.tarif || ''}" onchange="_editTarifs[${i}].tarif=parseFloat(this.value)||0" placeholder="€/jour" style="padding:4px 8px;font-size:0.75rem" min="0">
+    <button class="btn-sm btn-danger" onclick="_editTarifs.splice(${i},1);renderTarifsZones();updateRayonFromZones()">✕</button>
+  </div>`).join('');
+}
+function addTarifZone() {
+  const lastMax = _editTarifs.length ? Math.max(..._editTarifs.map(t => t.rayon_max || 0)) : 0;
+  _editTarifs.push({ rayon_max: lastMax + 30, tarif: 0 });
+  renderTarifsZones();
+  updateRayonFromZones();
+}
+function updateRayonFromZones() {
+  if (_editTarifs.length) {
+    const maxR = Math.max(..._editTarifs.map(t => t.rayon_max || 0));
+    if (maxR > 0) document.getElementById('m-rayon').value = maxR;
+  }
+}
+
 // ═══ SAVE ═══
 async function savePrestataire() {
   const nom = document.getElementById('m-nom').value.trim();
@@ -563,6 +624,7 @@ async function savePrestataire() {
     note: _rating || null,
     note_commentaire: document.getElementById('m-note-comment').value.trim() || null,
     commentaire: document.getElementById('m-commentaire').value.trim() || null,
+    tarifs_zones: _editTarifs.filter(t => t.rayon_max > 0).sort((a, b) => a.rayon_max - b.rayon_max) || null,
     updated_at: new Date().toISOString()
   };
   try {
@@ -677,11 +739,11 @@ function setInterventionPoint(latlng) {
 function exportCSV() {
   if (!_filtered.length) { alert('Rien à exporter.'); return; }
   const csvEsc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Contact', 'Téléphone', 'Email', 'Note', 'Matériels', 'Commentaire'];
+  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Note', 'Matériels', 'Commentaire'];
   const lines = [headers.map(csvEsc).join(';')];
   _filtered.forEach(p => {
     const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? m.tarif_journalier + '€/j' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
-    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, p.contact_nom, p.contact_tel, p.contact_email, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
+    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
