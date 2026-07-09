@@ -320,21 +320,25 @@ function prestaColor(idx) { return PRESTA_COLORS[idx % PRESTA_COLORS.length]; }
 function renderMap() {
   markersGroup.clearLayers();
   circlesGroup.clearLayers();
-  _filtered.forEach((p, pi) => {
-    if (!p.lat || !p.lng) return;
+  const mapPrestas = _prestas.filter(p => p.lat && p.lng);
+  const filteredIds = new Set(_filtered.map(p => p.id));
+  mapPrestas.forEach((p, pi) => {
+    const inFilter = filteredIds.has(p.id);
     const color = prestaColor(pi);
+    const opacity = inFilter ? 1 : 0.25;
     const zones = Array.isArray(p.tarifs_zones) && p.tarifs_zones.length ? p.tarifs_zones : [{ rayon_max: p.rayon_km || 50 }];
     zones.sort((a, b) => b.rayon_max - a.rayon_max).forEach((z, zi) => {
       const c = L.circle([p.lat, p.lng], {
         radius: (z.rayon_max || 50) * 1000,
-        color: color, fillColor: color, fillOpacity: 0.04 + zi * 0.03, weight: 1.5, dashArray: zi === 0 ? '6 4' : ''
+        color: color, fillColor: color, fillOpacity: (0.04 + zi * 0.03) * opacity, weight: 1.5, dashArray: zi === 0 ? '6 4' : '', opacity: opacity
       });
       if (z.tarif) c.bindTooltip(esc(p.nom) + ' — ' + z.rayon_max + 'km — ' + z.tarif + '€', { sticky: true, className: '' });
       circlesGroup.addLayer(c);
     });
     const marker = L.circleMarker([p.lat, p.lng], {
-      radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
+      radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: inFilter ? 0.9 : 0.3, opacity: opacity
     });
+    const mats = _materiels[p.id] || [];
     const tonnages = mats.map(m => m.tonnage ? m.tonnage + 'T' : m.type).join(', ');
     marker.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:200px">
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(p.nom)}</div>
