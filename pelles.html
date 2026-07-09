@@ -306,21 +306,22 @@ function onMapClick(e) {
   setInterventionPoint(e.latlng);
 }
 
+const PRESTA_COLORS = ['#e65100','#1e88e5','#43a047','#8e24aa','#f4511e','#00acc1','#d81b60','#fdd835','#6d4c41','#546e7a','#7cb342','#e53935','#3949ab','#ff8f00','#00897b','#c0ca33'];
+function prestaColor(idx) { return PRESTA_COLORS[idx % PRESTA_COLORS.length]; }
+
 function renderMap() {
   markersGroup.clearLayers();
   circlesGroup.clearLayers();
-  _filtered.forEach(p => {
+  _filtered.forEach((p, pi) => {
     if (!p.lat || !p.lng) return;
-    const mats = _materiels[p.id] || [];
-    const hasDispo = mats.some(m => m.disponible);
-    const color = mats.length === 0 ? '#999' : (hasDispo ? '#e65100' : '#d32f2f');
+    const color = prestaColor(pi);
     const zones = Array.isArray(p.tarifs_zones) && p.tarifs_zones.length ? p.tarifs_zones : [{ rayon_max: p.rayon_km || 50 }];
     zones.sort((a, b) => b.rayon_max - a.rayon_max).forEach((z, zi) => {
       const c = L.circle([p.lat, p.lng], {
         radius: (z.rayon_max || 50) * 1000,
         color: color, fillColor: color, fillOpacity: 0.04 + zi * 0.03, weight: 1.5, dashArray: zi === 0 ? '6 4' : ''
       });
-      if (z.tarif) c.bindTooltip(z.rayon_max + 'km — ' + z.tarif + '€', { sticky: true, className: '' });
+      if (z.tarif) c.bindTooltip(esc(p.nom) + ' — ' + z.rayon_max + 'km — ' + z.tarif + '€', { sticky: true, className: '' });
       circlesGroup.addLayer(c);
     });
     const marker = L.circleMarker([p.lat, p.lng], {
