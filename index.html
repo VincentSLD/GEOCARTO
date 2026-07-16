@@ -3605,16 +3605,17 @@ async function _fetchPprnInfo(lat, lng) {
 }
 
 // Remontées de nappes — lecture pixel WMS BRGM + affichage format Géorisques
+// Fond magenta (0xFF00FF) pour distinguer "hors zone" des gris SLD
 async function fetchNappes(lat, lng) {
   const display = document.getElementById('nappes-zone-display');
   const el = document.getElementById('nappes-zone-text');
   if (display) display.style.display = 'block';
   if (el) { el.innerHTML = '⏳ Chargement…'; el.style.color = 'var(--text-muted)'; el.style.border = '1px solid var(--border)'; }
   try {
-    const d = 0.00005;
+    const d = 0.002;
     const wmsUrl = `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
-      `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(7)},${(lat-d).toFixed(7)},${(lng+d).toFixed(7)},${(lat+d).toFixed(7)}` +
-      `&WIDTH=3&HEIGHT=3&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=`;
+      `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(6)},${(lat-d).toFixed(6)},${(lng+d).toFixed(6)},${(lat+d).toFixed(6)}` +
+      `&WIDTH=21&HEIGHT=21&FORMAT=image/png&TRANSPARENT=FALSE&BGCOLOR=0xFF00FF&STYLES=`;
 
     const resp = await fetch(wmsUrl, { signal: AbortSignal.timeout(10000) });
     const buffer = await resp.arrayBuffer();
@@ -3625,14 +3626,16 @@ async function fetchNappes(lat, lng) {
     URL.revokeObjectURL(blobUrl);
 
     const canvas = document.createElement('canvas');
-    canvas.width = 3; canvas.height = 3;
+    canvas.width = 21; canvas.height = 21;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
-    const [r, g, b, a] = ctx.getImageData(1, 1, 1, 1).data;
+    const [r, g, b] = ctx.getImageData(10, 10, 1, 1).data;
 
     if (!el) return;
 
-    if (a < 30) {
+    // Fond magenta = hors zone (distance au magenta 255,0,255)
+    const distMagenta = Math.sqrt((r - 255) ** 2 + g ** 2 + (b - 255) ** 2);
+    if (distMagenta < 30) {
       el.innerHTML = 'Non concerné par les remontées de nappes';
       el.style.color = '#78909c';
       el.style.border = '1px solid #78909c';
@@ -3640,18 +3643,18 @@ async function fetchNappes(lat, lng) {
     }
 
     const sld = [
-      { expo: 'Zones potentiellement sujettes aux débordements de nappe',           fiab: 'FORTE',    color: '#bd0026', r: 189, g: 0,   b: 38  },
-      { expo: 'Zones potentiellement sujettes aux débordements de nappe',           fiab: 'MOYENNE',  color: '#e32d30', r: 227, g: 45,  b: 48  },
-      { expo: 'Zones potentiellement sujettes aux débordements de nappe',           fiab: 'FAIBLE',   color: '#e35b5d', r: 227, g: 91,  b: 93  },
-      { expo: 'Zones potentiellement sujettes aux débordements de nappe',           fiab: 'INCONNUE', color: '#fee0d2', r: 254, g: 224, b: 210 },
-      { expo: 'Zones potentiellement sujettes aux inondations de cave',             fiab: 'FORTE',    color: '#f4661b', r: 244, g: 102, b: 27  },
-      { expo: 'Zones potentiellement sujettes aux inondations de cave',             fiab: 'MOYENNE',  color: '#ff9632', r: 255, g: 150, b: 50  },
-      { expo: 'Zones potentiellement sujettes aux inondations de cave',             fiab: 'FAIBLE',   color: '#ffb066', r: 255, g: 176, b: 102 },
-      { expo: 'Zones potentiellement sujettes aux inondations de cave',             fiab: 'INCONNUE', color: '#ffcb99', r: 255, g: 203, b: 153 },
-      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',               fiab: 'FORTE',    color: '#555555', r: 85,  g: 85,  b: 85  },
-      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',               fiab: 'MOYENNE',  color: '#888888', r: 136, g: 136, b: 136 },
-      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',               fiab: 'FAIBLE',   color: '#aaaaaa', r: 170, g: 170, b: 170 },
-      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',               fiab: 'INCONNUE', color: '#cccccc', r: 204, g: 204, b: 204 },
+      { expo: 'Zones potentiellement sujettes aux débordements de nappe',  fiab: 'FORTE',    color: '#bd0026', r: 189, g: 0,   b: 38  },
+      { expo: 'Zones potentiellement sujettes aux débordements de nappe',  fiab: 'MOYENNE',  color: '#e32d30', r: 227, g: 45,  b: 48  },
+      { expo: 'Zones potentiellement sujettes aux débordements de nappe',  fiab: 'FAIBLE',   color: '#e35b5d', r: 227, g: 91,  b: 93  },
+      { expo: 'Zones potentiellement sujettes aux débordements de nappe',  fiab: 'INCONNUE', color: '#fee0d2', r: 254, g: 224, b: 210 },
+      { expo: 'Zones potentiellement sujettes aux inondations de cave',    fiab: 'FORTE',    color: '#f4661b', r: 244, g: 102, b: 27  },
+      { expo: 'Zones potentiellement sujettes aux inondations de cave',    fiab: 'MOYENNE',  color: '#ff9632', r: 255, g: 150, b: 50  },
+      { expo: 'Zones potentiellement sujettes aux inondations de cave',    fiab: 'FAIBLE',   color: '#ffb066', r: 255, g: 176, b: 102 },
+      { expo: 'Zones potentiellement sujettes aux inondations de cave',    fiab: 'INCONNUE', color: '#ffcb99', r: 255, g: 203, b: 153 },
+      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',      fiab: 'FORTE',    color: '#555555', r: 85,  g: 85,  b: 85  },
+      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',      fiab: 'MOYENNE',  color: '#888888', r: 136, g: 136, b: 136 },
+      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',      fiab: 'FAIBLE',   color: '#aaaaaa', r: 170, g: 170, b: 170 },
+      { expo: 'Pas de débordement de nappe ni d\'inondation de cave',      fiab: 'INCONNUE', color: '#cccccc', r: 204, g: 204, b: 204 },
     ];
 
     let best = null, bestDist = Infinity;
@@ -3665,7 +3668,7 @@ async function fetchNappes(lat, lng) {
       el.style.color = best.color;
       el.style.border = `1px solid ${best.color}`;
     } else {
-      el.innerHTML = 'Zone non identifiée';
+      el.innerHTML = `Zone non identifiée (RGB: ${r},${g},${b})`;
       el.style.color = '#78909c';
       el.style.border = '1px solid #78909c';
     }
@@ -3721,10 +3724,10 @@ function _nappesReadPixel(wmsUrl) {
         img.onload = () => {
           URL.revokeObjectURL(blobUrl);
           const canvas = document.createElement('canvas');
-          canvas.width = 3; canvas.height = 3;
+          canvas.width = 21; canvas.height = 21;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          res(ctx.getImageData(1, 1, 1, 1).data);
+          res(ctx.getImageData(10, 10, 1, 1).data);
         };
         img.onerror = rej;
         img.src = blobUrl;
@@ -3732,8 +3735,9 @@ function _nappesReadPixel(wmsUrl) {
     });
 }
 
-function _nappesMatchPixel(r, g, b, a) {
-  if (a < 30) return null;
+function _nappesMatchPixel(r, g, b) {
+  const distMagenta = Math.sqrt((r - 255) ** 2 + g ** 2 + (b - 255) ** 2);
+  if (distMagenta < 30) return null;
   let best = null, bestDist = Infinity;
   for (const c of _nappesSld) {
     const dist = Math.sqrt((r - c.r) ** 2 + (g - c.g) ** 2 + (b - c.b) ** 2);
@@ -3745,10 +3749,10 @@ function _nappesMatchPixel(r, g, b, a) {
 async function onNappesMapClick(e) {
   if (!window._nappesQueryActive) return;
   const { lat, lng } = e.latlng;
-  const d = 0.00005;
+  const d = 0.002;
   const wmsUrl = `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
-    `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(7)},${(lat-d).toFixed(7)},${(lng+d).toFixed(7)},${(lat+d).toFixed(7)}` +
-    `&WIDTH=3&HEIGHT=3&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=`;
+    `&LAYERS=REMNAPPE_FIAB&SRS=EPSG:4326&BBOX=${(lng-d).toFixed(6)},${(lat-d).toFixed(6)},${(lng+d).toFixed(6)},${(lat+d).toFixed(6)}` +
+    `&WIDTH=21&HEIGHT=21&FORMAT=image/png&TRANSPARENT=FALSE&BGCOLOR=0xFF00FF&STYLES=`;
 
   const popup = L.popup({ maxWidth: 320 })
     .setLatLng([lat, lng])
@@ -3756,27 +3760,23 @@ async function onNappesMapClick(e) {
     .openOn(window.nappesMap);
 
   try {
-    const [r, g, b, a] = await _nappesReadPixel(wmsUrl);
+    const [r, g, b] = await _nappesReadPixel(wmsUrl);
 
-    if (a < 30) {
+    const best = _nappesMatchPixel(r, g, b);
+    if (!best) {
       popup.setContent('<div style="font-size:0.8rem;color:#78909c;padding:6px;">💧 Non concerné par les remontées de nappes</div>');
       return;
     }
 
-    const best = _nappesMatchPixel(r, g, b, a);
-    if (best) {
-      popup.setContent(`<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;padding:4px;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-          <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${best.color};border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></span>
-          <strong style="color:${best.color};">Remontées de nappes</strong>
-        </div>
-        <div style="font-size:11px;margin-bottom:3px;"><strong>Exposition :</strong> ${best.expo}</div>
-        <div style="font-size:11px;margin-bottom:3px;"><strong>Fiabilité :</strong> ${best.fiab}</div>
-        <div style="font-size:0.7rem;color:#888;margin-top:4px;">Lat : ${lat.toFixed(5)} — Lng : ${lng.toFixed(5)}</div>
-      </div>`);
-    } else {
-      popup.setContent('<div style="font-size:0.8rem;color:#78909c;padding:6px;">Zone non identifiée</div>');
-    }
+    popup.setContent(`<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:12px;max-width:280px;line-height:1.6;padding:4px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${best.color};border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></span>
+        <strong style="color:${best.color};">Remontées de nappes</strong>
+      </div>
+      <div style="font-size:11px;margin-bottom:3px;"><strong>Exposition :</strong> ${best.expo}</div>
+      <div style="font-size:11px;margin-bottom:3px;"><strong>Fiabilité :</strong> ${best.fiab}</div>
+      <div style="font-size:0.7rem;color:#888;margin-top:4px;">Lat : ${lat.toFixed(5)} — Lng : ${lng.toFixed(5)}</div>
+    </div>`);
   } catch (err) {
     popup.setContent(`<div style="font-size:0.8rem;color:#c62828;padding:4px;">⚠️ Erreur : ${err.message}</div>`);
   }
