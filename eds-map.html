@@ -100,6 +100,7 @@
     📄 Documentation Études de sol <span style="font-size:0.6rem;padding:1px 5px;background:#795548;color:#fff;border-radius:4px;font-weight:700;letter-spacing:0.5px;">BETA</span>
   </button>
   <button onclick="adminPromptPassword()" style="padding:6px 12px;background:rgba(230,81,0,0.08);border:1px solid rgba(230,81,0,0.25);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#e65100;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(230,81,0,0.15)'" onmouseout="this.style.background='rgba(230,81,0,0.08)'">🔒 Admin</button>
+  <button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;padding:6px 12px;background:rgba(211,47,47,0.1);border:1px solid rgba(211,47,47,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#d32f2f;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(211,47,47,0.2)'" onmouseout="this.style.background='rgba(211,47,47,0.1)'">✖ Fermer les vues Google</button>
 </div>
 
 <div id="map"></div>
@@ -117,8 +118,6 @@
   <div id="sv-date-badge-eds" style="position:absolute;top:10px;left:10px;z-index:1000;padding:4px 10px;background:rgba(0,0,0,0.65);color:#fff;border-radius:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.3px;pointer-events:none;display:none;">📅 —</div>
 </div>
 <div id="gsat-mini" style="display:none;position:absolute;top:60px;right:10px;width:600px;height:480px;z-index:600;border-radius:10px;border:2px solid rgba(255,255,255,0.7);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;"></div>
-<!-- Bouton fermer les vues Google -->
-<button id="btn-close-gminis" onclick="hideGoogleMinis()" style="display:none;position:fixed;bottom:16px;right:16px;z-index:10000;padding:8px 18px;background:rgba(30,30,30,0.85);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:all 0.2s;" onmouseover="this.style.background='rgba(60,60,60,0.95)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(30,30,30,0.85)';this.style.borderColor='rgba(255,255,255,0.25)'">✖ Fermer les vues Google</button>
 
 <!-- Admin password modal -->
 <div id="admin-pw-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;">
