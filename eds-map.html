@@ -72,9 +72,17 @@
   .admin-filter-bar { padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
   .admin-filter-btn { padding:4px 12px;border-radius:20px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:0.68rem;font-weight:600;font-family:inherit;color:#6b7280;transition:all 0.15s; }
   .admin-filter-btn.active { background:#e65100;color:#fff;border-color:#e65100; }
+  /* Toast notifications */
+  #toast-container{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+  .toast{pointer-events:auto;padding:12px 20px;border-radius:10px;font-family:'Bricolage Grotesque',sans-serif;font-size:0.82rem;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.2);animation:toastIn 0.3s ease,toastOut 0.3s ease 3.7s forwards;max-width:460px;text-align:center;}
+  .toast-success{background:#2e7d32;color:#fff;}
+  .toast-error{background:#c62828;color:#fff;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}
 </style>
 </head>
 <body>
+<div id="toast-container"></div>
 
 <div id="toolbar">
   <div style="font-weight:700;font-size:0.9rem;color:#388e3c;">📍 Carte EDS</div>
@@ -966,7 +974,8 @@ async function gedHandleFiles(fileList) {
   if (progBar) progBar.style.width = '10%';
 
   try {
-    const text = await gedExtractText(f.file, f.ext);
+    const rawText = await gedExtractText(f.file, f.ext);
+    const text = rawText ? rawText.replace(/\x00/g, '') : rawText;
     if (!text || text.length < 20) throw new Error(f.ext === 'pdf' ? 'Aucun texte extrait (PDF scanné ?)' : 'Aucun texte extrait');
 
     if (progBar) progBar.style.width = '20%';
@@ -1028,6 +1037,7 @@ async function gedHandleFiles(fileList) {
       return; // on attend la confirmation
     }
   } catch (e) {
+    showToast(`Erreur d'indexation : ${e.message}`, 'error');
     gedIndexStatus('');
     gedIndexReport([{ name: f.name, type: 'error', msg: e.message }], { indexed: 0, skipped: 0, failed: 1, total: 1 });
     _gedIndexing = false;
@@ -1048,13 +1058,12 @@ async function gedConfirmGeoPosition() {
   try {
     await gedDoIndex(f, hash, text, _geoLat, _geoLng);
   } catch (e) {
+    showToast(`Erreur d'indexation : ${e.message}`, 'error');
     gedIndexReport([{ name: f.name, type: 'error', msg: e.message }], { indexed: 0, skipped: 0, failed: 1, total: 1 });
   }
   _gedPendingIndex = null;
   _gedIndexing = false;
   document.getElementById('ged-file-input').value = '';
-  if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
-  map.invalidateSize({ animate: false });
 }
 
 function gedPickAddr(idx) {
@@ -1081,6 +1090,7 @@ function gedSkipGeoPosition() {
   if (_tempMarker) map.removeLayer(_tempMarker);
   gedIndexStatus(`⏳ Indexation sans position GPS…`);
   gedDoIndex(f, hash, text, null, null).catch(e => {
+    showToast(`Erreur d'indexation : ${e.message}`, 'error');
     gedIndexReport([{ name: f.name, type: 'error', msg: e.message }], { indexed: 0, skipped: 0, failed: 1, total: 1 });
   }).finally(() => {
     _gedPendingIndex = null;
@@ -1107,7 +1117,7 @@ async function gedDoIndex(f, hash, text, lat, lon) {
     if (!er.ok) { const e = await er.json().catch(() => ({})); throw new Error(e.details || e.error || ('embed ' + er.status)); }
     const ej = await er.json();
     if (!ej.embeddings || ej.embeddings.length !== batch.length) throw new Error('embeddings incomplets');
-    ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k], embedding: '[' + emb.join(',') + ']' }));
+    ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k].replace(/\x00/g, '').replace(/\\u0000/g, ''), embedding: '[' + emb.join(',') + ']' }));
     if (progBar) progBar.style.width = (30 + 50 * (b + batch.length) / chunks.length).toFixed(0) + '%';
   }
   if (!rows.length) throw new Error('aucun passage généré');
@@ -1140,11 +1150,44 @@ async function gedDoIndex(f, hash, text, lat, lon) {
   if (progWrap) setTimeout(() => { progWrap.style.display = 'none'; }, 2000);
   _gedIndexing = false;
   document.getElementById('ged-file-input').value = '';
-  // S'assurer que les marqueurs jaunes (EDS) sont toujours visibles
+
+  showToast(`"${f.name}" indexé avec succès`);
+
+  // Recharger les marqueurs EDS pour inclure le nouveau point
+  loadData();
+
+  // Replier la section d'indexation
+  const indexSection = document.getElementById('ged-index-section');
+  if (indexSection) indexSection.style.display = 'none';
+  const indexToggle = indexSection?.previousElementSibling;
+  if (indexToggle) { const arrow = indexToggle.querySelector('span:last-child'); if (arrow) arrow.textContent = '▸'; }
+
+  // Si position GPS : centrer la carte et lancer la recherche autour du point
+  if (lat != null && lon != null) {
+    _gedClickLat = lat;
+    _gedClickLng = lon;
+    const coordsEl = document.getElementById('ged-coords');
+    if (coordsEl) coordsEl.textContent = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+    if (_gedMarker) map.removeLayer(_gedMarker);
+    _gedMarker = L.circleMarker([lat, lon], {
+      radius: 10, color: '#fff', fillColor: '#e65100', fillOpacity: 1, weight: 3,
+    }).addTo(map);
+    map.setView([lat, lon], 15, { animate: true });
+    setTimeout(() => gedSearchFromMap(), 500);
+  }
+
   if (markerGroup && !map.hasLayer(markerGroup)) map.addLayer(markerGroup);
   map.invalidateSize({ animate: false });
-  // Zoomer sur le point indexé
-  if (lat != null && lon != null) map.setView([lat, lon], 15, { animate: true });
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4200);
 }
 
 function gedIndexStatus(msg) {
@@ -1883,7 +1926,8 @@ async function adminStartBulk() {
       }
 
       // Extract text
-      const text = await gedExtractText(fileBlob, it.ext);
+      const rawText = await gedExtractText(fileBlob, it.ext);
+      const text = rawText ? rawText.replace(/\x00/g, '') : rawText;
       fileBlob = null;
       it.file = null;
       if (!text || text.length < 20) throw new Error(it.ext === 'pdf' ? 'PDF scanne ou vide' : 'Aucun texte');
@@ -1905,7 +1949,7 @@ async function adminStartBulk() {
         if (!er.ok) throw new Error('Embedding error');
         const ej = await er.json();
         if (!ej.embeddings) throw new Error('Embeddings vides');
-        ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k], embedding: '[' + emb.join(',') + ']' }));
+        ej.embeddings.forEach((emb, k) => rows.push({ chunk_index: b + k, content: batch[k].replace(/\x00/g, '').replace(/\\u0000/g, ''), embedding: '[' + emb.join(',') + ']' }));
       }
 
       // Delete old chunks if any, update document
