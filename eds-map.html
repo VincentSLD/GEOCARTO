@@ -554,6 +554,7 @@ function renderMarkers(data, onComplete) {
           ${loc ? `<div style="font-size:0.7rem;color:#6b7280;">📍 ${loc}</div>` : ''}
           ${r.notes ? `<div style="font-size:0.72rem;color:#374151;margin-top:5px;padding-top:5px;border-top:1px solid #e5e7eb;white-space:pre-wrap;max-height:110px;overflow-y:auto;">${r.notes}</div>` : ''}
           ${r.dossier ? `<div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;font-style:italic;">${r.dossier}</div>` : ''}
+          <button onclick="window.open('${window.location.origin}/?lat=${lat}&lng=${lng}','_blank')" style="margin-top:8px;width:100%;padding:6px 10px;background:#f5c518;color:#1a1a1a;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#e0b400'" onmouseout="this.style.background='#f5c518'">🔍 Investiguer</button>
         </div>`, { maxWidth: 290 });
         this.openPopup();
       }
