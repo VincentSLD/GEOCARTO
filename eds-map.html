@@ -2241,7 +2241,8 @@ function cancelInvestigate() {
 // Lancer
 loadData();
 loadZones();
-setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; } }, 100);
+setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; filterMarkers(); } }, 500);
+setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; filterMarkers(); } }, 1500);
 </script>
 </body>
 </html>
