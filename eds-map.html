@@ -92,6 +92,10 @@
     Routes
   </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
+  <button id="btn-investigate" onclick="toggleInvestigate()" style="padding:6px 12px;background:rgba(2,119,189,0.1);border:1px solid rgba(2,119,189,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#0277bd;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(2,119,189,0.2)'" onmouseout="if(!window._investActive)this.style.background='rgba(2,119,189,0.1)'">🔍 Investiguer</button>
+  <button id="btn-invest-validate" onclick="validateInvestigate()" style="display:none;padding:6px 12px;background:#0277bd;border:none;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#fff;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#01579b'" onmouseout="this.style.background='#0277bd'">✓ Valider</button>
+  <button id="btn-invest-cancel" onclick="cancelInvestigate()" style="display:none;padding:6px 12px;background:rgba(211,47,47,0.1);border:1px solid rgba(211,47,47,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#d32f2f;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(211,47,47,0.2)'" onmouseout="this.style.background='rgba(211,47,47,0.1)'">✖ Annuler</button>
+  <span id="invest-coords" style="display:none;font-size:0.72rem;color:#0277bd;font-weight:600;"></span>
   <button id="btn-ged" onclick="toggleGedPanel()" style="padding:6px 12px;background:rgba(121,85,72,0.1);border:1px solid rgba(121,85,72,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#795548;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.2s;" onmouseover="this.style.background='rgba(121,85,72,0.2)'" onmouseout="this.style.background='rgba(121,85,72,0.1)'">
     📄 Documentation Études de sol <span style="font-size:0.6rem;padding:1px 5px;background:#795548;color:#fff;border-radius:4px;font-weight:700;letter-spacing:0.5px;">BETA</span>
   </button>
@@ -2183,6 +2187,51 @@ async function adminSavePosition() {
   } catch (e) {
     alert('Erreur : ' + e.message);
   }
+}
+
+// ====== Investiguer — positionner un point et ouvrir GeoCarto ======
+window._investActive = false;
+let _investLat = null, _investLng = null, _investMarker = null;
+
+function toggleInvestigate() {
+  if (window._investActive) { cancelInvestigate(); return; }
+  window._investActive = true;
+  const btn = document.getElementById('btn-investigate');
+  btn.style.background = '#0277bd'; btn.style.color = '#fff';
+  document.getElementById('btn-invest-cancel').style.display = '';
+  document.getElementById('invest-coords').style.display = '';
+  document.getElementById('invest-coords').textContent = 'Cliquez sur la carte…';
+  document.getElementById('map').style.cursor = 'crosshair';
+}
+
+function _onInvestClick(e) {
+  if (!window._investActive || _gedPanelOpen) return;
+  _investLat = e.latlng.lat;
+  _investLng = e.latlng.lng;
+  if (_investMarker) map.removeLayer(_investMarker);
+  _investMarker = L.circleMarker([_investLat, _investLng], {
+    radius: 10, color: '#fff', fillColor: '#0277bd', fillOpacity: 1, weight: 3,
+  }).addTo(map);
+  document.getElementById('invest-coords').textContent = `📍 ${_investLat.toFixed(6)}, ${_investLng.toFixed(6)}`;
+  document.getElementById('btn-invest-validate').style.display = '';
+}
+map.on('click', _onInvestClick);
+
+function validateInvestigate() {
+  if (_investLat == null) return;
+  window.location.href = `${window.location.origin}/?lat=${_investLat.toFixed(10)}&lng=${_investLng.toFixed(10)}`;
+}
+
+function cancelInvestigate() {
+  window._investActive = false;
+  _investLat = null; _investLng = null;
+  if (_investMarker) { map.removeLayer(_investMarker); _investMarker = null; }
+  const btn = document.getElementById('btn-investigate');
+  btn.style.background = 'rgba(2,119,189,0.1)'; btn.style.color = '#0277bd';
+  document.getElementById('btn-invest-validate').style.display = 'none';
+  document.getElementById('btn-invest-cancel').style.display = 'none';
+  document.getElementById('invest-coords').style.display = 'none';
+  document.getElementById('map').style.cursor = '';
 }
 
 // Lancer
