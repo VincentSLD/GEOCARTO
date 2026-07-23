@@ -86,7 +86,7 @@
 
 <div id="toolbar">
   <div style="font-weight:700;font-size:0.9rem;color:#388e3c;">📍 Carte EDS</div>
-  <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="filterMarkers()">
+  <input type="search" name="eds-filter-x" id="eds-search" autocomplete="new-password" readonly placeholder="🔍 Filtrer par nom, ville, référence…" oninput="filterMarkers()" style="width:100%">
   <label>
     <input type="checkbox" id="toggle-roads" checked onchange="toggleRoads(this.checked)" style="accent-color:#1976d2;width:15px;height:15px;cursor:pointer;">
     Routes
@@ -2244,13 +2244,21 @@ function cancelInvestigate() {
 loadData();
 loadZones();
 window._edsSearchManual = false;
-document.getElementById('eds-search').addEventListener('input', () => { window._edsSearchManual = true; });
+document.getElementById('eds-search').addEventListener('focus', function() { this.removeAttribute('readonly'); });
+document.getElementById('eds-search').addEventListener('keydown', () => { window._edsSearchManual = true; });
+document.getElementById('eds-search').addEventListener('paste', () => { window._edsSearchManual = true; });
 function _clearAutofilledSearch() {
   const s = document.getElementById('eds-search');
   if (s && !window._edsSearchManual && s.value) { s.value = ''; filterMarkers(); }
 }
-setTimeout(_clearAutofilledSearch, 500);
-setTimeout(_clearAutofilledSearch, 1500);
+(function _guardLoop(until) {
+  if (Date.now() < until) {
+    _clearAutofilledSearch();
+    requestAnimationFrame(() => _guardLoop(until));
+  } else {
+    document.getElementById('eds-search').removeAttribute('readonly');
+  }
+})(Date.now() + 3000);
 </script>
 </body>
 </html>
