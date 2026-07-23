@@ -92,7 +92,6 @@
     Routes
   </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
-  <button id="btn-google-views" onclick="toggleGoogleViews()" style="padding:6px 12px;background:rgba(25,118,210,0.1);border:1px solid rgba(25,118,210,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#1976d2;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(25,118,210,0.2)'" onmouseout="if(!window._googleViewsActive)this.style.background='rgba(25,118,210,0.1)'">🗺 Vues Google</button>
   <button id="btn-investigate" onclick="toggleInvestigate()" style="padding:6px 12px;background:rgba(245,197,24,0.15);border:1px solid rgba(245,197,24,0.5);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#b8960a;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(245,197,24,0.25)'" onmouseout="if(!window._investActive)this.style.background='rgba(245,197,24,0.15)'">🔍 Investiguer</button>
   <button id="btn-invest-validate" onclick="validateInvestigate()" style="display:none;padding:6px 12px;background:#f5c518;border:none;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#1a1a1a;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#e0b400'" onmouseout="this.style.background='#f5c518'">✓ Valider</button>
   <button id="btn-invest-cancel" onclick="cancelInvestigate()" style="display:none;padding:6px 12px;background:rgba(211,47,47,0.1);border:1px solid rgba(211,47,47,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#d32f2f;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(211,47,47,0.2)'" onmouseout="this.style.background='rgba(211,47,47,0.1)'">✖ Annuler</button>
@@ -414,10 +413,6 @@ function hideGoogleMinis() {
   document.getElementById('streetview-mini').style.display = 'none';
   document.getElementById('gsat-mini').style.display = 'none';
   document.getElementById('btn-close-gminis').style.display = 'none';
-  window._googleViewsActive = false;
-  const btn = document.getElementById('btn-google-views');
-  if (btn) { btn.style.background = 'rgba(25,118,210,0.1)'; btn.style.color = '#1976d2'; }
-  if (!window._investActive) document.getElementById('map').style.cursor = '';
 }
 
 function showGoogleMinis(lat, lng) {
@@ -559,11 +554,13 @@ function renderMarkers(data, onComplete) {
           ${loc ? `<div style="font-size:0.7rem;color:#6b7280;">📍 ${loc}</div>` : ''}
           ${r.notes ? `<div style="font-size:0.72rem;color:#374151;margin-top:5px;padding-top:5px;border-top:1px solid #e5e7eb;white-space:pre-wrap;max-height:110px;overflow-y:auto;">${r.notes}</div>` : ''}
           ${r.dossier ? `<div style="font-size:0.62rem;color:#9ca3af;margin-top:4px;font-style:italic;">${r.dossier}</div>` : ''}
-          <button onclick="window.open('${window.location.origin}/?lat=${lat}&lng=${lng}','_blank')" style="margin-top:8px;width:100%;padding:6px 10px;background:#f5c518;color:#1a1a1a;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#e0b400'" onmouseout="this.style.background='#f5c518'">🔍 Investiguer</button>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button onclick="window.open('${window.location.origin}/?lat=${lat}&lng=${lng}','_blank')" style="flex:1;padding:6px 10px;background:#f5c518;color:#1a1a1a;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#e0b400'" onmouseout="this.style.background='#f5c518'">🔍 Investiguer</button>
+            <button onclick="showGoogleMinis(${lat},${lng})" style="flex:1;padding:6px 10px;background:#1976d2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">🗺 Vues Google</button>
+          </div>
         </div>`, { maxWidth: 290 });
         this.openPopup();
       }
-      if (window._googleViewsActive) showGoogleMinis(lat, lng);
     });
     markers.push(m);
   });
@@ -2193,27 +2190,6 @@ async function adminSavePosition() {
     alert('Erreur : ' + e.message);
   }
 }
-
-// ====== Vues Google — mode toggle ======
-window._googleViewsActive = false;
-
-function toggleGoogleViews() {
-  window._googleViewsActive = !window._googleViewsActive;
-  const btn = document.getElementById('btn-google-views');
-  if (window._googleViewsActive) {
-    btn.style.background = '#1976d2'; btn.style.color = '#fff';
-    document.getElementById('map').style.cursor = 'crosshair';
-  } else {
-    btn.style.background = 'rgba(25,118,210,0.1)'; btn.style.color = '#1976d2';
-    hideGoogleMinis();
-    if (!window._investActive) document.getElementById('map').style.cursor = '';
-  }
-}
-
-map.on('click', function(e) {
-  if (!window._googleViewsActive || _gedPanelOpen) return;
-  showGoogleMinis(e.latlng.lat, e.latlng.lng);
-});
 
 // ====== Investiguer — positionner un point et ouvrir GeoCarto ======
 window._investActive = false;
