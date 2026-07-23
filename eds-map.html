@@ -86,7 +86,7 @@
 
 <div id="toolbar">
   <div style="font-weight:700;font-size:0.9rem;color:#388e3c;">📍 Carte EDS</div>
-  <input type="search" id="eds-search" name="eds-filter-x" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="filterMarkers()" autocomplete="off" data-lpignore="true" data-form-type="other">
+  <input type="text" id="eds-search" placeholder="🔍 Filtrer par nom, ville, référence…" oninput="filterMarkers()">
   <label>
     <input type="checkbox" id="toggle-roads" checked onchange="toggleRoads(this.checked)" style="accent-color:#1976d2;width:15px;height:15px;cursor:pointer;">
     Routes
@@ -2241,6 +2241,7 @@ function cancelInvestigate() {
 // Lancer
 loadData();
 loadZones();
+setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; } }, 100);
 </script>
 </body>
 </html>
