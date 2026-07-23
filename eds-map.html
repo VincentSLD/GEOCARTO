@@ -92,7 +92,7 @@
     Routes
   </label>
   <span id="count" style="font-size:0.72rem;color:#6b7280;"></span>
-  <button id="btn-investigate" onclick="toggleInvestigate()" style="padding:6px 12px;background:rgba(245,197,24,0.15);border:1px solid rgba(245,197,24,0.5);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#b8960a;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(245,197,24,0.25)'" onmouseout="if(!window._investActive)this.style.background='rgba(245,197,24,0.15)'">🔍 Investiguer</button>
+  <button id="btn-investigate" onclick="toggleInvestigate()" style="padding:7px 18px;background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border:2px solid #f5c518;border-radius:10px;cursor:pointer;font-size:0.85rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#f5c518;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(26,26,26,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">Investiguer ➜</button>
   <button id="btn-invest-validate" onclick="validateInvestigate()" style="display:none;padding:6px 12px;background:#f5c518;border:none;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#1a1a1a;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='#e0b400'" onmouseout="this.style.background='#f5c518'">✓ Valider</button>
   <button id="btn-invest-cancel" onclick="cancelInvestigate()" style="display:none;padding:6px 12px;background:rgba(211,47,47,0.1);border:1px solid rgba(211,47,47,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;color:#d32f2f;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='rgba(211,47,47,0.2)'" onmouseout="this.style.background='rgba(211,47,47,0.1)'">✖ Annuler</button>
   <span id="invest-coords" style="display:none;font-size:0.72rem;color:#0277bd;font-weight:600;"></span>
@@ -2199,7 +2199,7 @@ function toggleInvestigate() {
   if (window._investActive) { cancelInvestigate(); return; }
   window._investActive = true;
   const btn = document.getElementById('btn-investigate');
-  btn.style.background = '#f5c518'; btn.style.color = '#1a1a1a';
+  btn.style.background = '#f5c518'; btn.style.color = '#1a1a1a'; btn.style.borderColor = '#f5c518';
   document.getElementById('btn-invest-cancel').style.display = '';
   document.getElementById('invest-coords').style.display = '';
   document.getElementById('invest-coords').textContent = 'Cliquez sur la carte…';
@@ -2231,7 +2231,7 @@ function cancelInvestigate() {
   _investLat = null; _investLng = null;
   if (_investMarker) { map.removeLayer(_investMarker); _investMarker = null; }
   const btn = document.getElementById('btn-investigate');
-  btn.style.background = 'rgba(245,197,24,0.15)'; btn.style.color = '#b8960a';
+  btn.style.background = 'linear-gradient(135deg,#1a1a1a 0%,#333 100%)'; btn.style.color = '#f5c518'; btn.style.borderColor = '#f5c518';
   document.getElementById('btn-invest-validate').style.display = 'none';
   document.getElementById('btn-invest-cancel').style.display = 'none';
   document.getElementById('invest-coords').style.display = 'none';
