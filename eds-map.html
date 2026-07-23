@@ -2198,6 +2198,8 @@ let _investLat = null, _investLng = null, _investMarker = null;
 function toggleInvestigate() {
   if (window._investActive) { cancelInvestigate(); return; }
   window._investActive = true;
+  _clearAutofilledSearch();
+  setTimeout(_clearAutofilledSearch, 300);
   const btn = document.getElementById('btn-investigate');
   btn.style.background = '#f5c518'; btn.style.color = '#1a1a1a'; btn.style.borderColor = '#f5c518';
   document.getElementById('btn-invest-cancel').style.display = '';
@@ -2241,8 +2243,14 @@ function cancelInvestigate() {
 // Lancer
 loadData();
 loadZones();
-setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; filterMarkers(); } }, 500);
-setTimeout(() => { const s = document.getElementById('eds-search'); if (s) { s.value = ''; filterMarkers(); } }, 1500);
+window._edsSearchManual = false;
+document.getElementById('eds-search').addEventListener('input', () => { window._edsSearchManual = true; });
+function _clearAutofilledSearch() {
+  const s = document.getElementById('eds-search');
+  if (s && !window._edsSearchManual && s.value) { s.value = ''; filterMarkers(); }
+}
+setTimeout(_clearAutofilledSearch, 500);
+setTimeout(_clearAutofilledSearch, 1500);
 </script>
 </body>
 </html>
