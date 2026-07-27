@@ -241,8 +241,9 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Nom du contact</label><input type="text" class="form-input" id="m-contact-nom"></div>
           <div class="form-group"><label class="form-label">Fonction</label><input type="text" class="form-input" id="m-contact-fonction"></div>
         </div>
-        <div class="form-row">
+        <div class="form-row-3">
           <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel"></div>
+          <div class="form-group"><label class="form-label">Tél. bureau</label><input type="tel" class="form-input" id="m-contact-tel-bureau"></div>
           <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email"></div>
         </div>
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:12px 0;">
@@ -251,8 +252,9 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Nom du contact</label><input type="text" class="form-input" id="m-contact-nom2"></div>
           <div class="form-group"><label class="form-label">Fonction</label><input type="text" class="form-input" id="m-contact-fonction2"></div>
         </div>
-        <div class="form-row">
+        <div class="form-row-3">
           <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel2"></div>
+          <div class="form-group"><label class="form-label">Tél. bureau</label><input type="tel" class="form-input" id="m-contact-tel-bureau2"></div>
           <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email2"></div>
         </div>
       </div>
@@ -362,8 +364,8 @@ function renderMap() {
     marker.bindPopup(`<div style="font-family:'Bricolage Grotesque',sans-serif;min-width:200px">
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(p.nom)}</div>
       <div style="font-size:11px;color:#666;margin-bottom:6px">${esc(p.ville || '')} ${p.cp || ''}</div>
-      ${p.contact_nom ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom) + (p.contact_tel ? ' — ' + esc(p.contact_tel) : '') + '</div>' : ''}
-      ${p.contact_nom2 ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom2) + (p.contact_tel2 ? ' — ' + esc(p.contact_tel2) : '') + '</div>' : ''}
+      ${p.contact_nom ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom) + (p.contact_tel ? ' — ' + esc(p.contact_tel) : '') + (p.contact_tel_bureau ? ' / ' + esc(p.contact_tel_bureau) : '') + '</div>' : ''}
+      ${p.contact_nom2 ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom2) + (p.contact_tel2 ? ' — ' + esc(p.contact_tel2) : '') + (p.contact_tel_bureau2 ? ' / ' + esc(p.contact_tel_bureau2) : '') + '</div>' : ''}
       ${tonnages ? '<div style="font-size:11px;margin-top:4px">🏗 ' + esc(tonnages) + '</div>' : ''}
       <div style="font-size:11px;margin-top:4px">📏 Rayon: ${p.rayon_km || 50} km</div>
       ${formatTarifZones(p) ? '<div style="font-size:11px;margin-top:4px;color:#ff8f00">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
@@ -519,7 +521,7 @@ function openPanel(id) {
   _rating = 0;
   document.getElementById('panel-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
   document.getElementById('btn-delete').style.display = id ? 'inline-block' : 'none';
-  ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-email','m-contact-nom2','m-contact-fonction2','m-contact-tel2','m-contact-email2','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
+  ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-tel-bureau','m-contact-email','m-contact-nom2','m-contact-fonction2','m-contact-tel2','m-contact-tel-bureau2','m-contact-email2','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
     const el = document.getElementById(f);
     if (el) el.value = f === 'm-rayon' ? '50' : '';
   });
@@ -540,10 +542,12 @@ function openPanel(id) {
       document.getElementById('m-contact-nom').value = p.contact_nom || '';
       document.getElementById('m-contact-fonction').value = p.contact_fonction || '';
       document.getElementById('m-contact-tel').value = p.contact_tel || '';
+      document.getElementById('m-contact-tel-bureau').value = p.contact_tel_bureau || '';
       document.getElementById('m-contact-email').value = p.contact_email || '';
       document.getElementById('m-contact-nom2').value = p.contact_nom2 || '';
       document.getElementById('m-contact-fonction2').value = p.contact_fonction2 || '';
       document.getElementById('m-contact-tel2').value = p.contact_tel2 || '';
+      document.getElementById('m-contact-tel-bureau2').value = p.contact_tel_bureau2 || '';
       document.getElementById('m-contact-email2').value = p.contact_email2 || '';
       document.getElementById('m-note-comment').value = p.note_commentaire || '';
       document.getElementById('m-commentaire').value = p.commentaire || '';
@@ -664,10 +668,12 @@ async function savePrestataire() {
     contact_nom: document.getElementById('m-contact-nom').value.trim() || null,
     contact_fonction: document.getElementById('m-contact-fonction').value.trim() || null,
     contact_tel: document.getElementById('m-contact-tel').value.trim() || null,
+    contact_tel_bureau: document.getElementById('m-contact-tel-bureau').value.trim() || null,
     contact_email: document.getElementById('m-contact-email').value.trim() || null,
     contact_nom2: document.getElementById('m-contact-nom2').value.trim() || null,
     contact_fonction2: document.getElementById('m-contact-fonction2').value.trim() || null,
     contact_tel2: document.getElementById('m-contact-tel2').value.trim() || null,
+    contact_tel_bureau2: document.getElementById('m-contact-tel-bureau2').value.trim() || null,
     contact_email2: document.getElementById('m-contact-email2').value.trim() || null,
     note: _rating || null,
     note_commentaire: document.getElementById('m-note-comment').value.trim() || null,
@@ -820,11 +826,11 @@ function setInterventionPoint(latlng) {
 function exportCSV() {
   if (!_filtered.length) { alert('Rien à exporter.'); return; }
   const csvEsc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Rayon validé', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Contact 2', 'Téléphone 2', 'Email 2', 'Note', 'Matériels', 'Commentaire'];
+  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Rayon validé', 'Tarifs zones', 'Contact', 'Téléphone', 'Tél. bureau', 'Email', 'Contact 2', 'Téléphone 2', 'Tél. bureau 2', 'Email 2', 'Note', 'Matériels', 'Commentaire'];
   const lines = [headers.map(csvEsc).join(';')];
   _filtered.forEach(p => {
     const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? '+' + m.tarif_journalier + '€' : ''].filter(Boolean).join(' ')).join(' | ');
-    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, p.rayon_valide ? 'Oui' : 'Non', formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.contact_nom2, p.contact_tel2, p.contact_email2, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
+    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, p.rayon_valide ? 'Oui' : 'Non', formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_tel_bureau, p.contact_email, p.contact_nom2, p.contact_tel2, p.contact_tel_bureau2, p.contact_email2, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
