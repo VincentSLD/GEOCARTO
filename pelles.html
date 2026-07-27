@@ -228,6 +228,7 @@ textarea.form-input{resize:vertical;min-height:60px}
 
       <!-- TAB CONTACT -->
       <div id="tab-contact" style="display:none">
+        <div style="font-weight:600;font-size:0.8rem;color:#1976d2;margin-bottom:6px;">Contact principal</div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Nom du contact</label><input type="text" class="form-input" id="m-contact-nom"></div>
           <div class="form-group"><label class="form-label">Fonction</label><input type="text" class="form-input" id="m-contact-fonction"></div>
@@ -235,6 +236,16 @@ textarea.form-input{resize:vertical;min-height:60px}
         <div class="form-row">
           <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel"></div>
           <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email"></div>
+        </div>
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:12px 0;">
+        <div style="font-weight:600;font-size:0.8rem;color:#1976d2;margin-bottom:6px;">Contact secondaire</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nom du contact</label><input type="text" class="form-input" id="m-contact-nom2"></div>
+          <div class="form-group"><label class="form-label">Fonction</label><input type="text" class="form-input" id="m-contact-fonction2"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel2"></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email2"></div>
         </div>
       </div>
 
@@ -344,6 +355,7 @@ function renderMap() {
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(p.nom)}</div>
       <div style="font-size:11px;color:#666;margin-bottom:6px">${esc(p.ville || '')} ${p.cp || ''}</div>
       ${p.contact_nom ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom) + (p.contact_tel ? ' — ' + esc(p.contact_tel) : '') + '</div>' : ''}
+      ${p.contact_nom2 ? '<div style="font-size:11px">👤 ' + esc(p.contact_nom2) + (p.contact_tel2 ? ' — ' + esc(p.contact_tel2) : '') + '</div>' : ''}
       ${tonnages ? '<div style="font-size:11px;margin-top:4px">🏗 ' + esc(tonnages) + '</div>' : ''}
       <div style="font-size:11px;margin-top:4px">📏 Rayon: ${p.rayon_km || 50} km</div>
       ${formatTarifZones(p) ? '<div style="font-size:11px;margin-top:4px;color:#ff8f00">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
@@ -380,7 +392,8 @@ function applyFilters() {
     if (search && !(p.nom || '').toLowerCase().includes(search)
       && !(p.ville || '').toLowerCase().includes(search)
       && !(p.siret || '').includes(search)
-      && !(p.contact_nom || '').toLowerCase().includes(search)) return false;
+      && !(p.contact_nom || '').toLowerCase().includes(search)
+      && !(p.contact_nom2 || '').toLowerCase().includes(search)) return false;
     const mats = _materiels[p.id] || [];
     if (tonnage) {
       const hasTonnage = mats.some(m => {
@@ -425,6 +438,7 @@ function renderList() {
         <span class="presta-badge badge-rayon">📏 ${p.rayon_km || 50} km</span>
         ${mats.length ? '<span class="presta-badge ' + (hasDispo ? 'badge-dispo' : 'badge-indispo') + '">' + (hasDispo ? '✓ Dispo' : '✕ Indispo') + '</span>' : ''}
         ${p.contact_nom ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom) + '</span>' : ''}
+        ${p.contact_nom2 ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom2) + '</span>' : ''}
       </div>
       ${formatTarifZones(p) ? '<div style="font-size:0.62rem;color:#ffb300;margin-top:3px">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
       ${p._dist != null ? '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist/1000).toFixed(1) + ' km' + (getTarifForDist(p, p._dist/1000) != null ? ' → <b style="color:#ffb300">' + getTarifForDist(p, p._dist/1000) + '€</b>' : '') + '</div>' : ''}
@@ -498,7 +512,7 @@ function openPanel(id) {
   _rating = 0;
   document.getElementById('panel-title').textContent = id ? '🚧 Modifier prestataire' : '🚧 Nouveau prestataire';
   document.getElementById('btn-delete').style.display = id ? 'inline-block' : 'none';
-  ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-email','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
+  ['m-nom','m-siret','m-adresse','m-cp','m-ville','m-rayon','m-lat','m-lng','m-contact-nom','m-contact-fonction','m-contact-tel','m-contact-email','m-contact-nom2','m-contact-fonction2','m-contact-tel2','m-contact-email2','m-note-comment','m-commentaire','m-siret-search'].forEach(f => {
     const el = document.getElementById(f);
     if (el) el.value = f === 'm-rayon' ? '50' : '';
   });
@@ -518,6 +532,10 @@ function openPanel(id) {
       document.getElementById('m-contact-fonction').value = p.contact_fonction || '';
       document.getElementById('m-contact-tel').value = p.contact_tel || '';
       document.getElementById('m-contact-email').value = p.contact_email || '';
+      document.getElementById('m-contact-nom2').value = p.contact_nom2 || '';
+      document.getElementById('m-contact-fonction2').value = p.contact_fonction2 || '';
+      document.getElementById('m-contact-tel2').value = p.contact_tel2 || '';
+      document.getElementById('m-contact-email2').value = p.contact_email2 || '';
       document.getElementById('m-note-comment').value = p.note_commentaire || '';
       document.getElementById('m-commentaire').value = p.commentaire || '';
       _rating = p.note || 0;
@@ -641,6 +659,10 @@ async function savePrestataire() {
     contact_fonction: document.getElementById('m-contact-fonction').value.trim() || null,
     contact_tel: document.getElementById('m-contact-tel').value.trim() || null,
     contact_email: document.getElementById('m-contact-email').value.trim() || null,
+    contact_nom2: document.getElementById('m-contact-nom2').value.trim() || null,
+    contact_fonction2: document.getElementById('m-contact-fonction2').value.trim() || null,
+    contact_tel2: document.getElementById('m-contact-tel2').value.trim() || null,
+    contact_email2: document.getElementById('m-contact-email2').value.trim() || null,
     note: _rating || null,
     note_commentaire: document.getElementById('m-note-comment').value.trim() || null,
     commentaire: document.getElementById('m-commentaire').value.trim() || null,
@@ -792,11 +814,11 @@ function setInterventionPoint(latlng) {
 function exportCSV() {
   if (!_filtered.length) { alert('Rien à exporter.'); return; }
   const csvEsc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Note', 'Matériels', 'Commentaire'];
+  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Contact 2', 'Téléphone 2', 'Email 2', 'Note', 'Matériels', 'Commentaire'];
   const lines = [headers.map(csvEsc).join(';')];
   _filtered.forEach(p => {
     const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? '+' + m.tarif_journalier + '€' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
-    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
+    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.contact_nom2, p.contact_tel2, p.contact_email2, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
