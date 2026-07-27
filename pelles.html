@@ -42,8 +42,8 @@ html,body{width:100%;height:100%;font-family:'Bricolage Grotesque',sans-serif;ov
 .presta-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.62rem;font-weight:700}
 .badge-tonnage{background:rgba(230,81,0,0.15);color:#e65100}
 .badge-rayon{background:rgba(33,150,243,0.15);color:#42a5f5}
-.badge-dispo{background:rgba(56,142,60,0.15);color:#66bb6a}
-.badge-indispo{background:rgba(211,47,47,0.15);color:#ef5350}
+.badge-rayon-ok{background:rgba(56,142,60,0.15);color:#66bb6a}
+.badge-rayon-est{background:rgba(255,152,0,0.15);color:#ff9800}
 .stars{color:#e65100;font-size:0.75rem;letter-spacing:1px}
 .stars-empty{color:#555}
 #map{position:absolute;top:0;left:340px;right:420px;bottom:0}
@@ -76,7 +76,7 @@ textarea.form-input{resize:vertical;min-height:60px}
 .siret-result{padding:8px 12px;cursor:pointer;border-bottom:1px solid #333;font-size:0.75rem;transition:background 0.1s}
 .siret-result:hover{background:#333}
 .siret-result:last-child{border-bottom:none}
-.materiel-row{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
+.materiel-row{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #333;font-size:0.75rem}
 .materiel-header{font-weight:700;color:#999;font-size:0.65rem;text-transform:uppercase;border-bottom:2px solid #444}
 .tarif-zone-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #333;font-size:0.75rem}
 .tarif-zone-header{font-weight:700;color:#999;font-size:0.68rem;text-transform:uppercase;border-bottom:2px solid #444}
@@ -117,10 +117,10 @@ textarea.form-input{resize:vertical;min-height:60px}
         <option value="5">&lt; 5T</option>
         <option value="8">&lt; 8T</option>
       </select>
-      <select class="filter-select" id="f-dispo" onchange="applyFilters()">
-        <option value="">Disponibilité</option>
-        <option value="oui">Disponible</option>
-        <option value="non">Indisponible</option>
+      <select class="filter-select" id="f-rayon-valide" onchange="applyFilters()">
+        <option value="">Rayon validé ?</option>
+        <option value="oui">Validé</option>
+        <option value="non">Estimé</option>
       </select>
       <select class="filter-select" id="f-prof" onchange="applyFilters()">
         <option value="">Prof. max</option>
@@ -198,6 +198,12 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Code postal</label><input type="text" class="form-input" id="m-cp" maxlength="5"></div>
           <div class="form-group"><label class="form-label">Ville</label><input type="text" class="form-input" id="m-ville"></div>
           <div class="form-group"><label class="form-label">Rayon d'action (km)</label><input type="number" class="form-input" id="m-rayon" value="50" min="1" max="500"></div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:6px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;color:#aaa;white-space:nowrap">
+              <input type="checkbox" id="m-rayon-valide" style="accent-color:#66bb6a;width:16px;height:16px;cursor:pointer">
+              Rayon validé
+            </label>
+          </div>
         </div>
         <div style="margin-top:12px;padding:12px;border:1px solid #444;border-radius:8px;background:#252525">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -220,7 +226,7 @@ textarea.form-input{resize:vertical;min-height:60px}
       <!-- TAB MATERIEL -->
       <div id="tab-materiel" style="display:none">
         <div class="materiel-header materiel-row">
-          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Plus-value €</span><span>Dispo</span><span></span>
+          <span>Type / Modèle</span><span>Tonnage</span><span>Prof. max</span><span>Plus-value €</span><span></span>
         </div>
         <div id="materiel-list"></div>
         <button class="btn-sm" onclick="addMaterielRow()" style="margin-top:8px">+ Ajouter un engin</button>
@@ -384,7 +390,7 @@ async function loadData() {
 function applyFilters() {
   const search = (document.getElementById('f-search').value || '').toLowerCase().trim();
   const tonnage = document.getElementById('f-tonnage').value;
-  const dispo = document.getElementById('f-dispo').value;
+  const rayonValide = document.getElementById('f-rayon-valide').value;
   const profMin = parseFloat(document.getElementById('f-prof').value) || 0;
   const tarifMax = parseFloat(document.getElementById('f-tarif').value) || 0;
   const noteMin = parseInt(document.getElementById('f-note').value) || 0;
@@ -404,8 +410,8 @@ function applyFilters() {
       });
       if (!hasTonnage) return false;
     }
-    if (dispo === 'oui' && !mats.some(m => m.disponible)) return false;
-    if (dispo === 'non' && mats.some(m => m.disponible)) return false;
+    if (rayonValide === 'oui' && !p.rayon_valide) return false;
+    if (rayonValide === 'non' && p.rayon_valide) return false;
     if (profMin > 0 && !mats.some(m => (parseFloat(m.profondeur_max) || 0) <= profMin)) return false;
     if (tarifMax > 0 && !mats.some(m => (parseFloat(m.tarif_journalier) || 0) <= tarifMax && (parseFloat(m.tarif_journalier) || 0) > 0)) return false;
     if (noteMin > 0 && (p.note || 0) < noteMin) return false;
@@ -423,9 +429,8 @@ function renderList() {
   el.innerHTML = _filtered.map(p => {
     const mats = _materiels[p.id] || [];
     const tonnages = [...new Set(mats.map(m => m.tonnage ? m.tonnage + 'T' : '').filter(Boolean))];
-    const hasDispo = mats.some(m => m.disponible);
     const starsHtml = p.note ? '<span class="stars">' + '★'.repeat(p.note) + '</span><span class="stars-empty">' + '★'.repeat(5 - p.note) + '</span>' : '';
-    return `<div class="presta-card${_editId === p.id ? ' active' : ''}" onclick="focusPresta('${p.id}')">
+    return `<div class="presta-card${_editId === p.id ? ' active' : ''}" onclick="focusPresta('${p.id}')" title="${esc(p.commentaire || '')}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="presta-name">${esc(p.nom)}</div>
@@ -436,7 +441,7 @@ function renderList() {
       <div class="presta-meta">
         ${tonnages.map(t => '<span class="presta-badge badge-tonnage">' + esc(t) + '</span>').join('')}
         <span class="presta-badge badge-rayon">📏 ${p.rayon_km || 50} km</span>
-        ${mats.length ? '<span class="presta-badge ' + (hasDispo ? 'badge-dispo' : 'badge-indispo') + '">' + (hasDispo ? '✓ Dispo' : '✕ Indispo') + '</span>' : ''}
+        <span class="presta-badge ${p.rayon_valide ? 'badge-rayon-ok' : 'badge-rayon-est'}">${p.rayon_valide ? '✓ Validé' : '~ Estimé'}</span>
         ${p.contact_nom ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom) + '</span>' : ''}
         ${p.contact_nom2 ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom2) + '</span>' : ''}
       </div>
@@ -516,6 +521,7 @@ function openPanel(id) {
     const el = document.getElementById(f);
     if (el) el.value = f === 'm-rayon' ? '50' : '';
   });
+  document.getElementById('m-rayon-valide').checked = false;
   document.getElementById('siret-results').style.display = 'none';
   if (id) {
     const p = _prestas.find(x => x.id === id);
@@ -526,6 +532,7 @@ function openPanel(id) {
       document.getElementById('m-cp').value = p.cp || '';
       document.getElementById('m-ville').value = p.ville || '';
       document.getElementById('m-rayon').value = p.rayon_km || 50;
+      document.getElementById('m-rayon-valide').checked = !!p.rayon_valide;
       document.getElementById('m-lat').value = p.lat || '';
       document.getElementById('m-lng').value = p.lng || '';
       document.getElementById('m-contact-nom').value = p.contact_nom || '';
@@ -589,16 +596,12 @@ function renderMaterielTab() {
     <input type="number" class="form-input" value="${m.tonnage || ''}" onchange="_editMateriels[${i}].tonnage=parseFloat(this.value)||null" placeholder="T" style="padding:4px 8px;font-size:0.75rem">
     <input type="number" class="form-input" value="${m.profondeur_max || ''}" onchange="_editMateriels[${i}].profondeur_max=parseFloat(this.value)||null" placeholder="m" style="padding:4px 8px;font-size:0.75rem">
     <input type="number" class="form-input" value="${m.tarif_journalier || ''}" onchange="_editMateriels[${i}].tarif_journalier=parseFloat(this.value)||null" placeholder="+€" style="padding:4px 8px;font-size:0.75rem">
-    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.72rem">
-      <input type="checkbox" ${m.disponible !== false ? 'checked' : ''} onchange="_editMateriels[${i}].disponible=this.checked" style="accent-color:#e65100">
-      Oui
-    </label>
     <button class="btn-sm btn-danger" onclick="_editMateriels.splice(${i},1);renderMaterielTab()">✕</button>
   </div>`).join('');
 }
 
 function addMaterielRow() {
-  _editMateriels.push({ type: '', modele: '', tonnage: null, profondeur_max: null, tarif_journalier: null, disponible: true, commentaire: '' });
+  _editMateriels.push({ type: '', modele: '', tonnage: null, profondeur_max: null, tarif_journalier: null, commentaire: '' });
   renderMaterielTab();
 }
 
@@ -655,6 +658,7 @@ async function savePrestataire() {
     ville: document.getElementById('m-ville').value.trim() || null,
     lat, lng,
     rayon_km: parseInt(document.getElementById('m-rayon').value) || 50,
+    rayon_valide: document.getElementById('m-rayon-valide').checked,
     contact_nom: document.getElementById('m-contact-nom').value.trim() || null,
     contact_fonction: document.getElementById('m-contact-fonction').value.trim() || null,
     contact_tel: document.getElementById('m-contact-tel').value.trim() || null,
@@ -685,7 +689,7 @@ async function savePrestataire() {
       const matRows = _editMateriels.map(m => ({
         prestataire_id: prestaId, type: m.type || 'Pelle', modele: m.modele || null,
         tonnage: m.tonnage, profondeur_max: m.profondeur_max,
-        tarif_journalier: m.tarif_journalier, disponible: m.disponible !== false,
+        tarif_journalier: m.tarif_journalier,
         commentaire: m.commentaire || null
       }));
       const { error: e2 } = await sb.from('pelles_materiels').insert(matRows);
@@ -814,11 +818,11 @@ function setInterventionPoint(latlng) {
 function exportCSV() {
   if (!_filtered.length) { alert('Rien à exporter.'); return; }
   const csvEsc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Contact 2', 'Téléphone 2', 'Email 2', 'Note', 'Matériels', 'Commentaire'];
+  const headers = ['Nom', 'SIRET', 'Adresse', 'CP', 'Ville', 'Rayon km', 'Rayon validé', 'Tarifs zones', 'Contact', 'Téléphone', 'Email', 'Contact 2', 'Téléphone 2', 'Email 2', 'Note', 'Matériels', 'Commentaire'];
   const lines = [headers.map(csvEsc).join(';')];
   _filtered.forEach(p => {
-    const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? '+' + m.tarif_journalier + '€' : '', m.disponible ? 'dispo' : 'indispo'].filter(Boolean).join(' ')).join(' | ');
-    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.contact_nom2, p.contact_tel2, p.contact_email2, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
+    const mats = (_materiels[p.id] || []).map(m => [m.type, m.tonnage ? m.tonnage + 'T' : '', m.tarif_journalier ? '+' + m.tarif_journalier + '€' : ''].filter(Boolean).join(' ')).join(' | ');
+    lines.push([p.nom, p.siret, p.adresse, p.cp, p.ville, p.rayon_km, p.rayon_valide ? 'Oui' : 'Non', formatTarifZones(p), p.contact_nom, p.contact_tel, p.contact_email, p.contact_nom2, p.contact_tel2, p.contact_email2, p.note ? p.note + '/5' : '', mats, p.commentaire].map(csvEsc).join(';'));
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
