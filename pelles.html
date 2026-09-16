@@ -132,15 +132,15 @@ textarea.form-input{resize:vertical;min-height:60px}
       <input type="number" class="filter-input" id="f-tarif" placeholder="PV max €" style="max-width:100px" oninput="applyFilters()" title="Plus-value matériel max €">
     </div>
     <div class="filter-row">
-      <select class="filter-select" id="f-note" onchange="applyFilters()">
+      <select class="filter-select" id="f-note" onchange="applyFilters()" style="flex:1">
         <option value="">Toutes notes</option>
         <option value="5">★★★★★ (5)</option>
         <option value="4">★★★★ (4+)</option>
         <option value="3">★★★ (3+)</option>
       </select>
-      <button class="btn-sm" id="btn-intervention" onclick="toggleInterventionMode()" style="flex:1">📍 Point d'intervention</button>
       <button class="btn-sm" onclick="exportCSV()">⤓ CSV</button>
     </div>
+    <button class="btn-sm" id="btn-intervention" onclick="toggleInterventionMode()" style="width:100%;padding:8px">📍 Point d'intervention</button>
   </div>
   <div id="sidebar-list"></div>
   <div class="sidebar-footer">
@@ -832,18 +832,14 @@ function colorForPresta(id) {
 }
 
 function routeInfoHtml(p) {
-  if (p._dist == null) return '';
-  const tarif = getTarifForDist(p, p._dist / 1000);
-  const tarifHtml = tarif != null ? ' → <b style="color:#ffb300">' + tarif + '€</b>' : '';
-  let road = '';
   if (p._duration != null) {
-    road = ' · <span style="color:#66d9c0;font-weight:700">🛣 ' + (p._roadDist / 1000).toFixed(1) + ' km · ⏱ ' + fmtDuration(p._duration) + '</span>';
-  } else if (p._routePending) {
-    road = ' · <span style="color:#888">⏱ calcul…</span>';
-  } else if (p._routeFailed) {
-    road = ' · <span style="color:#888">⏱ n/a</span>';
+    const tarif = getTarifForDist(p, p._roadDist / 1000);
+    const tarifHtml = tarif != null ? ' → <b style="color:#ffb300">' + tarif + '€</b>' : '';
+    return '<div style="font-size:0.65rem;color:#66d9c0;font-weight:700;margin-top:2px">🛣 ' + (p._roadDist / 1000).toFixed(1) + ' km · ⏱ ' + fmtDuration(p._duration) + tarifHtml + '</div>';
   }
-  return '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist / 1000).toFixed(1) + ' km à vol d\'oiseau' + road + tarifHtml + '</div>';
+  if (p._routePending) return '<div style="font-size:0.65rem;color:#888;margin-top:2px">⏱ calcul de l\'itinéraire…</div>';
+  if (p._routeFailed) return '<div style="font-size:0.65rem;color:#888;margin-top:2px">⏱ itinéraire indisponible</div>';
+  return '';
 }
 
 async function fetchRoute(fromLat, fromLng, toLat, toLng) {
