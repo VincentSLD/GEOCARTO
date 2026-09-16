@@ -305,6 +305,8 @@ let _editTarifs = [];
 let _interventionMode = false;
 let _interventionMarker = null;
 let _interventionCircles = [];
+let _routeLayers = {};
+let _routeToken = 0;
 let map, markersGroup, circlesGroup;
 
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
@@ -471,7 +473,7 @@ function renderList() {
         ${p.contact_nom2 ? '<span style="font-size:0.65rem;color:#888">👤 ' + esc(p.contact_nom2) + '</span>' : ''}
       </div>
       ${formatTarifZones(p) ? '<div style="font-size:0.62rem;color:#ffb300;margin-top:3px">💰 ' + esc(formatTarifZones(p)) + '</div>' : ''}
-      ${p._dist != null ? '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist/1000).toFixed(1) + ' km' + (getTarifForDist(p, p._dist/1000) != null ? ' → <b style="color:#ffb300">' + getTarifForDist(p, p._dist/1000) + '€</b>' : '') + '</div>' : ''}
+      ${routeInfoHtml(p)}
     </div>`;
   }).join('');
 }
@@ -806,10 +808,113 @@ function clearIntervention() {
   if (_interventionMarker) { map.removeLayer(_interventionMarker); _interventionMarker = null; }
   _interventionCircles.forEach(c => map.removeLayer(c));
   _interventionCircles = [];
+  _routeToken++;
+  Object.values(_routeLayers).forEach(l => map.removeLayer(l));
+  _routeLayers = {};
   applyFilters();
 }
 
+// ═══ ROUTAGE (temps de trajet réel via OSRM) ═══
+const ROUTE_LIMIT = 20; // nb max de trajets routiers calculés (protège le serveur public)
+
+function fmtDuration(s) {
+  if (s == null) return '';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60), mm = m % 60;
+  return h + ' h' + (mm ? ' ' + String(mm).padStart(2, '0') : '');
+}
+
+function colorForPresta(id) {
+  const mapPrestas = _prestas.filter(p => p.lat && p.lng);
+  const i = mapPrestas.findIndex(p => p.id === id);
+  return i >= 0 ? prestaColor(i) : '#00bcd4';
+}
+
+function routeInfoHtml(p) {
+  if (p._dist == null) return '';
+  const tarif = getTarifForDist(p, p._dist / 1000);
+  const tarifHtml = tarif != null ? ' → <b style="color:#ffb300">' + tarif + '€</b>' : '';
+  let road = '';
+  if (p._duration != null) {
+    road = ' · <span style="color:#66d9c0;font-weight:700">🛣 ' + (p._roadDist / 1000).toFixed(1) + ' km · ⏱ ' + fmtDuration(p._duration) + '</span>';
+  } else if (p._routePending) {
+    road = ' · <span style="color:#888">⏱ calcul…</span>';
+  } else if (p._routeFailed) {
+    road = ' · <span style="color:#888">⏱ n/a</span>';
+  }
+  return '<div style="font-size:0.65rem;color:#42a5f5;margin-top:2px">📍 ' + (p._dist / 1000).toFixed(1) + ' km à vol d\'oiseau' + road + tarifHtml + '</div>';
+}
+
+async function fetchRoute(fromLat, fromLng, toLat, toLng) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const d = await r.json();
+    if (d.code !== 'Ok' || !d.routes || !d.routes.length) throw new Error('no route');
+    const route = d.routes[0];
+    return { duration: route.duration, distance: route.distance, coords: route.geometry.coordinates };
+  } finally { clearTimeout(t); }
+}
+
+function drawRoute(p, token) {
+  if (token !== _routeToken || !p._routeCoords) return;
+  if (_routeLayers[p.id]) map.removeLayer(_routeLayers[p.id]);
+  const latlngs = p._routeCoords.map(c => [c[1], c[0]]); // GeoJSON = [lng,lat]
+  const color = colorForPresta(p.id);
+  const line = L.polyline(latlngs, { color, weight: 4, opacity: 0.8 });
+  line.bindTooltip(`${esc(p.nom)} — 🛣 ${(p._roadDist / 1000).toFixed(1)} km · ⏱ ${fmtDuration(p._duration)}`, { sticky: true });
+  line.on('mouseover', () => line.setStyle({ weight: 7, opacity: 1 }));
+  line.on('mouseout', () => line.setStyle({ weight: 4, opacity: 0.8 }));
+  _routeLayers[p.id] = line.addTo(map);
+}
+
+function resortByTravelTime() {
+  _filtered.sort((a, b) => {
+    const da = a._duration == null ? Infinity : a._duration;
+    const db = b._duration == null ? Infinity : b._duration;
+    if (da !== db) return da - db;
+    return (a._dist || 0) - (b._dist || 0);
+  });
+  renderList();
+}
+
+async function computeRoutes(list, latlng, token) {
+  const queue = list.slice();
+  const worker = async () => {
+    while (queue.length) {
+      if (token !== _routeToken) return;
+      const p = queue.shift();
+      try {
+        const route = await fetchRoute(p.lat, p.lng, latlng.lat, latlng.lng);
+        if (token !== _routeToken) return;
+        p._duration = route.duration;
+        p._roadDist = route.distance;
+        p._routeCoords = route.coords;
+        p._routePending = false;
+        drawRoute(p, token);
+      } catch (e) {
+        if (token !== _routeToken) return;
+        p._routePending = false;
+        p._routeFailed = true;
+      }
+      if (token === _routeToken) renderList();
+    }
+  };
+  const N = Math.min(4, queue.length);
+  await Promise.all(Array.from({ length: N }, worker));
+  if (token !== _routeToken) return;
+  resortByTravelTime();
+}
+
 function setInterventionPoint(latlng) {
+  _routeToken++;
+  const routeToken = _routeToken;
+  Object.values(_routeLayers).forEach(l => map.removeLayer(l));
+  _routeLayers = {};
   if (_interventionMarker) map.removeLayer(_interventionMarker);
   _interventionCircles.forEach(c => map.removeLayer(c));
   _interventionCircles = [];
@@ -824,11 +929,13 @@ function setInterventionPoint(latlng) {
     return { ...p, _dist: dist };
   }).sort((a, b) => a._dist - b._dist);
   _filtered = covering;
+  const routeTargets = covering.slice(0, ROUTE_LIMIT);
+  routeTargets.forEach(p => { p._routePending = true; });
   renderList();
   renderMap();
   document.getElementById('count-badge').textContent = covering.length;
   document.getElementById('count-filtered').textContent = `(couvrent ce point)`;
-  document.getElementById('intervention-bar').innerHTML = `<span>📍 Point d'intervention — <b>${covering.length}</b> prestataire${covering.length > 1 ? 's' : ''} couvr${covering.length > 1 ? 'ent' : 'e'} cette zone</span><button onclick="clearIntervention()">✕ Annuler</button>`;
+  document.getElementById('intervention-bar').innerHTML = `<span>📍 Point d'intervention — <b>${covering.length}</b> prestataire${covering.length > 1 ? 's' : ''} couvr${covering.length > 1 ? 'ent' : 'e'} cette zone${covering.length ? ' — <span style="opacity:.85">tri par temps de trajet</span>' : ''}</span><button onclick="clearIntervention()">✕ Annuler</button>`;
   covering.forEach(p => {
     const c = L.circle([p.lat, p.lng], {
       radius: (p.rayon_km || 50) * 1000,
@@ -841,6 +948,7 @@ function setInterventionPoint(latlng) {
     bounds.extend(latlng);
     map.fitBounds(bounds.pad(0.2));
   }
+  if (routeTargets.length) computeRoutes(routeTargets, latlng, routeToken);
 }
 
 // ═══ EXPORT CSV ═══
