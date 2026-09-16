@@ -245,7 +245,7 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel"></div>
           <div class="form-group"><label class="form-label">Tél. bureau</label><input type="tel" class="form-input" id="m-contact-tel-bureau"></div>
         </div>
-        <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email"></div>
+        <div class="form-group"><label class="form-label">Email</label><div style="display:flex;gap:6px"><input type="email" class="form-input" id="m-contact-email" style="flex:1"><button type="button" class="btn-sm" onclick="copyEmail('m-contact-email', this)" title="Copier l'email">📋 Copier</button></div></div>
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:12px 0;">
         <div style="font-weight:600;font-size:0.8rem;color:#1976d2;margin-bottom:6px;">Contact secondaire</div>
         <div class="form-row">
@@ -256,7 +256,7 @@ textarea.form-input{resize:vertical;min-height:60px}
           <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" id="m-contact-tel2"></div>
           <div class="form-group"><label class="form-label">Tél. bureau</label><input type="tel" class="form-input" id="m-contact-tel-bureau2"></div>
         </div>
-        <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="m-contact-email2"></div>
+        <div class="form-group"><label class="form-label">Email</label><div style="display:flex;gap:6px"><input type="email" class="form-input" id="m-contact-email2" style="flex:1"><button type="button" class="btn-sm" onclick="copyEmail('m-contact-email2', this)" title="Copier l'email">📋 Copier</button></div></div>
       </div>
 
       <!-- TAB NOTES -->
@@ -308,6 +308,27 @@ let _interventionCircles = [];
 let map, markersGroup, circlesGroup;
 
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+function copyEmail(id, btn) {
+  const val = (document.getElementById(id).value || '').trim();
+  if (!val) return;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = '✓ Copié';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(val).then(done).catch(() => fallbackCopy(val, done));
+  } else {
+    fallbackCopy(val, done);
+  }
+}
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); cb(); } catch (e) {}
+  document.body.removeChild(ta);
+}
 function getTarifForDist(p, distKm) {
   const zones = Array.isArray(p.tarifs_zones) ? p.tarifs_zones : [];
   if (!zones.length) return null;
