@@ -51,6 +51,45 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 <script src="lib/leaflet-rotate.js"></script>
+<script>
+/* Fonds de carte WMS BRGM/Géorisques résilients : chaque tuile est chargée en
+   DIRECT d'abord ; si elle échoue (réseau filtré, CORS), elle est rechargée via
+   le proxy serveur /api/geo. Les postes non filtrés ne sont pas ralentis. */
+(function () {
+  if (!window.L || !L.TileLayer || !L.TileLayer.WMS) return;
+  var HOSTS = ['brgm.fr', 'georisques.gouv.fr'];
+  function isGeo(u) {
+    try { var h = new URL(u, location.href).hostname; return HOSTS.some(function (d) { return h === d || h.endsWith('.' + d); }); }
+    catch (e) { return false; }
+  }
+  L.TileLayer.WMS.prototype.createTile = function (coords, done) {
+    var layer = this;
+    var tile = document.createElement('img');
+    var directUrl = this.getTileUrl(coords);
+    var geo = isGeo(directUrl);
+    var triedProxy = false;
+    tile.onload = function () { layer._tileOnLoad(done, tile); };
+    tile.onerror = function (e) {
+      if (geo && !triedProxy) {
+        triedProxy = true; // secours : relais serveur pour cette tuile
+        tile.src = '/api/geo?url=' + encodeURIComponent(directUrl);
+      } else {
+        layer._tileOnError(done, tile, e);
+      }
+    };
+    if (this.options.crossOrigin || this.options.crossOrigin === '') {
+      tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+    }
+    if (typeof this.options.referrerPolicy === 'string') {
+      tile.referrerPolicy = this.options.referrerPolicy;
+    }
+    tile.alt = '';
+    tile.setAttribute('role', 'presentation');
+    tile.src = directUrl;
+    return tile;
+  };
+})();
+</script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEML_DjFD6gcbcrjdn7yzdYQiplcDE_QU&libraries=marker&callback=Function.prototype&loading=async" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
