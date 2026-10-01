@@ -1,7 +1,7 @@
 /* Service Worker GéoCarto — installabilité PWA + secours hors-ligne léger.
    Ne PAS intercepter les requêtes tierces (Supabase, tuiles, CDN, API) :
    l'application dynamique continue de fonctionner normalement en ligne. */
-const VERSION = 'geocarto-v1';
+const VERSION = 'geocarto-v2';
 const APP_SHELL = [
   '/', '/index.html', '/pelles.html', '/eds-map.html', '/import-eds.html',
   '/manifest.webmanifest',
@@ -28,6 +28,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // tiers : laisser passer
+  if (url.pathname.startsWith('/api/')) return;    // API dynamique (dont le proxy) : jamais de cache SW
 
   // Pages (navigations) : réseau d'abord, cache en secours
   if (req.mode === 'navigate') {

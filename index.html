@@ -16,25 +16,30 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 <script>
-/* Proxy auto des appels BRGM / Géorisques : contourne les filtrages réseau, les
-   extensions et les restrictions CORS des postes clients. Toute requête fetch vers
-   *.brgm.fr ou georisques.gouv.fr est relayée par la fonction serveur /api/geo. */
+/* Accès BRGM / Géorisques résilient : appel DIRECT d'abord (plein débit sur les
+   postes non filtrés), et bascule AUTOMATIQUE sur le proxy serveur /api/geo
+   uniquement si l'appel direct échoue (filtrage réseau, extension, CORS…).
+   Les postes qui fonctionnaient ne sont donc pas ralentis. */
 (function () {
   if (window.__geoProxyInstalled) return;
   window.__geoProxyInstalled = true;
   var PROXY = '/api/geo?url=';
   var HOSTS = ['brgm.fr', 'georisques.gouv.fr'];
   var _fetch = window.fetch.bind(window);
+  function isGeo(u) {
+    try { var h = new URL(u).hostname; return HOSTS.some(function (d) { return h === d || h.endsWith('.' + d); }); }
+    catch (e) { return false; }
+  }
   window.fetch = function (input, init) {
-    try {
-      var url = (typeof input === 'string') ? input : (input && input.url);
-      if (url && /^https?:\/\//i.test(url)) {
-        var host = new URL(url).hostname;
-        if (HOSTS.some(function (d) { return host === d || host.endsWith('.' + d); })) {
-          return _fetch(PROXY + encodeURIComponent(url), init);
-        }
-      }
-    } catch (e) {}
+    var url = (typeof input === 'string') ? input : (input && input.url);
+    if (url && /^https?:\/\//i.test(url) && isGeo(url)) {
+      return _fetch(input, init).catch(function () {
+        // Secours : relais serveur, avec un init SANS le signal déjà expiré.
+        var init2 = {};
+        if (init) { for (var k in init) { if (k !== 'signal') init2[k] = init[k]; } }
+        return _fetch(PROXY + encodeURIComponent(url), init2);
+      });
+    }
     return _fetch(input, init);
   };
 })();
@@ -1938,8 +1943,9 @@
       </div>
       <div style="margin:0.5rem 0 1.5rem;">
         <div style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Légende — Source : BRGM / Géorisques</div>
-        <img src="/api/geo?url=https%3A%2F%2Fmapsref.brgm.fr%2Fwxs%2Fgeorisques%2Frisques%3Fversion%3D1.3.0%26service%3DWMS%26request%3DGetLegendGraphic%26sld_version%3D1.1.0%26layer%3DREMNAPPE_FIAB%26format%3Dimage%2Fpng%26STYLE%3Ddefault"
+        <img src="https://mapsref.brgm.fr/wxs/georisques/risques?version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=REMNAPPE_FIAB&format=image/png&STYLE=default"
              alt="Légende remontées de nappes"
+             onerror="if(!this.dataset.px){this.dataset.px='1';this.src='/api/geo?url='+encodeURIComponent('https://mapsref.brgm.fr/wxs/georisques/risques?version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=REMNAPPE_FIAB&format=image/png&STYLE=default');}"
              style="max-width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff;">
       </div>
       </div><!-- /capture-nappes -->
@@ -4533,6 +4539,7 @@ function setupMaps(lat, lng) {
 
   // Load WMS GetLegendGraphic for geology
   const legendUrls = [
+    `https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=GEOLOGIE&FORMAT=image/png&WIDTH=20&HEIGHT=16`,
     '/api/geo?url=' + encodeURIComponent('https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=GEOLOGIE&FORMAT=image/png&WIDTH=20&HEIGHT=16'),
   ];
   const legendImg = document.getElementById('geol-legend-img');
