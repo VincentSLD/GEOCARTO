@@ -49,23 +49,50 @@ export default async function handler(req, res) {
     for (const vv of vals) target.searchParams.append(k, vv);
   }
 
-  try {
-    const upstream = await fetch(target.toString(), {
+  const accept = req.headers['accept'] || '*/*';
+
+  async function grab(urlStr) {
+    const up = await fetch(urlStr, {
       headers: {
         'User-Agent': 'GeoCarto-Proxy/1.0 (+https://geocarto.vercel.app)',
-        'Accept': req.headers['accept'] || '*/*',
+        'Accept': accept,
       },
       signal: AbortSignal.timeout(25000),
     });
+    const buf = Buffer.from(await up.arrayBuffer());
+    const ct = up.headers.get('content-type') || 'application/octet-stream';
+    return { status: up.status, ct, buf };
+  }
 
-    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
-    res.setHeader('Content-Type', ct);
+  // Le WAF du geocache BRGM renvoie une page HTML « Request Rejected » (souvent
+  // en HTTP 200) au lieu du contenu attendu. On la détecte pour pouvoir réessayer.
+  function wafRejected(r) {
+    const head = r.buf.slice(0, 1500).toString('utf8');
+    return /Request Rejected|The requested URL was rejected|Support ID/i.test(head);
+  }
+
+  const isBrgm = target.hostname === 'brgm.fr' || target.hostname.endsWith('.brgm.fr');
+
+  try {
+    let r = await grab(target.toString());
+
+    // Contournement WAF BRGM : si le HTTPS est rejeté, on retente en HTTP.
+    // C'est sûr ici car l'appel se fait côté SERVEUR (le navigateur ne parle
+    // qu'à /api/geo en HTTPS → aucun « mixed content »).
+    if (isBrgm && target.protocol === 'https:' && wafRejected(r)) {
+      const httpTarget = new URL(target.toString());
+      httpTarget.protocol = 'http:';
+      try {
+        const r2 = await grab(httpTarget.toString());
+        if (!wafRejected(r2)) r = r2;
+      } catch (e) { /* on conserve la réponse HTTPS d'origine */ }
+    }
+
+    res.setHeader('Content-Type', r.ct);
     // Cache court côté CDN Vercel : soulage les serveurs BRGM et accélère les
     // requêtes répétées (mêmes points, mêmes tuiles).
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-
-    const buf = Buffer.from(await upstream.arrayBuffer());
-    return res.status(upstream.status).send(buf);
+    return res.status(r.status).send(r.buf);
   } catch (e) {
     const msg = e && e.name === 'TimeoutError' ? 'délai dépassé' : (e && e.message) || 'échec';
     return res.status(502).json({ error: 'Proxy BRGM/Géorisques : ' + msg, host: target.hostname });
