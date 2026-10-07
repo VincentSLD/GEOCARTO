@@ -1863,7 +1863,7 @@
           <button class="btn-screenshot" onclick="captureElement('capture-infogeol','INFOGEOL',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-          ⏳ Interrogation InfoTerre (BD Charm-50)…
+          ⏳ Interrogation InfoTerre (géologie 1/50 000 + harmonisée)…
         </div>
         <div id="geol-info-content" style="display:none;">
           <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
@@ -1879,12 +1879,21 @@
             </span>
             <span style="font-weight:600;color:#795548;">Nom carte :</span>
             <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
-            <span style="font-weight:600;color:#795548;">Notation :</span>
+            <span style="font-weight:600;color:#795548;">Notation (carte 1/50 000) :</span>
             <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
+            <span style="font-weight:600;color:#1565c0;" title="Carte géologique harmonisée BD Charm-50 — correspond au fond de carte affiché">Notation (harmonisée) :</span>
+            <span id="geol-notation-harm" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#1565c0;">—</span>
             <span style="font-weight:600;color:#795548;">Notation &lt;1km :</span>
             <span id="geol-notation-1km" style="font-family:monospace;font-weight:600;font-size:0.82rem;color:#795548;">—</span>
-            <span style="font-weight:600;color:#795548;">Description :</span>
+            <span style="font-weight:600;color:#795548;">Description (1/50 000) :</span>
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
+            <span style="font-weight:600;color:#1565c0;">Description (harmonisée) :</span>
+            <span id="geol-description-harm" style="color:var(--text-primary);line-height:1.5;">—</span>
+          </div>
+          <div style="font-size:0.66rem;color:var(--text-muted);margin-top:8px;line-height:1.4;">
+            <b>Carte 1/50 000</b> : notation de la carte géologique papier scannée (SCAN_GEOL50).
+            <b style="color:#1565c0;">Harmonisée</b> : BD Charm‑50, correspond au fond de carte affiché.
+            Un écart entre les deux est normal (produits différents) ; près d'un contact, l'étiquette lue sur la carte peut aussi appartenir au polygone voisin.
           </div>
         </div>
         <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
@@ -3176,7 +3185,7 @@ async function investigate() {
   if (_geoLoading) _geoLoading.style.display = 'block';
   if (_geoError) _geoError.style.display = 'none';
   if (_geoContent) _geoContent.style.display = 'none';
-  ['geol-num-carte','geol-nom-carte','geol-notation','geol-description'].forEach(id => {
+  ['geol-num-carte','geol-nom-carte','geol-notation','geol-notation-harm','geol-description','geol-description-harm'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '—';
   });
@@ -7212,6 +7221,25 @@ function populateGeolFields(carte, nom, notation, description) {
   document.getElementById('geol-description').textContent = description || '—';
 }
 
+// Interroge une couche géologique InfoTerre (GetFeatureInfo) au point (x,y) Lambert-93
+async function gfiGeol(layer, x, y) {
+  const d = 500; // demi-côté de la BBOX en mètres
+  const bbox = `${x - d},${y - d},${x + d},${y + d}`;
+  const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+    `&LAYERS=${layer}&QUERY_LAYERS=${layer}&SRS=EPSG:2154` +
+    `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
+    `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const xml = await resp.text();
+  return {
+    carte:       extractGmlField(xml, 'carte'),
+    nom:         extractGmlField(xml, 'nom'),
+    notation:    fixBrgmNotation(extractGmlField(xml, 'notation')),
+    description: extractGmlField(xml, 'description'),
+  };
+}
+
 async function fetchGeologicalInfo(lat, lng) {
   const loading  = document.getElementById('geol-info-loading');
   const errorDiv = document.getElementById('geol-info-error');
@@ -7220,40 +7248,39 @@ async function fetchGeologicalInfo(lat, lng) {
   errorDiv.style.display = 'none';
   contentDiv.style.display = 'none';
 
-  try {
-    // Conversion WGS84 → Lambert-93
-    const { x, y } = wgs84ToLambert93(lat, lng);
-    const d = 500; // demi-côté de la BBOX en mètres
-    const bbox = `${x - d},${y - d},${x + d},${y + d}`;
-    const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-      `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-      `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
-      `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+  const { x, y } = wgs84ToLambert93(lat, lng);
+  // Deux produits BRGM en parallèle :
+  //  - SCAN_GEOL50 : carte géologique papier scannée 1/50 000
+  //  - GEOL50_HARM : BD Charm-50 harmonisée (= le fond de carte affiché)
+  const results = await Promise.allSettled([
+    gfiGeol('SCAN_GEOL50', x, y),
+    gfiGeol('GEOL50_HARM', x, y),
+  ]);
+  const scan = results[0].status === 'fulfilled' ? results[0].value : null;
+  const harm = results[1].status === 'fulfilled' ? results[1].value : null;
+  const hasScan = scan && (scan.carte || scan.nom || scan.notation || scan.description);
+  const hasHarm = harm && (harm.notation || harm.description);
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
-
-    const carte    = extractGmlField(xml, 'carte');
-    const nom      = extractGmlField(xml, 'nom');
-    const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
-    const descr    = extractGmlField(xml, 'description');
-
-    if (carte || nom || notation || descr) {
-      populateGeolFields(carte, nom, notation, descr);
-    } else {
-      loading.style.display = 'none';
-      errorDiv.innerHTML = '⚠️ Aucune donnée géologique trouvée pour ce point.';
-      errorDiv.style.display = 'block';
-    }
-  } catch(e) {
-    loading.style.display = 'none';
-    const isDown = e.message?.includes('503') || e.message?.includes('Failed to fetch') || e.name === 'AbortError' || e.name === 'TimeoutError';
-    errorDiv.innerHTML = isDown
-      ? '⚠️ Service InfoTerre (BRGM) temporairement indisponible.'
-      : `⚠️ Erreur BRGM : ${e.message}`;
-    errorDiv.style.display = 'block';
+  if (hasScan || hasHarm) {
+    // N° carte / nom / notation / description « carte papier » = SCAN_GEOL50
+    populateGeolFields(
+      (scan && scan.carte) || '',
+      (scan && scan.nom) || '',
+      (scan && scan.notation) || '',
+      (scan && scan.description) || ''
+    );
+    // Notation / description harmonisées = GEOL50_HARM
+    document.getElementById('geol-notation-harm').textContent = (harm && harm.notation) || '—';
+    document.getElementById('geol-description-harm').textContent = (harm && harm.description) || '—';
+    return;
   }
+
+  loading.style.display = 'none';
+  const anyRejected = results.some(r => r.status === 'rejected');
+  errorDiv.innerHTML = anyRejected
+    ? '⚠️ Service InfoTerre (BRGM) temporairement indisponible.'
+    : '⚠️ Aucune donnée géologique trouvée pour ce point.';
+  errorDiv.style.display = 'block';
 }
 
 // ====== Notations géologiques dans un rayon de 1 km ======
