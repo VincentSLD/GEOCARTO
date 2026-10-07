@@ -1863,7 +1863,7 @@
           <button class="btn-screenshot" onclick="captureElement('capture-infogeol','INFOGEOL',true)" title="Capturer" style="padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
         </div>
         <div id="geol-info-loading" style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
-          ⏳ Interrogation InfoTerre (géologie 1/50 000 + harmonisée)…
+          ⏳ Interrogation InfoTerre (BD Charm-50 harmonisée)…
         </div>
         <div id="geol-info-content" style="display:none;">
           <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.8rem;align-items:baseline;">
@@ -1879,21 +1879,15 @@
             </span>
             <span style="font-weight:600;color:#795548;">Nom carte :</span>
             <span id="geol-nom-carte" style="color:var(--text-primary);font-weight:500;">—</span>
-            <span style="font-weight:600;color:#795548;">Notation (carte 1/50 000) :</span>
+            <span style="font-weight:600;color:#795548;">Notation :</span>
             <span id="geol-notation" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#5d4037;">—</span>
-            <span style="font-weight:600;color:#1565c0;" title="Carte géologique harmonisée BD Charm-50 — correspond au fond de carte affiché">Notation (harmonisée) :</span>
-            <span id="geol-notation-harm" style="font-family:monospace;font-weight:700;font-size:0.9rem;color:#1565c0;">—</span>
             <span style="font-weight:600;color:#795548;">Notation &lt;1km :</span>
             <span id="geol-notation-1km" style="font-family:monospace;font-weight:600;font-size:0.82rem;color:#795548;">—</span>
-            <span style="font-weight:600;color:#795548;">Description (1/50 000) :</span>
+            <span style="font-weight:600;color:#795548;">Description :</span>
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
-            <span style="font-weight:600;color:#1565c0;">Description (harmonisée) :</span>
-            <span id="geol-description-harm" style="color:var(--text-primary);line-height:1.5;">—</span>
           </div>
           <div style="font-size:0.66rem;color:var(--text-muted);margin-top:8px;line-height:1.4;">
-            <b>Carte 1/50 000</b> : notation de la carte géologique papier scannée (SCAN_GEOL50).
-            <b style="color:#1565c0;">Harmonisée</b> : BD Charm‑50, correspond au fond de carte affiché.
-            Un écart entre les deux est normal (produits différents) ; près d'un contact, l'étiquette lue sur la carte peut aussi appartenir au polygone voisin.
+            Notation issue de la <b>BD Charm‑50 harmonisée</b> (correspond au fond de carte affiché). N° et nom de la feuille 1/50 000 indiqués ci‑dessus.
           </div>
         </div>
         <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
@@ -3185,7 +3179,7 @@ async function investigate() {
   if (_geoLoading) _geoLoading.style.display = 'block';
   if (_geoError) _geoError.style.display = 'none';
   if (_geoContent) _geoContent.style.display = 'none';
-  ['geol-num-carte','geol-nom-carte','geol-notation','geol-notation-harm','geol-description','geol-description-harm'].forEach(id => {
+  ['geol-num-carte','geol-nom-carte','geol-notation','geol-description'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '—';
   });
@@ -7160,9 +7154,10 @@ function copyGeolNumCarte() {
   });
 }
 
-// ====== CARTE GÉOLOGIQUE BRGM — InfoTerre GetFeatureInfo (SCAN_GEOL50 — BD Charm-50) ======
+// ====== CARTE GÉOLOGIQUE BRGM — InfoTerre GetFeatureInfo ======
 // Endpoint : https://infoterre.brgm.fr/services/gfi  (WMS GetFeatureInfo)
-// Couche : SCAN_GEOL50 — carte géologique harmonisée 1/50 000
+// Couches : GEOL50_HARM (BD Charm-50 harmonisée) → notation + description affichées
+//           SCAN_GEOL50 (carte papier scannée 1/50 000) → N° + nom de la feuille
 // Champs : notation, description, carte (n°), nom (feuille)
 // Projection requise : EPSG:2154 (Lambert-93)
 
@@ -7249,29 +7244,22 @@ async function fetchGeologicalInfo(lat, lng) {
   contentDiv.style.display = 'none';
 
   const { x, y } = wgs84ToLambert93(lat, lng);
-  // Deux produits BRGM en parallèle :
-  //  - SCAN_GEOL50 : carte géologique papier scannée 1/50 000
-  //  - GEOL50_HARM : BD Charm-50 harmonisée (= le fond de carte affiché)
+  // Notation + description : BD Charm-50 harmonisée (= le fond de carte affiché).
+  // N° + nom de la feuille 1/50 000 : carte scannée SCAN_GEOL50.
   const results = await Promise.allSettled([
-    gfiGeol('SCAN_GEOL50', x, y),
     gfiGeol('GEOL50_HARM', x, y),
+    gfiGeol('SCAN_GEOL50', x, y),
   ]);
-  const scan = results[0].status === 'fulfilled' ? results[0].value : null;
-  const harm = results[1].status === 'fulfilled' ? results[1].value : null;
-  const hasScan = scan && (scan.carte || scan.nom || scan.notation || scan.description);
-  const hasHarm = harm && (harm.notation || harm.description);
+  const harm = results[0].status === 'fulfilled' ? results[0].value : null;
+  const scan = results[1].status === 'fulfilled' ? results[1].value : null;
 
-  if (hasScan || hasHarm) {
-    // N° carte / nom / notation / description « carte papier » = SCAN_GEOL50
-    populateGeolFields(
-      (scan && scan.carte) || '',
-      (scan && scan.nom) || '',
-      (scan && scan.notation) || '',
-      (scan && scan.description) || ''
-    );
-    // Notation / description harmonisées = GEOL50_HARM
-    document.getElementById('geol-notation-harm').textContent = (harm && harm.notation) || '—';
-    document.getElementById('geol-description-harm').textContent = (harm && harm.description) || '—';
+  const notation    = (harm && harm.notation) || '';
+  const description = (harm && harm.description) || '';
+  const carte       = (scan && scan.carte) || '';
+  const nom         = (scan && scan.nom) || '';
+
+  if (notation || description || carte || nom) {
+    populateGeolFields(carte, nom, notation, description);
     return;
   }
 
@@ -7318,7 +7306,7 @@ async function fetchGeolNotations1km(lat, lng) {
           const d = 50;
           const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
           const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-            `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
+            `&LAYERS=GEOL50_HARM&QUERY_LAYERS=GEOL50_HARM&SRS=EPSG:2154` +
             `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
             `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
           const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
@@ -7401,21 +7389,15 @@ async function onGeolMapQuery(e) {
 
   try {
     const { x, y } = wgs84ToLambert93(lat, lng);
-    const d = 500;
-    const bbox = `${x - d},${y - d},${x + d},${y + d}`;
-    const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-      `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-      `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&X=128&Y=128` +
-      `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-
-    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
-
-    const carte    = extractGmlField(xml, 'carte');
-    const nom      = extractGmlField(xml, 'nom');
-    const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
-    const descr    = extractGmlField(xml, 'description');
+    // Notation + description harmonisées (GEOL50_HARM) ; N° + nom de feuille (SCAN_GEOL50)
+    const [harm, scan] = await Promise.all([
+      gfiGeol('GEOL50_HARM', x, y),
+      gfiGeol('SCAN_GEOL50', x, y),
+    ]);
+    const carte    = scan.carte;
+    const nom      = scan.nom;
+    const notation = harm.notation;
+    const descr    = harm.description;
 
     if (carte || nom || notation || descr) {
       const html = `<div style="font-size:0.78rem;min-width:220px;max-width:320px;">
@@ -7489,20 +7471,24 @@ async function fetchGeolArea() {
       try {
         const d = 50;
         const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
-        const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-          `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-          `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
-          `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!resp.ok) return;
-        const xml = await resp.text();
-        const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
+        // Notation + description harmonisées (GEOL50_HARM) ; N° + nom de feuille (SCAN_GEOL50)
+        const mk = (layer) => `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+          `&LAYERS=${layer}&QUERY_LAYERS=${layer}&SRS=EPSG:2154` +
+          `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+        const [rHarm, rScan] = await Promise.all([
+          fetch(mk('GEOL50_HARM'), { signal: AbortSignal.timeout(10000) }),
+          fetch(mk('SCAN_GEOL50'), { signal: AbortSignal.timeout(10000) }),
+        ]);
+        if (!rHarm.ok) return;
+        const xmlHarm = await rHarm.text();
+        const xmlScan = rScan.ok ? await rScan.text() : '';
+        const notation = fixBrgmNotation(extractGmlField(xmlHarm, 'notation'));
         if (notation && !formations.has(notation)) {
           formations.set(notation, {
-            carte: extractGmlField(xml, 'carte'),
-            nom: extractGmlField(xml, 'nom'),
+            carte: extractGmlField(xmlScan, 'carte'),
+            nom: extractGmlField(xmlScan, 'nom'),
             notation,
-            description: extractGmlField(xml, 'description'),
+            description: extractGmlField(xmlHarm, 'description'),
           });
         }
       } catch(e) { /* skip */ }
