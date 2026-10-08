@@ -7197,6 +7197,7 @@ const BRGM_NOTATION_FIX = {
   // Corrections spécifiques BRGM confirmées
   'Ã': 'K',
   '¼': 'f',
+  '¡': 'A', // altérites / formations superficielles (A cursif sur la carte)
 };
 const _brgmNotationRe = new RegExp('[' + Object.keys(BRGM_NOTATION_FIX).join('') + ']', 'g');
 function fixBrgmNotation(s) {
