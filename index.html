@@ -7271,11 +7271,23 @@ async function fetchGeologicalInfo(lat, lng) {
   const harm = results[1].status === 'fulfilled' ? results[1].value : null;
   const carte = (scan && scan.carte) || '';
   const nom = (scan && scan.nom) || '';
-  const notation = combineNot(harm && harm.notation, scan && scan.notation);
-  const description = (scan && scan.description) || (harm && harm.description) || '';
+  const nScan = (scan && scan.notation) || '';
+  const nHarm = (harm && harm.notation) || '';
+  const notation = combineNot(nHarm, nScan);
+  const dScan = (scan && scan.description) || '';
+  const dHarm = (harm && harm.description) || '';
 
-  if (notation || carte || nom || description) {
-    populateGeolFields(carte, nom, notation, description);
+  if (notation || carte || nom || dScan || dHarm) {
+    populateGeolFields(carte, nom, notation, '');
+    // Description rattachée à chaque notation (les deux si elles diffèrent)
+    let descHtml;
+    if (dHarm && dScan && dHarm !== dScan) {
+      descHtml = (nHarm ? '<b>' + esc(nHarm) + '</b> — ' : '') + esc(dHarm) +
+                 '<br>' + (nScan ? '<b>' + esc(nScan) + '</b> — ' : '') + esc(dScan);
+    } else {
+      descHtml = esc(dHarm || dScan) || '—';
+    }
+    document.getElementById('geol-description').innerHTML = descHtml;
     return;
   }
 
@@ -7415,7 +7427,11 @@ async function onGeolMapQuery(e) {
     const carte    = scan.carte || '';
     const nom      = scan.nom || '';
     const notation = combineNot(harm.notation, scan.notation);
-    const descr    = scan.description || harm.description || '';
+    const dScan = scan.description || '', dHarm = harm.description || '';
+    const descr = (dHarm && dScan && dHarm !== dScan)
+      ? (harm.notation ? '<b>' + esc(harm.notation) + '</b> — ' : '') + esc(dHarm) + '<br>' +
+        (scan.notation ? '<b>' + esc(scan.notation) + '</b> — ' : '') + esc(dScan)
+      : esc(dHarm || dScan);
 
     if (carte || nom || notation || descr) {
       const html = `<div style="font-size:0.78rem;min-width:220px;max-width:320px;">
