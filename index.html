@@ -1887,7 +1887,7 @@
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
           </div>
           <div style="font-size:0.66rem;color:var(--text-muted);margin-top:8px;line-height:1.4;">
-            Notation telle qu'inscrite sur la <b>carte géologique affichée</b> (BRGM — feuille 1/50 000). N° et nom de la feuille indiqués ci‑dessus.
+            Format <b>harmonisée / carte 1/50 000</b> : selon la feuille, la notation imprimée sur la carte correspond à <b>l'une des deux</b>. N° et nom de la feuille indiqués ci‑dessus.
           </div>
         </div>
         <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
@@ -7203,6 +7203,16 @@ function fixBrgmNotation(s) {
   return s ? s.replace(_brgmNotationRe, ch => BRGM_NOTATION_FIX[ch] || ch) : s;
 }
 
+// La notation imprimée sur la carte 1/50 000 correspond, selon la feuille, soit à la
+// notation "carte" (SCAN_GEOL50) soit à l'harmonisée (GEOL50_HARM). On combine les deux
+// (format "harmonisée / carte") pour que la valeur imprimée y figure toujours.
+function combineNot(harm, scan) {
+  harm = (harm || '').trim();
+  scan = (scan || '').trim();
+  if (harm && scan && harm !== scan) return harm + ' / ' + scan;
+  return harm || scan;
+}
+
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
 function extractGmlField(xmlText, ...names) {
   for (const name of names) {
@@ -7251,14 +7261,21 @@ async function fetchGeologicalInfo(lat, lng) {
   contentDiv.style.display = 'none';
 
   const { x, y } = wgs84ToLambert93(lat, lng);
-  // Notation telle qu'inscrite sur la carte géologique affichée (SCAN_GEOL50).
+  // Deux conventions selon la feuille : "carte 1/50 000" (SCAN_GEOL50) et harmonisée
+  // (GEOL50_HARM). On affiche les deux (harmonisée / carte) → celle imprimée y figure.
   const results = await Promise.allSettled([
     gfiGeol('SCAN_GEOL50', x, y),
+    gfiGeol('GEOL50_HARM', x, y),
   ]);
   const scan = results[0].status === 'fulfilled' ? results[0].value : null;
+  const harm = results[1].status === 'fulfilled' ? results[1].value : null;
+  const carte = (scan && scan.carte) || '';
+  const nom = (scan && scan.nom) || '';
+  const notation = combineNot(harm && harm.notation, scan && scan.notation);
+  const description = (scan && scan.description) || (harm && harm.description) || '';
 
-  if (scan && (scan.carte || scan.nom || scan.notation || scan.description)) {
-    populateGeolFields(scan.carte, scan.nom, scan.notation, scan.description);
+  if (notation || carte || nom || description) {
+    populateGeolFields(carte, nom, notation, description);
     return;
   }
 
@@ -7304,15 +7321,16 @@ async function fetchGeolNotations1km(lat, lng) {
         try {
           const d = 50;
           const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
-          const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-            `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-            `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
-            `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-          const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-          if (!resp.ok) { _serviceDown = true; return; }
-          const xml = await resp.text();
-          const n = fixBrgmNotation(extractGmlField(xml, 'notation'));
-          if (n) notations.add(n);
+          const mk = (layer) => `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+            `&LAYERS=${layer}&QUERY_LAYERS=${layer}&SRS=EPSG:2154` +
+            `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+          const [rs, rh] = await Promise.all([
+            fetch(mk('SCAN_GEOL50'), { signal: AbortSignal.timeout(5000) }),
+            fetch(mk('GEOL50_HARM'), { signal: AbortSignal.timeout(5000) }),
+          ]);
+          if (!rs.ok && !rh.ok) { _serviceDown = true; return; }
+          if (rs.ok) { const n = fixBrgmNotation(extractGmlField(await rs.text(), 'notation')); if (n) notations.add(n); }
+          if (rh.ok) { const n = fixBrgmNotation(extractGmlField(await rh.text(), 'notation')); if (n) notations.add(n); }
         } catch(e) { _serviceDown = true; }
       }));
     }
@@ -7323,8 +7341,9 @@ async function fetchGeolNotations1km(lat, lng) {
       return;
     }
 
+    // Retire la/les notation(s) du point (format "harmonisée / carte")
     const mainNot = (document.getElementById('geol-notation')?.textContent || '').trim();
-    notations.delete(mainNot);
+    mainNot.split('/').forEach(s => notations.delete(s.trim()));
 
     el.textContent = notations.size > 0 ? [...notations].join(', ') : 'identique';
     el.style.color = '';
@@ -7388,12 +7407,15 @@ async function onGeolMapQuery(e) {
 
   try {
     const { x, y } = wgs84ToLambert93(lat, lng);
-    // Notation telle qu'inscrite sur la carte affichée (SCAN_GEOL50)
-    const g = await gfiGeol('SCAN_GEOL50', x, y);
-    const carte    = g.carte;
-    const nom      = g.nom;
-    const notation = g.notation;
-    const descr    = g.description;
+    // Notation affichée au format "harmonisée / carte 1/50 000"
+    const [scan, harm] = await Promise.all([
+      gfiGeol('SCAN_GEOL50', x, y).catch(() => ({})),
+      gfiGeol('GEOL50_HARM', x, y).catch(() => ({})),
+    ]);
+    const carte    = scan.carte || '';
+    const nom      = scan.nom || '';
+    const notation = combineNot(harm.notation, scan.notation);
+    const descr    = scan.description || harm.description || '';
 
     if (carte || nom || notation || descr) {
       const html = `<div style="font-size:0.78rem;min-width:220px;max-width:320px;">
@@ -7467,20 +7489,23 @@ async function fetchGeolArea() {
       try {
         const d = 50;
         const bbox = `${pt.x - d},${pt.y - d},${pt.x + d},${pt.y + d}`;
-        const url = `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-          `&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154` +
-          `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1` +
-          `&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
-        const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!resp.ok) return;
-        const xml = await resp.text();
-        const notation = fixBrgmNotation(extractGmlField(xml, 'notation'));
+        const mk = (layer) => `https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+          `&LAYERS=${layer}&QUERY_LAYERS=${layer}&SRS=EPSG:2154` +
+          `&BBOX=${bbox}&WIDTH=3&HEIGHT=3&X=1&Y=1&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1`;
+        const [rs, rh] = await Promise.all([
+          fetch(mk('SCAN_GEOL50'), { signal: AbortSignal.timeout(10000) }),
+          fetch(mk('GEOL50_HARM'), { signal: AbortSignal.timeout(10000) }),
+        ]);
+        if (!rs.ok && !rh.ok) return;
+        const xs = rs.ok ? await rs.text() : '';
+        const xh = rh.ok ? await rh.text() : '';
+        const notation = combineNot(fixBrgmNotation(extractGmlField(xh, 'notation')), fixBrgmNotation(extractGmlField(xs, 'notation')));
         if (notation && !formations.has(notation)) {
           formations.set(notation, {
-            carte: extractGmlField(xml, 'carte'),
-            nom: extractGmlField(xml, 'nom'),
+            carte: extractGmlField(xs, 'carte') || extractGmlField(xh, 'carte'),
+            nom: extractGmlField(xs, 'nom'),
             notation,
-            description: extractGmlField(xml, 'description'),
+            description: extractGmlField(xs, 'description') || extractGmlField(xh, 'description'),
           });
         }
       } catch(e) { /* skip */ }
