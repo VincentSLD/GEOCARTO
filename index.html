@@ -1887,7 +1887,7 @@
             <span id="geol-description" style="color:var(--text-primary);line-height:1.5;">—</span>
           </div>
           <div style="font-size:0.66rem;color:var(--text-muted);margin-top:8px;line-height:1.4;">
-            Format <b>harmonisée / carte 1/50 000</b> : selon la feuille, la notation imprimée sur la carte correspond à <b>l'une des deux</b>. N° et nom de la feuille indiqués ci‑dessus.
+            Format <b>harmonisée ou carte 1/50 000</b> : selon la feuille, la notation imprimée sur la carte correspond à <b>l'une des deux</b>. N° et nom de la feuille indiqués ci‑dessus.
           </div>
         </div>
         <div id="geol-info-error" style="display:none;font-size:0.75rem;color:var(--text-muted);text-align:center;padding:10px;">
@@ -7210,7 +7210,7 @@ function fixBrgmNotation(s) {
 function combineNot(harm, scan) {
   harm = (harm || '').trim();
   scan = (scan || '').trim();
-  if (harm && scan && harm !== scan) return harm + ' / ' + scan;
+  if (harm && scan && harm !== scan) return harm + ' ou ' + scan;
   return harm || scan;
 }
 
@@ -7358,7 +7358,7 @@ async function fetchGeolNotations1km(lat, lng) {
 
     // Retire la/les notation(s) du point (format "harmonisée / carte")
     const mainNot = (document.getElementById('geol-notation')?.textContent || '').trim();
-    mainNot.split('/').forEach(s => notations.delete(s.trim()));
+    mainNot.split(' ou ').forEach(s => notations.delete(s.trim()));
 
     el.textContent = notations.size > 0 ? [...notations].join(', ') : 'identique';
     el.style.color = '';
