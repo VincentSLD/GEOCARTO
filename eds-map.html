@@ -1405,7 +1405,7 @@ async function gedGeocodeAddr() {
   const addr = (input?.value || '').trim();
   if (!addr || addr.length < 5) return;
   try {
-    const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(addr) + '&limit=1');
+    const r = await fetch('https://data.geopf.fr/geocodage/search/?q=' + encodeURIComponent(addr) + '&limit=1');
     const j = await r.json();
     if (j.features && j.features.length) {
       const [lon, lat] = j.features[0].geometry.coordinates;
@@ -2162,7 +2162,7 @@ async function adminGeocodeDetail() {
   const addr = document.getElementById('admin-detail-addr-input').value.trim();
   if (!addr || addr.length < 3) return;
   try {
-    const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(addr) + '&limit=1');
+    const r = await fetch('https://data.geopf.fr/geocodage/search/?q=' + encodeURIComponent(addr) + '&limit=1');
     const j = await r.json();
     if (j.features && j.features.length) {
       const [lon, lat] = j.features[0].geometry.coordinates;

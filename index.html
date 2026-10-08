@@ -2774,13 +2774,13 @@ function togglePickerFullscreen() {
   }
 }
 
-// Address search via api-adresse.data.gouv.fr
+// Recherche d'adresse via la Géoplateforme (data.geopf.fr/geocodage — ex api-adresse.data.gouv.fr)
 async function searchAddress() {
   const q = document.getElementById('address-search').value.trim();
   if (!q) return;
   
   try {
-    const resp = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`);
+    const resp = await fetch(`https://data.geopf.fr/geocodage/search/?q=${encodeURIComponent(q)}&limit=5`);
     const data = await resp.json();
     const features = data.features || [];
     
@@ -2996,7 +2996,7 @@ function selectParcel(feat, commune, section, numero) {
 
 async function autocompleteAddress(q) {
   try {
-    const resp = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5&autocomplete=1`);
+    const resp = await fetch(`https://data.geopf.fr/geocodage/search/?q=${encodeURIComponent(q)}&limit=5&autocomplete=1`);
     const data = await resp.json();
     showAddressSuggestions(data.features || []);
   } catch (e) {}
@@ -3316,7 +3316,7 @@ async function reverseGeocode(lat, lng) {
   try {
     // 1) Reverse geocoding classique pour l'adresse
     const data = await fetchJSON(
-      `https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}&limit=1`
+      `https://data.geopf.fr/geocodage/reverse/?lon=${lng}&lat=${lat}&limit=1`
     );
     let addrCity = '—', addrPostcode = '—', addrInsee = '—', addrContext = '—', addrLabel = '—';
     if (data.features && data.features.length > 0) {
@@ -6766,16 +6766,7 @@ function addAltimetryTool(map) {
         }
       }
     } catch (err) { console.warn('Geopf altitude failed:', err); }
-    // Strategy 2: Old IGN API (may still work)
-    if (altitude === null || isNaN(altitude)) {
-      try {
-        const resp = await fetch(`https://wxs.ign.fr/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&zonly=true`, { signal: AbortSignal.timeout(6000) });
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.elevations && data.elevations[0] !== -99999) altitude = parseFloat(data.elevations[0]);
-        }
-      } catch (e2) { console.warn('Old IGN altitude failed:', e2); }
-    }
+    // (ancien fallback wxs.ign.fr retiré — service fermé le 26/03/2026)
     // Strategy 3: Open-Elevation fallback
     if (altitude === null || isNaN(altitude)) {
       try {
@@ -7676,25 +7667,7 @@ async function fetchAltitude(lat, lng) {
     console.warn('Géoplateforme altitude API failed:', e);
   }
 
-  // Strategy 2: Old IGN API (wxs.ign.fr — may still work)
-  try {
-    const resp = await fetch(`https://wxs.ign.fr/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&zonly=true`, { signal: AbortSignal.timeout(6000) });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.elevations && data.elevations.length > 0 && data.elevations[0] !== -99999) {
-        altitude = parseFloat(data.elevations[0]);
-        if (!isNaN(altitude)) {
-          const altText = altitude.toFixed(1) + ' m NGF';
-          el.value = altitude.toFixed(1) + ' m';
-          updateReliefPopup(altText);
-          console.log('Altitude from old IGN:', altText);
-          return;
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Old IGN altitude API failed:', e);
-  }
+  // (ancien fallback wxs.ign.fr retiré — service fermé le 26/03/2026)
 
   // Strategy 3: Open-Elevation fallback
   try {

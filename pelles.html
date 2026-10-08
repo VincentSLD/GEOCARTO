@@ -537,7 +537,7 @@ async function fillFromSiret(idx) {
   document.getElementById('siret-results').style.display = 'none';
   if (siege.code_postal && siege.libelle_commune) {
     try {
-      const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(addr + ' ' + siege.code_postal + ' ' + siege.libelle_commune)}&limit=1`;
+      const geoUrl = `https://data.geopf.fr/geocodage/search/?q=${encodeURIComponent(addr + ' ' + siege.code_postal + ' ' + siege.libelle_commune)}&limit=1`;
       const geoR = await fetch(geoUrl);
       const geoData = await geoR.json();
       if (geoData.features && geoData.features[0]) {
@@ -683,7 +683,7 @@ async function savePrestataire() {
     const ville = document.getElementById('m-ville').value.trim();
     if (cp && ville) {
       try {
-        const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent([addr, cp, ville].filter(Boolean).join(' '))}&limit=1`;
+        const geoUrl = `https://data.geopf.fr/geocodage/search/?q=${encodeURIComponent([addr, cp, ville].filter(Boolean).join(' '))}&limit=1`;
         const geoR = await fetch(geoUrl);
         const geoData = await geoR.json();
         if (geoData.features && geoData.features[0]) {
