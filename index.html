@@ -4551,11 +4551,15 @@ function setupMaps(lat, lng) {
     opacity: 0.4,
   }).addTo(window.geologieMap);
 
-  // Couche WMS géologie BRGM — BD Charm-50 (cartes géologiques harmonisées 1/50 000)
+  // Couche WMS géologie BRGM — carte géologique 1/50 000 SCANNÉE (SCAN_D_GEOL50).
+  // On affiche la MÊME source que celle interrogée (SCAN_GEOL50) pour que la notation
+  // du panneau corresponde EXACTEMENT à ce qui est imprimé sur la carte affichée.
+  // Le scan ne se rend que jusqu'au ~1/50 000 : maxNativeZoom borne les requêtes de
+  // tuiles (au-delà, Leaflet agrandit la dernière tuile nette plutôt que du blanc).
   window.geologieMap.createPane('geoPane');
   window.geologieMap.getPane('geoPane').style.zIndex = 450;
   const geoWmsSources = [
-    { url: 'https://geoservices.brgm.fr/geologie', layers: 'GEOLOGIE', label: 'BRGM GEOLOGIE HTTPS' },
+    { url: 'https://geoservices.brgm.fr/geologie', layers: 'SCAN_D_GEOL50', label: 'BRGM SCAN 1/50 000' },
   ];
   window.geoWmsLayer = null;
   geoWmsSources.forEach(src => {
@@ -4564,10 +4568,12 @@ function setupMaps(lat, lng) {
         layers: src.layers,
         format: 'image/png',
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.85,
         version: '1.1.1',
-        attribution: '© BRGM — BD Charm-50',
+        attribution: '© BRGM — Carte géologique 1/50 000 (scan)',
         pane: 'geoPane',
+        maxNativeZoom: 14,
+        maxZoom: 19,
       }).addTo(window.geologieMap);
       if (!window.geoWmsLayer) window.geoWmsLayer = layer;
     } catch (e) { }
