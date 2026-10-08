@@ -193,6 +193,26 @@
     font-weight: 400;
   }
 
+  /* Voyants d'état des services API */
+  #svc-health {
+    position: absolute; top: 14px; right: 16px;
+    display: flex; align-items: center; gap: 7px; cursor: pointer;
+    background: rgba(255,255,255,0.75); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 10px; backdrop-filter: blur(4px);
+  }
+  #svc-health .svc-lbl {
+    font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.06em; font-weight: 700; font-family: 'Space Grotesk', sans-serif;
+  }
+  .svc-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #c4c4c4;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.04); transition: background 0.25s;
+  }
+  .svc-dot.ok { background: #2e9e44; box-shadow: 0 0 5px rgba(46,158,68,0.7); }
+  .svc-dot.ko { background: #e53935; box-shadow: 0 0 5px rgba(229,57,53,0.7); }
+  .svc-dot.checking { background: #f5c518; animation: svcPulse 0.9s ease-in-out infinite; }
+  @keyframes svcPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
   /* Search Section */
   .search-section {
     max-width: 740px;
@@ -1308,6 +1328,12 @@
   <!-- Header -->
   <header class="header">
     <h1 onclick="location.reload()" style="cursor:pointer;">Géo<span class="highlight">Carto'</span><span style="font-size:0.25em;font-weight:400;color:#1a1a1a;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em;margin-left:0.6em;vertical-align:baseline;">by GPH</span></h1>
+    <div id="svc-health" title="État des services BRGM / Géorisques — cliquer pour revérifier" onclick="checkServices()">
+      <span class="svc-lbl">Services</span>
+      <span class="svc-dot" id="svc-dot-georisques" title="Géorisques"></span>
+      <span class="svc-dot" id="svc-dot-geoservices" title="BRGM Géoservices"></span>
+      <span class="svc-dot" id="svc-dot-infoterre" title="InfoTerre"></span>
+    </div>
   </header>
 
   <!-- Search -->
@@ -7213,6 +7239,40 @@ function combineNot(harm, scan) {
   if (harm && scan && harm !== scan) return harm + ' ou ' + scan;
   return harm || scan;
 }
+
+// ====== Voyants d'état des services API (BRGM / Géorisques) ======
+// Testés via le proxy /api/geo : un voyant vert = l'app peut récupérer les données
+// de ce service (directement ou via le relais serveur), rouge = injoignable.
+const HEALTH_SERVICES = [
+  { key: 'georisques', label: 'Géorisques', test: 'https://georisques.gouv.fr/api/v1/zonage_sismique?latlon=2.35,48.85&rayon=100' },
+  { key: 'geoservices', label: 'BRGM Géoservices', test: 'https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=GEOLOGIE&SRS=EPSG:4326&BBOX=-1.62,46.80,-1.61,46.81&WIDTH=1&HEIGHT=1&FORMAT=image/png' },
+  { key: 'infoterre', label: 'InfoTerre', test: 'https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=347000,6643000,349000,6645000&WIDTH=5&HEIGHT=5&X=2&Y=2&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1' },
+];
+function setSvcDot(key, state, info) {
+  const d = document.getElementById('svc-dot-' + key);
+  if (!d) return;
+  d.classList.remove('ok', 'ko', 'checking');
+  d.classList.add(state);
+  const svc = HEALTH_SERVICES.find(s => s.key === key);
+  const base = svc ? svc.label : key;
+  d.title = base + ' : ' + (state === 'ok' ? '✓ connecté' : state === 'ko' ? ('✗ injoignable' + (info ? ' (' + info + ')' : '')) : 'test en cours…');
+}
+async function pingService(svc) {
+  setSvcDot(svc.key, 'checking');
+  try {
+    const r = await fetch('/api/geo?url=' + encodeURIComponent(svc.test), { signal: AbortSignal.timeout(12000), cache: 'no-store' });
+    const ok = r.status >= 200 && r.status < 400;
+    setSvcDot(svc.key, ok ? 'ok' : 'ko', 'HTTP ' + r.status);
+    return ok;
+  } catch (e) {
+    setSvcDot(svc.key, 'ko', e.name === 'TimeoutError' ? 'délai dépassé' : 'réseau');
+    return false;
+  }
+}
+function checkServices() {
+  return Promise.all(HEALTH_SERVICES.map(pingService));
+}
+window.addEventListener('load', () => { setTimeout(checkServices, 800); });
 
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
 function extractGmlField(xmlText, ...names) {
