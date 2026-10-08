@@ -1845,7 +1845,7 @@
           title="Cliquez puis cliquez sur la carte pour interroger un point">
           <svg width="20" height="18" viewBox="0 0 26 24" style="flex-shrink:0;"><polygon points="1,2 1,16 5,12 9,12" fill="#e67e22" stroke="#795548" stroke-width="1.5" stroke-linejoin="round"/><circle cx="18.5" cy="12" r="7" fill="#e67e22" stroke="#795548" stroke-width="1.5"/><text x="18.5" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="serif" font-style="italic">i</text></svg> Interroger un point sur la carte
         </button>
-        <span id="geol-query-hint" style="font-size:0.72rem;color:#795548;opacity:0;transition:opacity 0.3s;text-align:center;width:100;">← Cliquez sur la carte géologique</span>
+        <span id="geol-query-hint" style="font-size:0.72rem;color:#795548;opacity:0;transition:opacity 0.3s;text-align:center;width:100;">Cliquez un ou plusieurs points — recliquez le bouton pour arrêter</span>
         <button id="btn-geol-area" onclick="fetchGeolArea()"
           style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 14px;font-size:0.78rem;font-weight:600;border:1px solid rgba(121,85,72,0.35);border-radius:7px;background:#fff;color:#795548;cursor:pointer;transition:all 0.2s;text-align:center;"
           onmouseover="this.style.background='rgba(121,85,72,0.08)'"
@@ -7387,7 +7387,9 @@ function toggleGeolQuery() {
     if (btnFs) { btnFs.style.background = 'rgba(121,85,72,0.2)'; btnFs.style.borderColor = '#795548'; btnFs.style.borderWidth = '3px'; }
     hint.style.opacity = '1';
     window.geologieMap.getContainer().style.cursor = 'crosshair';
-    window.geologieMap.once('click', onGeolMapQuery);
+    // Mode persistant : on peut cliquer plusieurs points à la suite
+    window.geologieMap.off('click', onGeolMapQuery);
+    window.geologieMap.on('click', onGeolMapQuery);
   } else {
     deactivateGeolQuery();
   }
@@ -7409,7 +7411,7 @@ function deactivateGeolQuery() {
 
 async function onGeolMapQuery(e) {
   const { lat, lng } = e.latlng;
-  deactivateGeolQuery();
+  // Mode laissé actif : on peut enchaîner les clics sans recliquer sur le bouton
 
   // Marqueur temporaire
   if (window._geolQueryMarker) window.geologieMap.removeLayer(window._geolQueryMarker);
