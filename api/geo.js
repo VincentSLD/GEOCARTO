@@ -9,7 +9,7 @@
 //   (tout paramètre supplémentaire est réinjecté dans l'URL cible —
 //    pratique pour les tuiles WMS générées par Leaflet).
 
-const ALLOW = ['brgm.fr', 'georisques.gouv.fr'];
+const ALLOW = ['brgm.fr', 'georisques.gouv.fr', 'geopf.fr', 'cartes.gouv.fr'];
 
 function isAllowed(host) {
   return ALLOW.some((d) => host === d || host.endsWith('.' + d));
