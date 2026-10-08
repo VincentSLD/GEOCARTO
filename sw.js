@@ -1,7 +1,7 @@
 /* Service Worker GéoCarto — installabilité PWA + secours hors-ligne léger.
    Ne PAS intercepter les requêtes tierces (Supabase, tuiles, CDN, API) :
    l'application dynamique continue de fonctionner normalement en ligne. */
-const VERSION = 'geocarto-v2';
+const VERSION = 'geocarto-v3';
 const APP_SHELL = [
   '/', '/index.html', '/pelles.html', '/eds-map.html', '/import-eds.html',
   '/manifest.webmanifest',
