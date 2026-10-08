@@ -7280,11 +7280,12 @@ async function fetchGeologicalInfo(lat, lng) {
 
   if (notation || carte || nom || dScan || dHarm) {
     populateGeolFields(carte, nom, notation, '');
-    // Description rattachée à chaque notation (les deux si elles diffèrent)
+    // Description(s) de la formation : les 2 sources (harmonisée / carte) si leurs
+    // textes diffèrent, préfixées par la source pour lever toute ambiguïté.
     let descHtml;
     if (dHarm && dScan && dHarm !== dScan) {
-      descHtml = (nHarm ? '<b>' + esc(nHarm) + '</b> — ' : '') + esc(dHarm) +
-                 '<br>' + (nScan ? '<b>' + esc(nScan) + '</b> — ' : '') + esc(dScan);
+      descHtml = '<b>Harmonisée</b> — ' + esc(dHarm) +
+                 '<br><b>Carte 1/50 000</b> — ' + esc(dScan);
     } else {
       descHtml = esc(dHarm || dScan) || '—';
     }
@@ -7430,8 +7431,7 @@ async function onGeolMapQuery(e) {
     const notation = combineNot(harm.notation, scan.notation);
     const dScan = scan.description || '', dHarm = harm.description || '';
     const descr = (dHarm && dScan && dHarm !== dScan)
-      ? (harm.notation ? '<b>' + esc(harm.notation) + '</b> — ' : '') + esc(dHarm) + '<br>' +
-        (scan.notation ? '<b>' + esc(scan.notation) + '</b> — ' : '') + esc(dScan)
+      ? '<b>Harmonisée</b> — ' + esc(dHarm) + '<br><b>Carte 1/50 000</b> — ' + esc(dScan)
       : esc(dHarm || dScan);
 
     if (carte || nom || notation || descr) {
