@@ -24,7 +24,7 @@
   if (window.__geoProxyInstalled) return;
   window.__geoProxyInstalled = true;
   var PROXY = '/api/geo?url=';
-  var HOSTS = ['brgm.fr', 'georisques.gouv.fr'];
+  var HOSTS = ['brgm.fr', 'georisques.gouv.fr', 'ign.fr'];
   var _fetch = window.fetch.bind(window);
   function isGeo(u) {
     try { var h = new URL(u).hostname; return HOSTS.some(function (d) { return h === d || h.endsWith('.' + d); }); }
@@ -57,7 +57,7 @@
    le proxy serveur /api/geo. Les postes non filtrés ne sont pas ralentis. */
 (function () {
   if (!window.L || !L.TileLayer || !L.TileLayer.WMS) return;
-  var HOSTS = ['brgm.fr', 'georisques.gouv.fr'];
+  var HOSTS = ['brgm.fr', 'georisques.gouv.fr', 'ign.fr'];
   function isGeo(u) {
     try { var h = new URL(u, location.href).hostname; return HOSTS.some(function (d) { return h === d || h.endsWith('.' + d); }); }
     catch (e) { return false; }
@@ -230,6 +230,14 @@
   #svc-popover .alert .d { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
   #svc-popover .svc-pop-link { display: inline-block; margin-top: 10px; font-size: 0.72rem; font-weight: 700; color: #1565c0; text-decoration: none; }
   #svc-popover .svc-pop-link:hover { text-decoration: underline; }
+
+  /* Urbanisme (GPU) */
+  .urba-row { font-size: 0.8rem; margin: 6px 0; line-height: 1.5; color: var(--text-primary); }
+  .urba-k { font-weight: 700; color: #1565c0; margin-right: 4px; }
+  .urba-badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; color: #fff; margin-right: 6px; vertical-align: baseline; }
+  .urba-chip { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 0.7rem; font-weight: 600; margin: 2px 4px 2px 0; background: rgba(21,101,192,0.08); color: #1a1a1a; border: 1px solid rgba(21,101,192,0.2); }
+  .urba-link { font-size: 0.72rem; font-weight: 700; color: #1565c0; text-decoration: none; border: 1px solid rgba(21,101,192,0.3); border-radius: 6px; padding: 5px 11px; background: #fff; transition: background 0.15s; }
+  .urba-link:hover { background: rgba(21,101,192,0.08); }
 
   /* Search Section */
   .search-section {
@@ -2140,6 +2148,33 @@
         </div><!-- fin dev-section-content -->
       </div><!-- fin Informations complémentaires sur les Risques -->
 
+      <!-- ===== Urbanisme — PLU / PLUi (GPU) ===== -->
+      <div id="capture-urbanisme" class="capturable">
+      <div class="section-title" style="margin-top:1.5rem">
+        <div class="icon" style="background:rgba(21,101,192,0.12);color:#1565c0;">🏛️</div>
+        Urbanisme — PLU / PLUi (GPU)
+        <button class="btn-screenshot" onclick="captureLeaflet('map-urbanisme','URBANISME', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+      </div>
+
+      <div class="map-embed full-map" style="margin-bottom:0.5rem;">
+        <div id="map-urbanisme" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+      </div>
+
+      <div id="urba-info-panel" style="margin-top:0.5rem;border:1px solid rgba(21,101,192,0.2);border-radius:10px;padding:14px 18px;background:rgba(21,101,192,0.04);">
+        <div id="urba-loading" style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">Lancez une recherche pour afficher les informations d'urbanisme.</div>
+        <div id="urba-error" style="display:none;font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">⚠️ Informations d'urbanisme non disponibles pour ce point.</div>
+        <div id="urba-content" style="display:none;">
+          <div class="urba-row"><span class="urba-k">Document&nbsp;:</span> <span id="urba-doc">—</span></div>
+          <div class="urba-row"><span class="urba-k">Zonage&nbsp;:</span> <span id="urba-zone">—</span></div>
+          <div class="urba-row"><span class="urba-k">Prescriptions&nbsp;:</span> <span id="urba-presc">—</span></div>
+          <div class="urba-row"><span class="urba-k">Servitudes (SUP)&nbsp;:</span> <span id="urba-sup">—</span></div>
+          <div id="urba-links" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div style="font-size:0.64rem;color:var(--text-muted);margin-top:10px;line-height:1.4;">Source&nbsp;: API Carto / Géoportail de l'Urbanisme (IGN). Le règlement du PLU/PLUi fait foi.</div>
+      </div>
+      </div><!-- /capture-urbanisme -->
+
       <!-- Bouton export Excel -->
       <div style="margin-top:1rem;">
         <button onclick="exportRisquesExcel()" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(27,94,32,0.3);"
@@ -3305,7 +3340,7 @@ async function investigate() {
     clearServiceToasts();
 
     // 2. Tous les autres appels en parallèle, currentInsee est maintenant à jour
-    const _serviceNames = ['Risques (Géorisques)', 'CatNat (Géorisques)', 'Sismique (Géorisques)', 'Cavités (Géorisques)', 'ICPE (Géorisques)', 'Mvt. terrain (Géorisques)', 'BSS (BRGM)', 'Nappes (BRGM)', 'Géologie (InfoTerre)'];
+    const _serviceNames = ['Risques (Géorisques)', 'CatNat (Géorisques)', 'Sismique (Géorisques)', 'Cavités (Géorisques)', 'ICPE (Géorisques)', 'Mvt. terrain (Géorisques)', 'BSS (BRGM)', 'Nappes (BRGM)', 'Géologie (InfoTerre)', 'Urbanisme (GPU)'];
     const _results = await Promise.allSettled([
       fetchRisques(lat, lng),
       fetchCatNat(lat, lng),
@@ -3316,6 +3351,7 @@ async function investigate() {
       fetchBSS(lat, lng),
       fetchNappes(lat, lng),
       fetchGeologicalInfo(lat, lng),
+      fetchUrbanisme(lat, lng),
     ]);
 
     const _failedServices = _results
@@ -7331,6 +7367,145 @@ document.addEventListener('click', (e) => {
     pop.classList.remove('show');
   }
 });
+
+// ====== URBANISME — Géoportail de l'Urbanisme (API Carto GPU) ======
+let urbanismeMap = null;
+const URBA_ZONE_COLORS = { U: '#e4572e', AU: '#f3a712', A: '#c9a227', N: '#3f8f3a' };
+const URBA_ZONE_LABELS = { U: 'Zone urbaine', AU: 'À urbaniser', A: 'Agricole', N: 'Naturelle' };
+const URBA_DOC_LABELS = { PLUI: 'PLUi', PLU: 'PLU', POS: 'POS', CC: 'Carte communale', PSMV: 'PSMV (secteur sauvegardé)' };
+function urbaZoneColor(t) { return URBA_ZONE_COLORS[(t || '').toUpperCase()] || '#8e8e8e'; }
+
+async function gpuQuery(endpoint, geomObj) {
+  const geom = encodeURIComponent(JSON.stringify(geomObj));
+  const r = await fetch(`https://apicarto.ign.fr/api/gpu/${endpoint}?geom=${geom}`, { signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  return j.features || [];
+}
+
+async function fetchUrbanisme(lat, lng) {
+  const loading = document.getElementById('urba-loading');
+  const errDiv = document.getElementById('urba-error');
+  const content = document.getElementById('urba-content');
+  if (!loading) return;
+  loading.textContent = '⏳ Interrogation du Géoportail de l\'Urbanisme…';
+  loading.style.display = 'block'; errDiv.style.display = 'none'; content.style.display = 'none';
+
+  const pt = { type: 'Point', coordinates: [lng, lat] };
+  const dLat = 0.0045, dLng = 0.0045 / Math.cos(lat * Math.PI / 180); // ~500 m
+  const bbox = { type: 'Polygon', coordinates: [[[lng - dLng, lat - dLat], [lng + dLng, lat - dLat], [lng + dLng, lat + dLat], [lng - dLng, lat + dLat], [lng - dLng, lat - dLat]]] };
+
+  const results = await Promise.allSettled([
+    gpuQuery('municipality', pt),      // 0
+    gpuQuery('document', pt),          // 1
+    gpuQuery('zone-urba', pt),         // 2
+    gpuQuery('zone-urba', bbox),       // 3 (carte)
+    gpuQuery('prescription-surf', pt), // 4
+    gpuQuery('prescription-lin', pt),  // 5
+    gpuQuery('prescription-pct', pt),  // 6
+    gpuQuery('assiette-sup-s', pt),    // 7
+    gpuQuery('assiette-sup-l', pt),    // 8
+    gpuQuery('assiette-sup-p', pt),    // 9
+  ]);
+  const v = i => results[i].status === 'fulfilled' ? results[i].value : [];
+  if (!results.some(r => r.status === 'fulfilled')) {
+    loading.style.display = 'none';
+    errDiv.innerHTML = '⚠️ Service GPU (API Carto) indisponible.';
+    errDiv.style.display = 'block';
+    throw new Error('GPU indisponible');
+  }
+  const muni = (v(0)[0] && v(0)[0].properties) || null;
+  const docs = v(1);
+  const zonesPt = v(2);
+  const zonesBbox = v(3);
+  const presc = [...v(4), ...v(5), ...v(6)];
+  const sup = [...v(7), ...v(8), ...v(9)];
+
+  renderUrbanisme(muni, docs, zonesPt, presc, sup, lat, lng);
+  createUrbanismeMap(lat, lng, zonesBbox, zonesPt);
+  loading.style.display = 'none';
+  content.style.display = 'block';
+}
+
+function renderUrbanisme(muni, docs, zonesPt, presc, sup, lat, lng) {
+  // Document d'urbanisme
+  let docHtml;
+  if (muni && muni.is_rnu) {
+    docHtml = '<b>RNU</b> — Règlement National d\'Urbanisme (commune sans document local)' + (muni.name ? ' · ' + esc(muni.name) : '');
+  } else if (docs.length) {
+    const seen = new Set();
+    docHtml = docs.filter(d => { const k = (d.properties.grid_name || '') + (d.properties.du_type || ''); if (seen.has(k)) return false; seen.add(k); return true; })
+      .map(d => {
+        const p = d.properties;
+        const type = URBA_DOC_LABELS[(p.du_type || '').toUpperCase()] || (p.du_type || 'Document');
+        const m = (p.name || '').match(/(\d{8})$/);
+        const dstr = m ? ' <span style="color:var(--text-muted)">(' + m[1].slice(6, 8) + '/' + m[1].slice(4, 6) + '/' + m[1].slice(0, 4) + ')</span>' : '';
+        return '<b>' + esc(type) + '</b> — ' + esc(p.grid_title || p.grid_name || '') + dstr;
+      }).join('<br>');
+  } else {
+    docHtml = (muni && muni.name ? esc(muni.name) + ' — ' : '') + 'aucun document trouvé';
+  }
+  document.getElementById('urba-doc').innerHTML = docHtml;
+
+  // Zonage au point
+  let zoneHtml;
+  if (zonesPt.length) {
+    zoneHtml = zonesPt.map(z => {
+      const p = z.properties; const t = (p.typezone || '').toUpperCase();
+      const badge = '<span class="urba-badge" style="background:' + urbaZoneColor(t) + '">' + esc(p.libelle || t || '?') + '</span>';
+      const tl = URBA_ZONE_LABELS[t] ? ' <span style="color:var(--text-muted)">(' + URBA_ZONE_LABELS[t] + ')</span>' : '';
+      return badge + esc(p.libelong || '') + tl;
+    }).join('<br>');
+  } else { zoneHtml = '<span style="color:var(--text-muted)">Non zoné / non renseigné à ce point</span>'; }
+  document.getElementById('urba-zone').innerHTML = zoneHtml;
+
+  // Prescriptions (dédoublonnées par libellé)
+  const pSet = [...new Set(presc.map(f => (f.properties.libelle || f.properties.txt || '').trim()).filter(Boolean))];
+  document.getElementById('urba-presc').innerHTML = pSet.length
+    ? pSet.map(x => '<span class="urba-chip">' + esc(x) + '</span>').join('')
+    : '<span style="color:var(--text-muted)">Aucune</span>';
+
+  // Servitudes d'utilité publique (dédoublonnées par type + intitulé)
+  const supSeen = new Set(); const supList = [];
+  for (const f of sup) {
+    const p = f.properties; const code = (p.suptype || '').toUpperCase();
+    const lab = p.nomsuplitt || p.nomsupli || '';
+    const key = code + '|' + lab;
+    if (code && !supSeen.has(key)) { supSeen.add(key); supList.push({ code, lab }); }
+  }
+  document.getElementById('urba-sup').innerHTML = supList.length
+    ? supList.map(s => '<span class="urba-chip" title="' + esc(s.lab) + '"><b>' + esc(s.code) + '</b>' + (s.lab ? ' — ' + esc(s.lab.length > 42 ? s.lab.slice(0, 42) + '…' : s.lab) : '') + '</span>').join('')
+    : '<span style="color:var(--text-muted)">Aucune</span>';
+
+  // Liens
+  const links = [];
+  const reg = zonesPt.find(z => (z.properties.urlfic || '').startsWith('http'));
+  if (reg) links.push('<a class="urba-link" href="' + esc(reg.properties.urlfic) + '" target="_blank" rel="noopener">📄 Règlement de la zone</a>');
+  links.push('<a class="urba-link" href="https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=' + lng + '&lat=' + lat + '&zoom=17" target="_blank" rel="noopener">🗺 Voir sur le GPU →</a>');
+  document.getElementById('urba-links').innerHTML = links.join('');
+}
+
+function createUrbanismeMap(lat, lng, zones, zonesPt) {
+  if (urbanismeMap) { urbanismeMap.remove(); urbanismeMap = null; }
+  urbanismeMap = L.map('map-urbanisme', { center: [lat, lng], zoom: 16, zoomControl: false });
+  L.control.zoom({ position: 'bottomleft' }).addTo(urbanismeMap);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(urbanismeMap);
+  const ptGids = new Set((zonesPt || []).map(f => f.properties && f.properties.gid));
+  let gj = null;
+  try {
+    gj = L.geoJSON({ type: 'FeatureCollection', features: zones || [] }, {
+      style: f => {
+        const t = ((f.properties && f.properties.typezone) || '').toUpperCase();
+        const isPt = ptGids.has(f.properties && f.properties.gid);
+        return { color: urbaZoneColor(t), weight: isPt ? 3 : 1, fillColor: urbaZoneColor(t), fillOpacity: isPt ? 0.4 : 0.18, opacity: isPt ? 1 : 0.6 };
+      },
+      onEachFeature: (f, l) => { const p = f.properties || {}; l.bindTooltip((p.libelle || '') + ' — ' + (p.libelong || ''), { sticky: true }); }
+    }).addTo(urbanismeMap);
+  } catch (e) { }
+  L.marker([lat, lng], { icon: _invIcon }).addTo(urbanismeMap);
+  try { if (gj && gj.getBounds().isValid()) urbanismeMap.fitBounds(gj.getBounds().pad(0.1)); } catch (e) { }
+  setTimeout(() => { if (urbanismeMap) urbanismeMap.invalidateSize(); }, 300);
+}
 
 // Extraction robuste par regex — gère les préfixes de namespace (ms:, wfs:, etc.)
 function extractGmlField(xmlText, ...names) {
