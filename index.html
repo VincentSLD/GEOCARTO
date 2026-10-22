@@ -2076,6 +2076,33 @@
       </div>
       </div><!-- /capture-pprn -->
 
+      <!-- ===== Urbanisme — PLU / PLUi (GPU) ===== -->
+      <div id="capture-urbanisme" class="capturable">
+      <div class="section-title" style="margin-top:1.5rem">
+        <div class="icon" style="background:rgba(21,101,192,0.12);color:#1565c0;">🏛️</div>
+        Urbanisme — PLU / PLUi (GPU)
+        <button class="btn-screenshot" onclick="captureLeaflet('map-urbanisme','URBANISME', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
+      </div>
+
+      <div class="map-embed full-map" style="margin-bottom:0.5rem;">
+        <div id="map-urbanisme" style="width:100%;height:100%;"></div>
+        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
+      </div>
+
+      <div id="urba-info-panel" style="margin-top:0.5rem;border:1px solid rgba(21,101,192,0.2);border-radius:10px;padding:14px 18px;background:rgba(21,101,192,0.04);">
+        <div id="urba-loading" style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">Lancez une recherche pour afficher les informations d'urbanisme.</div>
+        <div id="urba-error" style="display:none;font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">⚠️ Informations d'urbanisme non disponibles pour ce point.</div>
+        <div id="urba-content" style="display:none;">
+          <div class="urba-row"><span class="urba-k">Document&nbsp;:</span> <span id="urba-doc">—</span></div>
+          <div class="urba-row"><span class="urba-k">Zonage&nbsp;:</span> <span id="urba-zone">—</span></div>
+          <div class="urba-row"><span class="urba-k">Prescriptions&nbsp;:</span> <span id="urba-presc">—</span></div>
+          <div class="urba-row"><span class="urba-k">Servitudes (SUP)&nbsp;:</span> <span id="urba-sup">—</span></div>
+          <div id="urba-links" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div style="font-size:0.64rem;color:var(--text-muted);margin-top:10px;line-height:1.4;">Source&nbsp;: API Carto / Géoportail de l'Urbanisme (IGN). Le règlement du PLU/PLUi fait foi.</div>
+      </div>
+      </div><!-- /capture-urbanisme -->
+
       <!-- ===== EN COURS DE DÉVELOPPEMENT ===== -->
       <div style="margin-top:2rem;">
         <div onclick="toggleDevSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.6rem;background:linear-gradient(135deg,#1a1a1a,#333333);border:none;border-radius:10px;padding:14px 16px;user-select:none;transition:all 0.2s;box-shadow:0 4px 16px rgba(26,26,26,0.2);"
@@ -2147,33 +2174,6 @@
 
         </div><!-- fin dev-section-content -->
       </div><!-- fin Informations complémentaires sur les Risques -->
-
-      <!-- ===== Urbanisme — PLU / PLUi (GPU) ===== -->
-      <div id="capture-urbanisme" class="capturable">
-      <div class="section-title" style="margin-top:1.5rem">
-        <div class="icon" style="background:rgba(21,101,192,0.12);color:#1565c0;">🏛️</div>
-        Urbanisme — PLU / PLUi (GPU)
-        <button class="btn-screenshot" onclick="captureLeaflet('map-urbanisme','URBANISME', true)" title="Capturer" style="margin-left:auto;padding:4px 8px;font-size:0.9rem;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">📸</button>
-      </div>
-
-      <div class="map-embed full-map" style="margin-bottom:0.5rem;">
-        <div id="map-urbanisme" style="width:100%;height:100%;"></div>
-        <button class="btn-map-fs" onclick="openFullscreen(this)">⛶ Plein écran</button>
-      </div>
-
-      <div id="urba-info-panel" style="margin-top:0.5rem;border:1px solid rgba(21,101,192,0.2);border-radius:10px;padding:14px 18px;background:rgba(21,101,192,0.04);">
-        <div id="urba-loading" style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">Lancez une recherche pour afficher les informations d'urbanisme.</div>
-        <div id="urba-error" style="display:none;font-size:0.78rem;color:var(--text-muted);text-align:center;padding:10px;">⚠️ Informations d'urbanisme non disponibles pour ce point.</div>
-        <div id="urba-content" style="display:none;">
-          <div class="urba-row"><span class="urba-k">Document&nbsp;:</span> <span id="urba-doc">—</span></div>
-          <div class="urba-row"><span class="urba-k">Zonage&nbsp;:</span> <span id="urba-zone">—</span></div>
-          <div class="urba-row"><span class="urba-k">Prescriptions&nbsp;:</span> <span id="urba-presc">—</span></div>
-          <div class="urba-row"><span class="urba-k">Servitudes (SUP)&nbsp;:</span> <span id="urba-sup">—</span></div>
-          <div id="urba-links" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
-        </div>
-        <div style="font-size:0.64rem;color:var(--text-muted);margin-top:10px;line-height:1.4;">Source&nbsp;: API Carto / Géoportail de l'Urbanisme (IGN). Le règlement du PLU/PLUi fait foi.</div>
-      </div>
-      </div><!-- /capture-urbanisme -->
 
       <!-- Bouton export Excel -->
       <div style="margin-top:1rem;">
