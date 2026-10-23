@@ -1360,6 +1360,7 @@
       <span class="svc-dot" id="svc-dot-geoservices" title="BRGM Géoservices"></span>
       <span class="svc-dot" id="svc-dot-infoterre" title="InfoTerre"></span>
       <span class="svc-dot" id="svc-dot-ign" title="IGN Géoplateforme (data.geopf.fr)"></span>
+      <span class="svc-dot" id="svc-dot-urbanisme" title="Urbanisme — GPU (API Carto)"></span>
       <span id="svc-info" title="Pourquoi un service est indisponible ? Alertes & état des services" onclick="event.stopPropagation();toggleSvcPopover()">ⓘ</span>
     </div>
     <div id="svc-popover">
@@ -7300,6 +7301,7 @@ const HEALTH_SERVICES = [
   { key: 'geoservices', label: 'BRGM Géoservices', test: 'https://geoservices.brgm.fr/geologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=GEOLOGIE&SRS=EPSG:4326&BBOX=-1.62,46.80,-1.61,46.81&WIDTH=1&HEIGHT=1&FORMAT=image/png' },
   { key: 'infoterre', label: 'InfoTerre', test: 'https://infoterre.brgm.fr/services/gfi?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=SCAN_GEOL50&QUERY_LAYERS=SCAN_GEOL50&SRS=EPSG:2154&BBOX=347000,6643000,349000,6645000&WIDTH=5&HEIGHT=5&X=2&Y=2&INFO_FORMAT=application/vnd.ogc.gml&FEATURE_COUNT=1' },
   { key: 'ign', label: 'IGN Géoplateforme', test: 'https://data.geopf.fr/geocodage/search?q=paris&limit=1' },
+  { key: 'urbanisme', label: 'Urbanisme (GPU)', test: 'https://apicarto.ign.fr/api/gpu/municipality?geom=%7B%22type%22%3A%22Point%22%2C%22coordinates%22%3A%5B2.35%2C48.85%5D%7D' },
 ];
 function setSvcDot(key, state, info) {
   const d = document.getElementById('svc-dot-' + key);
